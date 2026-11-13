@@ -93,7 +93,7 @@ impl StoredTokens {
 }
 
 pub struct AccountManager {
-    db: Db,
+    pub(crate) db: Db,
     secrets: Arc<dyn SecretStore>,
     auth: AuthClient,
     helix: HelixClient,

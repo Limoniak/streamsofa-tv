@@ -7,6 +7,12 @@
     <string name="home_needs_reauth">%1$s doit se reconnecter : Twitch n\'accepte plus sa session.</string>
     <string name="home_reconnect">Se reconnecter</string>
     <string name="following_title">Suivis en live</string>
+    <string name="following_channels">Chaînes suivies</string>
+    <string name="channel_live">En direct</string>
+    <string name="channel_videos">Vidéos</string>
+    <string name="channel_no_videos">Aucune vidéo disponible.</string>
+    <string name="channel_not_found">Cette chaîne n\'existe pas.</string>
+    <string name="video_views">vues</string>
     <string name="sign_in">Connecter un compte</string>
     <string name="category_empty">Personne ne diffuse dans cette catégorie.</string>
 </resources>

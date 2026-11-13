@@ -1,5 +1,6 @@
 //! Base SQLite locale. Ne contient jamais de jeton : uniquement des métadonnées.
 
+use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Mutex;
 
@@ -23,6 +24,17 @@ const MIGRATIONS: &[&str] = &["
     CREATE TABLE app_state (
         key   TEXT PRIMARY KEY,
         value TEXT NOT NULL
+    );
+", "
+    -- `scope` : id du compte, ou `guest`. Chaque profil a ses propres reprises.
+    CREATE TABLE vod_progress (
+        scope       TEXT NOT NULL,
+        video_id    TEXT NOT NULL,
+        position_s  INTEGER NOT NULL,
+        duration_s  INTEGER NOT NULL,
+        finished    INTEGER NOT NULL,
+        updated_at  INTEGER NOT NULL,
+        PRIMARY KEY (scope, video_id)
     );
 "];
 
@@ -108,10 +120,38 @@ impl Db {
         Ok(changed > 0)
     }
 
+    /// Une VOD vue à 95 % compte comme terminée : le générique de fin ne bloque pas la reprise.
+    pub fn save_vod_progress(&self, scope: &str, video_id: &str, position_s: u32, duration_s: u32, now: i64) -> Result<bool, CoreError> {
+        let finished = duration_s > 0 && position_s as u64 * 100 >= duration_s as u64 * 95;
+        self.conn().execute(
+            "INSERT INTO vod_progress (scope, video_id, position_s, duration_s, finished, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+             ON CONFLICT(scope, video_id) DO UPDATE SET
+                 position_s = excluded.position_s, duration_s = excluded.duration_s,
+                 finished = excluded.finished, updated_at = excluded.updated_at",
+            params![scope, video_id, position_s, duration_s, finished, now],
+        )?;
+        Ok(finished)
+    }
+
+    /// Position et fin de lecture de chaque VOD déjà vue parmi `video_ids`.
+    pub fn vod_progress(&self, scope: &str, video_ids: &[&str]) -> Result<HashMap<String, (u32, bool)>, CoreError> {
+        let conn = self.conn();
+        let mut stmt = conn.prepare_cached("SELECT position_s, finished FROM vod_progress WHERE scope = ?1 AND video_id = ?2")?;
+        let mut out = HashMap::new();
+        for id in video_ids {
+            if let Some(row) = stmt.query_row(params![scope, id], |r| Ok((r.get(0)?, r.get(1)?))).optional()? {
+                out.insert((*id).to_owned(), row);
+            }
+        }
+        Ok(out)
+    }
+
     pub fn delete_account(&self, id: &str) -> Result<(), CoreError> {
         let mut conn = self.conn();
         let tx = conn.transaction()?;
         tx.execute("DELETE FROM accounts WHERE id = ?1", [id])?;
+        tx.execute("DELETE FROM vod_progress WHERE scope = ?1", [id])?;
         tx.execute("DELETE FROM app_state WHERE key = ?1 AND value = ?2", params![ACTIVE_ACCOUNT, id])?;
         tx.commit()?;
         Ok(())
@@ -183,6 +223,23 @@ mod tests {
         db.upsert_account(&account("1"), "", 30).unwrap();
         let ids: Vec<_> = db.accounts().unwrap().into_iter().map(|a| (a.id, a.state)).collect();
         assert_eq!(ids, vec![("1".into(), AccountState::Ok), ("2".into(), AccountState::Ok)]);
+    }
+
+    #[test]
+    fn vod_progress_is_per_profile_and_marks_the_end() {
+        let db = Db::in_memory().unwrap();
+        db.save_vod_progress("guest", "v1", 120, 3_600, 1).unwrap();
+        db.save_vod_progress("guest", "v2", 3_500, 3_600, 1).unwrap();
+        db.save_vod_progress("42", "v1", 30, 3_600, 1).unwrap();
+        db.save_vod_progress("guest", "v1", 200, 3_600, 2).unwrap();
+        let guest = db.vod_progress("guest", &["v1", "v2", "v3"]).unwrap();
+        assert_eq!(guest.get("v1"), Some(&(200, false)));
+        assert_eq!(guest.get("v2"), Some(&(3_500, true)));
+        assert!(!guest.contains_key("v3"));
+        assert_eq!(db.vod_progress("42", &["v1"]).unwrap().get("v1"), Some(&(30, false)));
+        db.upsert_account(&account("42"), "", 1).unwrap();
+        db.delete_account("42").unwrap();
+        assert!(db.vod_progress("42", &["v1"]).unwrap().is_empty(), "retirer un compte efface ses reprises");
     }
 
     #[test]

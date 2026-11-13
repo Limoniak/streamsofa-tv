@@ -17,6 +17,7 @@ use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::Connector;
 
 use irc::parse_line;
+pub(crate) use irc::{emote_url, readable_color};
 
 const BATCH_INTERVAL: Duration = Duration::from_millis(100);
 /// Un lot ne garde que les plus récents : au-delà, l'écran ne pourrait de toute façon pas suivre.

@@ -5,4 +5,7 @@
     <string name="chat_connecting">Connexion au chat…</string>
     <string name="chat_compose_hint">Votre message</string>
     <string name="chat_send">Envoyer</string>
+    <string name="vod_paused">En pause</string>
+    <string name="vod_seek_hint">◀ ▶ reculer ou avancer · OK pause · ▼ chat</string>
+    <string name="vod_no_chat">Pas de chat pour cette vidéo.</string>
 </resources>

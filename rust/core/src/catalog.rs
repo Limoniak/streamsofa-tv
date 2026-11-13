@@ -41,6 +41,74 @@ pub struct CategoryPage {
     pub cursor: Option<String>,
 }
 
+/// Une chaîne, en live ou non.
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct Channel {
+    pub id: String,
+    pub login: String,
+    pub display_name: String,
+    pub avatar_url: String,
+    pub description: String,
+}
+
+/// Une VOD (rediffusion, temps fort ou vidéo importée).
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct Video {
+    pub id: String,
+    pub title: String,
+    pub channel_id: String,
+    pub channel_login: String,
+    pub channel_name: String,
+    pub duration_s: u32,
+    /// Secondes Unix (0 si inconnu).
+    pub published_at: i64,
+    pub views: u32,
+    /// Modèle d'URL avec `{width}` et `{height}` ; vide tant que Twitch prépare la vidéo.
+    pub thumbnail_url: String,
+    /// Reprise pour le profil actif : dernière position vue (0 si jamais vue).
+    pub position_s: u32,
+    pub finished: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct VideoPage {
+    pub items: Vec<Video>,
+    pub cursor: Option<String>,
+}
+
+/// Message du chat d'une VOD, à afficher quand la lecture atteint `offset_s`.
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct ReplayComment {
+    pub offset_s: u32,
+    pub message: crate::chat::ChatMessage,
+}
+
+/// Miniature de VOD en modèle `{width}x{height}`, quelle que soit la source :
+/// Helix écrit `%{width}`, GQL une taille fixe demandée (`320x180`).
+pub fn video_thumbnail(url: &str) -> String {
+    // Image « en cours de traitement » : l'UI affiche plutôt son propre fond.
+    if url.is_empty() || url.contains("/_404/") {
+        return String::new();
+    }
+    url.replace("%{width}", "{width}").replace("%{height}", "{height}").replace("320x180", "{width}x{height}")
+}
+
+/// Durée Helix (`3h2m10s`, `45m`, `12s`) en secondes.
+pub fn parse_duration(value: &str) -> u32 {
+    let mut total = 0u32;
+    let mut number = 0u32;
+    for c in value.chars() {
+        match c {
+            '0'..='9' => number = number.saturating_mul(10).saturating_add(c as u32 - '0' as u32),
+            'h' => (total, number) = (total.saturating_add(number * 3_600), 0),
+            'm' => (total, number) = (total.saturating_add(number * 60), 0),
+            's' => (total, number) = (total.saturating_add(number), 0),
+            _ => return 0,
+        }
+    }
+    total
+}
+
 /// Aperçu d'un live. Même format pour Helix et GQL, ce qui garde un cache d'images commun.
 pub fn thumbnail_template(login: &str) -> String {
     format!("https://static-cdn.jtvnw.net/previews-ttv/live_user_{}-{{width}}x{{height}}.jpg", login.to_lowercase())
@@ -90,6 +158,21 @@ mod tests {
         assert_eq!(parse_utc("2024-02-29T23:59:59.123Z"), Some(1_709_251_199));
         assert_eq!(parse_utc("2026-11-13 09:05:30"), None);
         assert_eq!(parse_utc(""), None);
+    }
+
+    #[test]
+    fn parses_helix_durations() {
+        assert_eq!(parse_duration("3h2m10s"), 10_930);
+        assert_eq!(parse_duration("45m"), 2_700);
+        assert_eq!(parse_duration("12s"), 12);
+        assert_eq!(parse_duration("abc"), 0);
+    }
+
+    #[test]
+    fn video_thumbnails_become_templates() {
+        assert_eq!(video_thumbnail("https://x/thumb-%{width}x%{height}.jpg"), "https://x/thumb-{width}x{height}.jpg");
+        assert_eq!(video_thumbnail("https://x/thumb-320x180.jpeg"), "https://x/thumb-{width}x{height}.jpeg");
+        assert_eq!(video_thumbnail("https://vod-secure.twitch.tv/_404/404_processing_320x180.png"), "");
     }
 
     #[test]

@@ -20,6 +20,13 @@ fun formatUptime(startedAtSeconds: Long, nowMillis: Long = System.currentTimeMil
     return if (minutes < 60) "$minutes min" else "${minutes / 60} h ${"%02d".format(minutes % 60)}"
 }
 
+/** Durée de vidéo : « 12:05 », « 1:02:03 ». */
+fun formatDuration(seconds: Long): String {
+    val s = seconds.coerceAtLeast(0)
+    val (h, m, sec) = Triple(s / 3600, s / 60 % 60, s % 60)
+    return if (h > 0) "%d:%02d:%02d".format(h, m, sec) else "%d:%02d".format(m, sec)
+}
+
 /**
  * Remplit un modèle d'URL Twitch (`{width}x{height}`) à la taille réellement affichée.
  * Les aperçus de live changent toutes les 5 minutes sous la même URL : [freshnessBucketMs]

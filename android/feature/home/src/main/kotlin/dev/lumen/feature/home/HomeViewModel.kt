@@ -1,20 +1,26 @@
 package dev.lumen.feature.home
 
 import android.os.SystemClock
+import android.text.format.DateUtils
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.lumen.core.Account
 import dev.lumen.core.AccountState
 import dev.lumen.core.Category
+import dev.lumen.core.Channel
 import dev.lumen.core.LiveStream
+import dev.lumen.core.Video
 import dev.lumen.data.AccountsRepository
 import dev.lumen.data.CatalogRepository
 import dev.lumen.data.LoadError
 import dev.lumen.data.loadCatching
 import dev.lumen.data.toLoadError
 import dev.lumen.designsystem.CategoryCardModel
+import dev.lumen.designsystem.ChannelCardModel
 import dev.lumen.designsystem.StreamCardModel
+import dev.lumen.designsystem.VideoCardModel
+import dev.lumen.designsystem.formatViewers
 import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -110,6 +116,22 @@ fun LiveStream.toCard(prefix: String) = StreamCardModel(
     viewers = viewers.toInt(),
     thumbnailTemplate = thumbnailUrl,
     avatarUrl = avatarUrl,
+)
+
+fun Channel.toCard() = ChannelCardModel(key = "ch:$login", name = displayName, avatarUrl = avatarUrl)
+
+/** « il y a 3 jours · 12,3 k vues » */
+fun Video.toCard(viewsLabel: String) = VideoCardModel(
+    key = "v:$id",
+    title = title,
+    subtitle = listOfNotNull(
+        publishedAt.takeIf { it > 0 }?.let { DateUtils.getRelativeTimeSpanString(it * 1000).toString() },
+        "${formatViewers(views.toInt())} $viewsLabel",
+    ).joinToString("  ·  "),
+    thumbnailTemplate = thumbnailUrl,
+    durationS = durationS.toLong(),
+    positionS = positionS.toLong(),
+    finished = finished,
 )
 
 fun Category.toCard() = CategoryCardModel(

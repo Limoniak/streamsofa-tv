@@ -21,9 +21,11 @@ import dev.lumen.data.AccountsRepository
 import dev.lumen.feature.auth.DeviceLoginRoute
 import dev.lumen.feature.auth.ProfilesRoute
 import dev.lumen.feature.home.CategoryRoute
+import dev.lumen.feature.home.ChannelRoute
 import dev.lumen.feature.home.FollowingRoute
 import dev.lumen.feature.home.HomeRoute
 import dev.lumen.feature.player.PlayerRoute
+import dev.lumen.feature.player.VodPlayerRoute
 import javax.inject.Inject
 
 private object Routes {
@@ -33,9 +35,13 @@ private object Routes {
     const val FOLLOWING = "following"
     const val CATEGORY = "category/{id}?name={name}"
     const val LIVE = "live/{login}"
+    const val CHANNEL = "channel/{login}"
+    const val VOD = "vod/{id}"
 
     fun category(id: String, name: String) = "category/${Uri.encode(id)}?name=${Uri.encode(name)}"
     fun live(login: String) = "live/${Uri.encode(login)}"
+    fun channel(login: String) = "channel/${Uri.encode(login)}"
+    fun vod(id: String) = "vod/${Uri.encode(id)}"
 }
 
 @HiltViewModel
@@ -82,6 +88,7 @@ fun LumenNavHost(session: SessionViewModel = hiltViewModel()) {
             Shell(ShellTab.Home, onTab = navController::openTab) {
                 HomeRoute(
                     onOpenStream = navController::openLive,
+                    onOpenChannel = navController::openChannel,
                     onOpenCategory = { id, name -> navController.navigate(Routes.category(id, name)) },
                     onReconnect = { navController.navigate(Routes.LOGIN) },
                 )
@@ -91,20 +98,32 @@ fun LumenNavHost(session: SessionViewModel = hiltViewModel()) {
             Shell(ShellTab.Following, onTab = navController::openTab) {
                 FollowingRoute(
                     onOpenStream = navController::openLive,
+                    onOpenChannel = navController::openChannel,
                     onSignIn = { navController.navigate(Routes.PROFILES) },
                 )
             }
         }
         composable(Routes.CATEGORY) {
             Shell(selected = null, onTab = navController::openTab) {
-                CategoryRoute(onOpenStream = navController::openLive)
+                CategoryRoute(onOpenStream = navController::openLive, onOpenChannel = navController::openChannel)
+            }
+        }
+        composable(Routes.CHANNEL) {
+            Shell(selected = null, onTab = navController::openTab) {
+                ChannelRoute(
+                    onOpenStream = navController::openLive,
+                    onOpenVideo = { navController.navigate(Routes.vod(it)) },
+                )
             }
         }
         composable(Routes.LIVE) { PlayerRoute() }
+        composable(Routes.VOD) { VodPlayerRoute() }
     }
 }
 
 private fun NavController.openLive(login: String) = navigate(Routes.live(login))
+
+private fun NavController.openChannel(login: String) = navigate(Routes.channel(login))
 
 /** Les onglets ne s'empilent pas : Retour depuis « Suivis » ramène à l'accueil. */
 private fun NavController.openTab(tab: ShellTab) {

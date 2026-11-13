@@ -46,19 +46,21 @@ import dev.lumen.data.R as DataR
 @Composable
 fun HomeRoute(
     onOpenStream: (login: String) -> Unit,
+    onOpenChannel: (login: String) -> Unit,
     onOpenCategory: (id: String, name: String) -> Unit,
     onReconnect: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshIfStale() }
-    HomeScreen(state, onOpenStream, onOpenCategory, onReconnect, onRetry = viewModel::reload)
+    HomeScreen(state, onOpenStream, onOpenChannel, onOpenCategory, onReconnect, onRetry = viewModel::reload)
 }
 
 @Composable
 fun HomeScreen(
     state: HomeUiState,
     onOpenStream: (login: String) -> Unit,
+    onOpenChannel: (login: String) -> Unit,
     onOpenCategory: (id: String, name: String) -> Unit,
     onReconnect: () -> Unit,
     onRetry: () -> Unit,
@@ -80,6 +82,10 @@ fun HomeScreen(
         memory.key = "$prefix:${stream.login}"
         onOpenStream(stream.login)
     }
+    val openChannel = { prefix: String, stream: LiveStream ->
+        memory.key = "$prefix:${stream.login}"
+        onOpenChannel(stream.login)
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -99,6 +105,7 @@ fun HomeScreen(
                     memory = memory,
                     target = target,
                     onOpen = openStream,
+                    onOpenChannel = openChannel,
                     onRetry = onRetry,
                 )
             }
@@ -112,6 +119,7 @@ fun HomeScreen(
                 memory = memory,
                 target = target,
                 onOpen = openStream,
+                onOpenChannel = openChannel,
                 onRetry = onRetry,
             )
         }
@@ -146,6 +154,7 @@ private fun StreamRow(
     memory: FocusMemory,
     target: String?,
     onOpen: (String, LiveStream) -> Unit,
+    onOpenChannel: (String, LiveStream) -> Unit,
     onRetry: () -> Unit,
 ) {
     RowScaffold(title) {
@@ -159,6 +168,7 @@ private fun StreamRow(
                     StreamCard(
                         stream = stream.toCard(prefix),
                         onClick = { onOpen(prefix, stream) },
+                        onLongClick = { onOpenChannel(prefix, stream) },
                         modifier = Modifier.restoreFocusHere(memory, "$prefix:${stream.login}" == target),
                     )
                 }

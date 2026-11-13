@@ -44,6 +44,21 @@ pub fn live_master_url(base: &str, login: &str, token: &str, signature: &str, no
     format!("{base}/api/channel/hls/{}.m3u8?{query}", login.to_lowercase())
 }
 
+/// URL de la playlist maîtresse d'une VOD (mêmes choix de codec que le live).
+pub fn vod_master_url(base: &str, video_id: &str, token: &str, signature: &str, nonce: u32) -> String {
+    let query: String = url_query(&[
+        ("allow_source", "true"),
+        ("allow_audio_only", "true"),
+        ("playlist_include_framerate", "true"),
+        ("player_backend", "mediaplayer"),
+        ("supported_codecs", "avc1"),
+        ("p", &nonce.to_string()),
+        ("sig", signature),
+        ("token", token),
+    ]);
+    format!("{base}/vod/{video_id}.m3u8?{query}")
+}
+
 fn url_query(pairs: &[(&str, &str)]) -> String {
     pairs
         .iter()

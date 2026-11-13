@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use crate::accounts::{Account, AccountManager, AccountsListener, AccountsSnapshot, DeviceLogin};
 use crate::auth::AuthClient;
-use crate::catalog::{Category, CategoryPage, LiveStream, StreamPage};
+use crate::catalog::{Category, CategoryPage, Channel, LiveStream, ReplayComment, StreamPage, Video, VideoPage};
 use crate::chat::{self, ChatListener, ChatSession};
 use crate::error::CoreError;
 use crate::gql::GqlClient;
@@ -61,6 +61,8 @@ impl Default for Endpoints {
 const PAGE_SIZE: u32 = 30;
 /// Au-delà, les suivis en live ne tiennent de toute façon plus dans une rangée.
 const MAX_FOLLOWED_PAGES: usize = 5;
+/// VOD d'une chaîne en invité : une seule page, donc la plus grande que GQL accepte.
+const GUEST_VIDEOS: u32 = 100;
 
 #[derive(uniffi::Object)]
 pub struct Core {
@@ -156,6 +158,44 @@ impl Core {
                 s.into_live(avatar)
             })
             .collect()
+    }
+}
+
+impl Core {
+    /// Les reprises de VOD sont propres à chaque profil, invité compris.
+    fn progress_scope(&self) -> Result<String, CoreError> {
+        Ok(self.accounts.db.active_account_id()?.unwrap_or_else(|| "guest".into()))
+    }
+
+    fn with_progress(&self, videos: &mut [Video]) -> Result<(), CoreError> {
+        let ids: Vec<&str> = videos.iter().map(|v| v.id.as_str()).collect();
+        let progress = self.accounts.db.vod_progress(&self.progress_scope()?, &ids)?;
+        for video in videos.iter_mut() {
+            if let Some(&(position_s, finished)) = progress.get(&video.id) {
+                (video.position_s, video.finished) = (position_s, finished);
+            }
+        }
+        Ok(())
+    }
+
+    /// Télécharge une playlist maîtresse d'usher ; `missing` est l'erreur d'un 404.
+    async fn master_playlist(&self, master_url: String, missing: CoreError) -> Result<Playback, CoreError> {
+        let response = self.http.get(&master_url).send().await?;
+        match response.status().as_u16() {
+            200..=299 => {}
+            404 => return Err(missing),
+            403 => {
+                let body = response.text().await.unwrap_or_default();
+                return Err(CoreError::Unavailable { detail: usher_reason(&body) });
+            }
+            status => return Err(CoreError::Api { status, detail: "playlist maîtresse".into() }),
+        }
+        let body = response.text().await?;
+        let variants = hls::parse_master(&body, &master_url);
+        if variants.is_empty() {
+            return Err(CoreError::GqlChanged { operation: "usher".into(), detail: "playlist sans qualité".into() });
+        }
+        Ok(Playback { master_url, variants })
     }
 }
 
@@ -315,6 +355,92 @@ impl Core {
         }
     }
 
+    // --- Chaînes et VOD -------------------------------------------------------------------
+
+    /// Toutes les chaînes suivies, en live ou non, de la plus récemment suivie à la plus ancienne.
+    pub async fn followed_channels(&self) -> Result<Vec<Channel>, CoreError> {
+        let result = self
+            .with_helix(|token: Secret, user_id: String| async move {
+                let mut follows = Vec::new();
+                let mut cursor: Option<String> = None;
+                for _ in 0..MAX_FOLLOWED_PAGES {
+                    let page = self.helix.followed_channels(&token, &user_id, cursor.as_deref()).await?;
+                    cursor = page.next_cursor();
+                    follows.extend(page.data);
+                    if cursor.is_none() {
+                        break;
+                    }
+                }
+                // Avatars par lots de 100 ; décoratifs, un échec laisse les initiales.
+                let mut avatars: HashMap<String, String> = HashMap::new();
+                for chunk in follows.chunks(100) {
+                    let ids: Vec<&str> = chunk.iter().map(|f| f.broadcaster_id.as_str()).collect();
+                    if let Ok(users) = self.helix.users(&token, &ids).await {
+                        avatars.extend(users.into_iter().map(|u| (u.id, u.profile_image_url)));
+                    }
+                }
+                Ok(follows
+                    .into_iter()
+                    .map(|f| Channel {
+                        avatar_url: avatars.remove(&f.broadcaster_id).unwrap_or_default(),
+                        id: f.broadcaster_id,
+                        login: f.broadcaster_login,
+                        display_name: f.broadcaster_name,
+                        description: String::new(),
+                    })
+                    .collect())
+            })
+            .await?;
+        result.ok_or(CoreError::NotSignedIn)
+    }
+
+    /// `None` : la chaîne n'existe pas.
+    pub async fn channel(&self, login: String) -> Result<Option<Channel>, CoreError> {
+        let channel = login.as_str();
+        let helix = self
+            .with_helix(|token: Secret, _| async move { Ok(self.helix.user_by_login(&token, channel).await?.map(Channel::from)) })
+            .await?;
+        match helix {
+            Some(channel) => Ok(channel),
+            None => self.gql.channel(&login).await,
+        }
+    }
+
+    /// VOD d'une chaîne, des plus récentes aux plus anciennes, avec la reprise du profil actif.
+    pub async fn channel_videos(&self, channel_id: String, cursor: Option<String>) -> Result<VideoPage, CoreError> {
+        let (after, channel) = (cursor.as_deref(), channel_id.as_str());
+        let helix = self
+            .with_helix(|token: Secret, _| async move {
+                let page = self.helix.channel_videos(&token, channel, after, PAGE_SIZE).await?;
+                let next = page.next_cursor();
+                Ok(VideoPage { items: page.data.into_iter().map(Video::from).collect(), cursor: next })
+            })
+            .await?;
+        let mut page = match helix {
+            Some(page) => page,
+            // shortcut: en invité, une seule page (GQL exige un jeton d'intégrité pour la suite) ;
+            // un compte connecté pagine via Helix.
+            None if cursor.is_none() => VideoPage { items: self.gql.channel_videos(&channel_id, GUEST_VIDEOS).await?, cursor: None },
+            None => VideoPage { items: Vec::new(), cursor: None },
+        };
+        self.with_progress(&mut page.items)?;
+        Ok(page)
+    }
+
+    /// `None` : VOD supprimée ou inconnue.
+    pub async fn video(&self, video_id: String) -> Result<Option<Video>, CoreError> {
+        let id = video_id.as_str();
+        let helix = self
+            .with_helix(|token: Secret, _| async move { Ok(self.helix.video(&token, id).await?.map(Video::from)) })
+            .await?;
+        let mut video = match helix {
+            Some(video) => video,
+            None => self.gql.video(&video_id).await?,
+        };
+        self.with_progress(video.as_mut_slice())?;
+        Ok(video)
+    }
+
     // --- Lecture -------------------------------------------------------------------------
 
     /// Playlist d'un live et ses qualités. Lecture toujours anonyme (jeton GQL du site web) :
@@ -329,22 +455,36 @@ impl Core {
         }
         let nonce = u32::from_str_radix(&random_hex(6), 16).unwrap_or(0);
         let master_url = hls::live_master_url(&self.usher, &login, &token.value, &token.signature, nonce);
-        let response = self.http.get(&master_url).send().await?;
-        match response.status().as_u16() {
-            200..=299 => {}
-            404 => return Err(CoreError::Offline),
-            403 => {
-                let body = response.text().await.unwrap_or_default();
-                return Err(CoreError::Unavailable { detail: usher_reason(&body) });
-            }
-            status => return Err(CoreError::Api { status, detail: "playlist du live".into() }),
+        self.master_playlist(master_url, CoreError::Offline).await
+    }
+
+    /// Playlist d'une VOD, en anonyme comme le live : une VOD réservée aux abonnés reste refusée.
+    pub async fn vod_playback(&self, video_id: String) -> Result<Playback, CoreError> {
+        // L'identifiant finit dans un chemin d'URL : uniquement des chiffres.
+        if video_id.is_empty() || !video_id.bytes().all(|b| b.is_ascii_digit()) {
+            return Err(CoreError::Unavailable { detail: "identifiant de VOD invalide".into() });
         }
-        let body = response.text().await?;
-        let variants = hls::parse_master(&body, &master_url);
-        if variants.is_empty() {
-            return Err(CoreError::GqlChanged { operation: "usher".into(), detail: "playlist sans qualité".into() });
-        }
-        Ok(Playback { master_url, variants })
+        let missing = || CoreError::Unavailable { detail: "VOD introuvable".into() };
+        let token = self.gql.vod_playback_token(&video_id).await?.ok_or_else(missing)?;
+        let nonce = u32::from_str_radix(&random_hex(6), 16).unwrap_or(0);
+        let master_url = hls::vod_master_url(&self.usher, &video_id, &token.value, &token.signature, nonce);
+        self.master_playlist(master_url, missing()).await
+    }
+
+    /// Mémorise où en est la VOD pour le profil actif (à appeler hors du thread principal).
+    /// Renvoie `true` si elle compte désormais comme terminée.
+    pub fn save_vod_progress(&self, video_id: String, position_s: u32, duration_s: u32) -> Result<bool, CoreError> {
+        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
+        self.accounts.db.save_vod_progress(&self.progress_scope()?, &video_id, position_s, duration_s, now)
+    }
+
+    /// Chat d'une VOD à partir de `offset_s`, en ordre chronologique. Une liste vide
+    /// signifie la fin du chat, ou une VOD sans chat.
+    pub async fn vod_chat(&self, video_id: String, offset_s: u32) -> Result<Vec<ReplayComment>, CoreError> {
+        let mut comments = self.gql.vod_comments(&video_id, offset_s).await?;
+        // Twitch renvoie aussi quelques messages juste avant l'instant demandé.
+        comments.retain(|c| c.offset_s >= offset_s);
+        Ok(comments)
     }
 }
 
@@ -385,6 +525,7 @@ fn usher_reason(body: &str) -> String {
     serde_json::from_str::<Vec<UsherError>>(body)
         .ok()
         .and_then(|errors| errors.into_iter().map(|e| e.error).find(|e| !e.is_empty()))
+        .map(|e| if e == "Manifest is restricted" { "Vidéo réservée aux abonnés de la chaîne.".into() } else { e })
         .unwrap_or_else(|| "lecture refusée par Twitch".into())
 }
 

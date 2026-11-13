@@ -6,7 +6,9 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 
 use crate::auth::api_error;
-use crate::catalog::{box_art_template, parse_utc, thumbnail_template, Category, LiveStream};
+use crate::catalog::{
+    box_art_template, parse_duration, parse_utc, thumbnail_template, video_thumbnail, Category, Channel, LiveStream, Video,
+};
 use crate::error::CoreError;
 use crate::secret::Secret;
 
@@ -17,9 +19,71 @@ const MAX_RATE_LIMIT_WAIT: Duration = Duration::from_secs(5);
 pub struct HelixUser {
     #[serde(default)]
     pub id: String,
+    #[serde(default)]
+    pub login: String,
     pub display_name: String,
     #[serde(default)]
     pub profile_image_url: String,
+    #[serde(default)]
+    pub description: String,
+}
+
+impl From<HelixUser> for Channel {
+    fn from(user: HelixUser) -> Self {
+        Channel {
+            id: user.id,
+            login: user.login,
+            display_name: user.display_name,
+            avatar_url: user.profile_image_url,
+            description: user.description,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct HelixVideo {
+    pub id: String,
+    #[serde(default)]
+    pub user_id: String,
+    #[serde(default)]
+    pub user_login: String,
+    #[serde(default)]
+    pub user_name: String,
+    #[serde(default)]
+    pub title: String,
+    #[serde(default)]
+    pub published_at: String,
+    #[serde(default)]
+    pub thumbnail_url: String,
+    #[serde(default)]
+    pub view_count: u32,
+    #[serde(default)]
+    pub duration: String,
+}
+
+impl From<HelixVideo> for Video {
+    fn from(v: HelixVideo) -> Self {
+        Video {
+            thumbnail_url: video_thumbnail(&v.thumbnail_url),
+            published_at: parse_utc(&v.published_at).unwrap_or(0),
+            duration_s: parse_duration(&v.duration),
+            id: v.id,
+            title: v.title,
+            channel_id: v.user_id,
+            channel_login: v.user_login,
+            channel_name: v.user_name,
+            views: v.view_count,
+            position_s: 0,
+            finished: false,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct HelixFollow {
+    pub broadcaster_id: String,
+    pub broadcaster_login: String,
+    pub broadcaster_name: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -188,6 +252,39 @@ impl HelixClient {
         let query: Vec<(&str, &str)> = ids.iter().take(100).map(|id| ("id", *id)).collect();
         let page: Page<HelixUser> = self.get("/users", &query, token).await?;
         Ok(page.data)
+    }
+
+    pub async fn user_by_login(&self, token: &Secret, login: &str) -> Result<Option<HelixUser>, CoreError> {
+        let page: Page<HelixUser> = self.get("/users", &[("login", &login.to_lowercase())], token).await?;
+        Ok(page.data.into_iter().next())
+    }
+
+    /// Chaînes suivies, en live ou non, de la plus récemment suivie à la plus ancienne.
+    pub async fn followed_channels(&self, token: &Secret, user_id: &str, after: Option<&str>) -> Result<Page<HelixFollow>, CoreError> {
+        let mut query = vec![("user_id", user_id), ("first", "100")];
+        if let Some(after) = after {
+            query.push(("after", after));
+        }
+        self.get("/channels/followed", &query, token).await
+    }
+
+    /// VOD d'une chaîne, des plus récentes aux plus anciennes.
+    pub async fn channel_videos(&self, token: &Secret, user_id: &str, after: Option<&str>, first: u32) -> Result<Page<HelixVideo>, CoreError> {
+        let first = first.clamp(1, 100).to_string();
+        let mut query = vec![("user_id", user_id), ("first", first.as_str())];
+        if let Some(after) = after {
+            query.push(("after", after));
+        }
+        self.get("/videos", &query, token).await
+    }
+
+    /// Une VOD supprimée ou inconnue répond 404 chez Helix : on la traite comme absente.
+    pub async fn video(&self, token: &Secret, id: &str) -> Result<Option<HelixVideo>, CoreError> {
+        match self.get::<Page<HelixVideo>>("/videos", &[("id", id)], token).await {
+            Ok(page) => Ok(page.data.into_iter().next()),
+            Err(CoreError::Api { status: 404, .. }) => Ok(None),
+            Err(e) => Err(e),
+        }
     }
 
     /// Lives suivis par l'utilisateur, triés par spectateurs.

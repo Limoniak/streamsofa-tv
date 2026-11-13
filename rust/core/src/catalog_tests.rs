@@ -292,3 +292,121 @@ async fn sending_chat_uses_helix_and_reports_twitch_refusals() {
         other => panic!("{other:?}"),
     }
 }
+
+// --- Chaînes et VOD --------------------------------------------------------------------------
+
+fn gql_video(id: &str) -> Value {
+    json!({ "node": { "id": id, "title": format!("VOD {id}"), "lengthSeconds": 3600,
+        "publishedAt": "2026-11-12T08:00:00Z", "viewCount": 42,
+        "previewThumbnailURL": format!("https://static-cdn.jtvnw.net/cf_vods/x/{id}-320x180.jpeg"),
+        "owner": { "id": "u-alpha", "login": "alpha", "displayName": "Alpha" } } })
+}
+
+#[tokio::test]
+async fn guest_videos_come_from_gql_with_the_resume_position() {
+    let h = Harness::new().await;
+    Mock::given(method("POST"))
+        .and(path("/gql"))
+        .and(body_string_contains("\"operationName\":\"ChannelVideos\""))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": { "user": { "videos": {
+            "edges": [gql_video("11"), gql_video("12")] } } } })))
+        .mount(&h.server)
+        .await;
+    h.core.save_vod_progress("12".into(), 600, 3600).unwrap();
+
+    let page = h.core.channel_videos("u-alpha".into(), None).await.unwrap();
+    assert_eq!(page.cursor, None, "une seule page en invité");
+    let ids: Vec<_> = page.items.iter().map(|v| (v.id.as_str(), v.position_s, v.finished)).collect();
+    assert_eq!(ids, vec![("11", 0, false), ("12", 600, false)]);
+    let video = &page.items[0];
+    assert_eq!((video.duration_s, video.views, video.channel_login.as_str()), (3600, 42, "alpha"));
+    assert!(video.thumbnail_url.ends_with("/11-{width}x{height}.jpeg"));
+}
+
+#[tokio::test]
+async fn signed_in_videos_and_follows_come_from_helix() {
+    let h = Harness::new().await;
+    h.sign_in("u1", "alice").await;
+    Mock::given(method("GET"))
+        .and(path("/helix/videos"))
+        .and(query_param("user_id", "u-alpha"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": [{
+            "id": "21", "user_id": "u-alpha", "user_login": "alpha", "user_name": "Alpha", "title": "Rediff",
+            "published_at": "2026-11-12T08:00:00Z", "view_count": 7, "duration": "1h2m3s",
+            "thumbnail_url": "https://static-cdn.jtvnw.net/cf_vods/x/thumb-%{width}x%{height}.jpg" }],
+            "pagination": { "cursor": "next" } })))
+        .mount(&h.server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/helix/channels/followed"))
+        .and(query_param("user_id", "u1"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": [
+            { "broadcaster_id": "u-alpha", "broadcaster_login": "alpha", "broadcaster_name": "ALPHA", "followed_at": "x" },
+            { "broadcaster_id": "u-beta", "broadcaster_login": "beta", "broadcaster_name": "Beta", "followed_at": "x" },
+        ]})))
+        .mount(&h.server)
+        .await;
+    mock_avatars(&h).await;
+
+    let page = h.core.channel_videos("u-alpha".into(), None).await.unwrap();
+    assert_eq!(page.cursor.as_deref(), Some("next"));
+    assert_eq!(page.items[0].duration_s, 3723);
+    assert_eq!(page.items[0].thumbnail_url, "https://static-cdn.jtvnw.net/cf_vods/x/thumb-{width}x{height}.jpg");
+
+    let follows = h.core.followed_channels().await.unwrap();
+    let logins: Vec<_> = follows.iter().map(|c| (c.login.as_str(), c.avatar_url.as_str())).collect();
+    assert_eq!(logins, vec![("alpha", "https://cdn.example/alpha.png"), ("beta", "")]);
+}
+
+#[tokio::test]
+async fn subscriber_only_vods_are_refused_not_bypassed() {
+    let h = Harness::new().await;
+    Mock::given(method("POST"))
+        .and(path("/gql"))
+        .and(body_string_contains("\"vodID\":\"31\""))
+        .and(body_string_contains("\"isVod\":true"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": {
+            "videoPlaybackAccessToken": { "value": "{\"vod_id\":31}", "signature": "sig" } } })))
+        .mount(&h.server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/vod/31.m3u8"))
+        .and(query_param("sig", "sig"))
+        .respond_with(ResponseTemplate::new(403).set_body_json(json!([{ "error": "Manifest is restricted" }])))
+        .mount(&h.server)
+        .await;
+    match h.core.vod_playback("31".into()).await {
+        Err(CoreError::Unavailable { detail }) => assert_eq!(detail, "Vidéo réservée aux abonnés de la chaîne."),
+        other => panic!("Unavailable attendu, obtenu {other:?}"),
+    }
+    assert!(matches!(h.core.vod_playback("../x".into()).await, Err(CoreError::Unavailable { .. })));
+}
+
+#[tokio::test]
+async fn vod_chat_starts_at_the_offset_and_keeps_emotes() {
+    let h = Harness::new().await;
+    Mock::given(method("POST"))
+        .and(path("/gql"))
+        .and(body_string_contains("\"operationName\":\"VodComments\""))
+        .and(body_string_contains("\"offset\":100"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": { "video": { "id": "41", "comments": {
+            "edges": [
+                { "node": { "id": "c0", "contentOffsetSeconds": 95, "commenter": { "id": "1", "login": "a", "displayName": "A" },
+                    "message": { "userColor": "#FF0000", "fragments": [{ "text": "trop tôt", "emote": null }] } } },
+                { "node": { "id": "c1", "contentOffsetSeconds": 101, "commenter": null,
+                    "message": { "fragments": [{ "text": "compte supprimé", "emote": null }] } } },
+                { "node": { "id": "c2", "contentOffsetSeconds": 102, "commenter": { "id": "2", "login": "b", "displayName": "B" },
+                    "message": { "userColor": null, "fragments": [
+                        { "text": "salut ", "emote": null }, { "text": "Kappa", "emote": { "emoteID": "25" } }] } } },
+            ] } } } })))
+        .mount(&h.server)
+        .await;
+    let comments = h.core.vod_chat("41".into(), 100).await.unwrap();
+    assert_eq!(comments.len(), 1);
+    assert_eq!(comments[0].offset_s, 102);
+    assert_eq!(comments[0].message.display_name, "B");
+    assert_eq!(
+        comments[0].message.fragments[1],
+        crate::chat::ChatFragment::Emote { id: "25".into(), name: "Kappa".into(), url: crate::chat::emote_url("25") }
+    );
+}

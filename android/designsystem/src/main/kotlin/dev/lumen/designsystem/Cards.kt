@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -93,12 +94,17 @@ data class StreamCardModel(
 )
 
 @Composable
-fun StreamCard(stream: StreamCardModel, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun StreamCard(
+    stream: StreamCardModel,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
+) {
     val thumbWidth = LumenCardSize.streamWidth
     val thumbHeight = thumbWidth * 9 / 16
     val url = rememberSizedUrl(stream.thumbnailTemplate, thumbWidth, thumbHeight, FIVE_MINUTES_MS)
 
-    LumenCard(onClick = onClick, modifier = modifier.width(thumbWidth)) {
+    LumenCard(onClick = onClick, onLongClick = onLongClick, modifier = modifier.width(thumbWidth)) {
         Column {
             Box(
                 modifier = Modifier
@@ -145,6 +151,100 @@ fun StreamCard(stream: StreamCardModel, onClick: () -> Unit, modifier: Modifier 
                     }
                 }
             }
+        }
+    }
+}
+
+data class VideoCardModel(
+    val key: String,
+    val title: String,
+    /** Date et vues, déjà mises en forme. */
+    val subtitle: String,
+    val thumbnailTemplate: String,
+    val durationS: Long,
+    val positionS: Long,
+    val finished: Boolean,
+)
+
+/** Carte de VOD : durée en incrustation, barre de reprise sous l'image. */
+@Composable
+fun VideoCard(video: VideoCardModel, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val thumbWidth = LumenCardSize.streamWidth
+    val url = rememberSizedUrl(video.thumbnailTemplate, thumbWidth, thumbWidth * 9 / 16, 0)
+    val progress = when {
+        video.finished -> 1f
+        video.durationS > 0 -> (video.positionS.toFloat() / video.durationS).coerceIn(0f, 1f)
+        else -> 0f
+    }
+
+    LumenCard(onClick = onClick, modifier = modifier.width(thumbWidth)) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .background(LumenColors.Skeleton),
+            ) {
+                if (url.isNotEmpty()) {
+                    AsyncImage(
+                        model = url,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+                Text(
+                    text = formatDuration(video.durationS),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = LumenColors.OnSurface,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(8.dp)
+                        .background(LumenColors.Background.copy(alpha = 0.8f), RoundedCornerShape(6.dp))
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                )
+                if (progress > 0f) {
+                    Box(Modifier.align(Alignment.BottomStart).fillMaxWidth().height(4.dp).background(LumenColors.Skeleton)) {
+                        Box(Modifier.fillMaxWidth(progress).fillMaxHeight().background(LumenColors.Accent))
+                    }
+                }
+            }
+            Column(Modifier.padding(12.dp)) {
+                Text(
+                    text = video.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = video.subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = LumenColors.OnSurfaceMuted,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+data class ChannelCardModel(val key: String, val name: String, val avatarUrl: String)
+
+/** Chaîne suivie, en live ou non : ouvre sa page (live et VOD). */
+@Composable
+fun ChannelCard(channel: ChannelCardModel, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    LumenCard(onClick = onClick, modifier = modifier.width(LumenCardSize.streamWidth)) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Avatar(channel.avatarUrl, channel.name, size = 48.dp)
+            Text(
+                text = channel.name,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

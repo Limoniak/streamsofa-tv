@@ -10,7 +10,11 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
-use crate::catalog::{box_art_template, parse_utc, thumbnail_template, Category, CategoryPage, LiveStream, StreamPage};
+use crate::catalog::{
+    box_art_template, parse_utc, thumbnail_template, video_thumbnail, Category, CategoryPage, Channel, LiveStream, ReplayComment,
+    StreamPage, Video,
+};
+use crate::chat::{emote_url, readable_color, ChatFragment, ChatMessage};
 use crate::error::CoreError;
 
 /// Client ID public du site twitch.tv. GQL n'accepte pas celui de l'application.
@@ -85,6 +89,145 @@ impl GqlClient {
             )
             .await?;
         Ok(data.stream_playback_access_token)
+    }
+
+    /// `Ok(None)` : la VOD n'existe pas.
+    pub async fn vod_playback_token(&self, video_id: &str) -> Result<Option<PlaybackToken>, CoreError> {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Data {
+            video_playback_access_token: Option<PlaybackToken>,
+        }
+        let data: Data = self
+            .run(
+                "PlaybackAccessToken_Template",
+                queries::PLAYBACK_ACCESS_TOKEN,
+                json!({ "login": "", "isLive": false, "vodID": video_id, "isVod": true, "playerType": "site" }),
+            )
+            .await?;
+        Ok(data.video_playback_access_token)
+    }
+
+    pub async fn channel(&self, login: &str) -> Result<Option<Channel>, CoreError> {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct GUser {
+            id: String,
+            login: String,
+            display_name: String,
+            #[serde(default)]
+            description: Option<String>,
+            #[serde(default, rename = "profileImageURL")]
+            profile_image_url: Option<String>,
+        }
+        #[derive(Deserialize)]
+        struct Data {
+            user: Option<GUser>,
+        }
+        let data: Data = self.run("Channel", queries::CHANNEL, json!({ "login": login.to_lowercase() })).await?;
+        Ok(data.user.map(|u| Channel {
+            id: u.id,
+            login: u.login,
+            display_name: u.display_name,
+            avatar_url: u.profile_image_url.unwrap_or_default(),
+            description: u.description.unwrap_or_default(),
+        }))
+    }
+
+    pub async fn channel_videos(&self, channel_id: &str, first: u32) -> Result<Vec<Video>, CoreError> {
+        #[derive(Deserialize)]
+        struct GUser {
+            videos: Option<Connection<GVideo>>,
+        }
+        #[derive(Deserialize)]
+        struct Data {
+            user: Option<GUser>,
+        }
+        let data: Data = self.run("ChannelVideos", &queries::channel_videos(), json!({ "id": channel_id, "first": first })).await?;
+        let edges = data.user.and_then(|u| u.videos).map(|c| c.edges).unwrap_or_default();
+        Ok(edges.into_iter().map(|e| e.node.into()).collect())
+    }
+
+    pub async fn video(&self, id: &str) -> Result<Option<Video>, CoreError> {
+        #[derive(Deserialize)]
+        struct Data {
+            video: Option<GVideo>,
+        }
+        let data: Data = self.run("Video", &queries::video(), json!({ "id": id })).await?;
+        Ok(data.video.map(Video::from))
+    }
+
+    /// Chat d'une VOD à partir de `offset_s` ; vide si la VOD n'a pas (ou plus) de chat.
+    pub async fn vod_comments(&self, video_id: &str, offset_s: u32) -> Result<Vec<ReplayComment>, CoreError> {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct GComment {
+            id: String,
+            #[serde(default)]
+            content_offset_seconds: u32,
+            commenter: Option<GOwner>,
+            message: Option<GMessage>,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct GMessage {
+            #[serde(default)]
+            user_color: Option<String>,
+            #[serde(default)]
+            fragments: Vec<GFragment>,
+        }
+        #[derive(Deserialize)]
+        struct GFragment {
+            #[serde(default)]
+            text: String,
+            emote: Option<GEmote>,
+        }
+        #[derive(Deserialize)]
+        struct GEmote {
+            #[serde(rename = "emoteID")]
+            emote_id: String,
+        }
+        #[derive(Deserialize)]
+        struct GVideoComments {
+            comments: Option<Connection<GComment>>,
+        }
+        #[derive(Deserialize)]
+        struct Data {
+            video: Option<GVideoComments>,
+        }
+        let data: Data = self.run("VodComments", queries::VOD_COMMENTS, json!({ "id": video_id, "offset": offset_s })).await?;
+        let edges = data.video.and_then(|v| v.comments).map(|c| c.edges).unwrap_or_default();
+        Ok(edges
+            .into_iter()
+            .filter_map(|edge| {
+                let node = edge.node;
+                // Compte supprimé : Twitch renvoie un auteur nul.
+                let author = node.commenter?;
+                let message = node.message?;
+                let fragments = message
+                    .fragments
+                    .into_iter()
+                    .map(|f| match f.emote {
+                        Some(e) => ChatFragment::Emote { url: emote_url(&e.emote_id), id: e.emote_id, name: f.text },
+                        None => ChatFragment::Text { text: f.text },
+                    })
+                    .collect();
+                Some(ReplayComment {
+                    offset_s: node.content_offset_seconds,
+                    message: ChatMessage {
+                        color: readable_color(message.user_color.as_deref().unwrap_or(""), &author.login),
+                        id: node.id,
+                        user_id: author.id,
+                        login: author.login,
+                        display_name: author.display_name,
+                        fragments,
+                        action: false,
+                        system: None,
+                        timestamp_ms: 0,
+                    },
+                })
+            })
+            .collect())
     }
 
     pub async fn top_streams(&self, after: Option<&str>, first: u32) -> Result<StreamPage, CoreError> {
@@ -267,6 +410,50 @@ struct GGame {
     id: String,
     #[serde(default)]
     display_name: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct GVideo {
+    id: String,
+    #[serde(default)]
+    title: Option<String>,
+    #[serde(default)]
+    length_seconds: u32,
+    #[serde(default)]
+    published_at: Option<String>,
+    #[serde(default)]
+    view_count: u32,
+    #[serde(default, rename = "previewThumbnailURL")]
+    preview_thumbnail_url: Option<String>,
+    owner: Option<GOwner>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+struct GOwner {
+    id: String,
+    login: String,
+    display_name: String,
+}
+
+impl From<GVideo> for Video {
+    fn from(v: GVideo) -> Self {
+        let owner = v.owner.unwrap_or_default();
+        Video {
+            thumbnail_url: video_thumbnail(v.preview_thumbnail_url.as_deref().unwrap_or("")),
+            published_at: v.published_at.as_deref().and_then(parse_utc).unwrap_or(0),
+            id: v.id,
+            title: v.title.unwrap_or_default(),
+            channel_id: owner.id,
+            channel_login: owner.login,
+            channel_name: owner.display_name,
+            duration_s: v.length_seconds,
+            views: v.view_count,
+            position_s: 0,
+            finished: false,
+        }
+    }
 }
 
 fn stream_page(connection: Option<Connection<GStream>>) -> StreamPage {

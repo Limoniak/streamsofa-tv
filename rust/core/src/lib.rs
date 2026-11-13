@@ -21,7 +21,7 @@ mod catalog_tests;
 
 pub use accounts::{Account, AccountState, AccountsListener, AccountsSnapshot};
 pub use api::*;
-pub use catalog::{Category, CategoryPage, LiveStream, StreamPage};
+pub use catalog::{Category, CategoryPage, Channel, LiveStream, ReplayComment, StreamPage, Video, VideoPage};
 pub use chat::{ChatEvent, ChatFragment, ChatListener, ChatMessage, ChatSession, ChatState};
 pub use error::CoreError;
 pub use hls::{Playback, Variant};

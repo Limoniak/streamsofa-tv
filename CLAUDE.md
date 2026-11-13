@@ -37,6 +37,7 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
 - Aperçus animés : un ExoPlayer partagé en 160p muet après 800 ms de focus, désactivé si `isLowRamDevice`.
 - TLS : rustls + ring + webpki-roots (pas d'OpenSSL, pas d'init JNI). DI : Hilt. Préférences : SQLite côté Rust.
 - Replay de chat VOD : pagination par offset uniquement, repli sur « VOD sans chat ».
+  Le chat n'est chargé que s'il est affiché ; après un saut, on montre les 30 s précédentes.
 - Nom « Lumen » et `applicationId` `dev.lumen.tv` provisoires, à confirmer par l'utilisateur.
 
 ## Jalons
@@ -52,13 +53,17 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
   Lecture validée sur l'émulateur (IRC anonyme justinfan, émotes Twitch, couleurs, modération, 150 lignes).
   Envoi Helix validé par l'utilisateur. Chat masqué par défaut dans le lecteur (Bas l'affiche).
   Reste : badges, émotes tierces (7TV/BTTV/FFZ), filtres de chat.
-- [ ] J5 : VOD + reprise + replay du chat.
+- [x] J5 : VOD + reprise + replay du chat. Validé sur l'émulateur : page chaîne (appui long sur une carte de live,
+  ou « Chaînes suivies » dans Suivis), grille de VOD avec barre de reprise, lecteur VOD (OK pause, ◀ ▶ ±10 s,
+  ±1 min en maintenant, ▼ chat), reprise par profil (table `vod_progress`), replay du chat synchronisé.
+  Une VOD réservée aux abonnés est refusée avec un message, jamais contournée.
+  En invité, une seule page de VOD (100) : la pagination GQL exige un jeton d'intégrité, non fourni.
 - [ ] J6 : multi-view (2 à 4 flux, sonde `MediaCodecList` + repli à l'exécution).
 - [ ] J7 : paramètres, thèmes, mise à jour auto via GitHub Releases, CI, Baseline Profiles, keystore de release.
 
-Schéma SQLite prévu pour la suite (migrations dans `store/mod.rs`, clé `scope` = `global` | `guest` | id de compte) :
+Schéma SQLite (migrations dans `store/mod.rs`, clé `scope` = `global` | `guest` | id de compte) : `vod_progress` existe (migration 2) ; prévus pour la suite :
 `settings(scope,key,value)`, `chat_filters(scope,kind,value)`,
-`vod_progress(scope,video_id,…,position_s,finished,updated_at)`, `meta_cache(key,body,fetched_at,ttl_s)`.
+`meta_cache(key,body,fetched_at,ttl_s)`.
 
 ## Commandes
 

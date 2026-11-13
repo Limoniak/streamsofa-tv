@@ -23,6 +23,13 @@ class FormatTest {
     }
 
     @Test
+    fun duration() {
+        assertEquals("0:09", formatDuration(9))
+        assertEquals("12:05", formatDuration(725))
+        assertEquals("1:02:03", formatDuration(3723))
+    }
+
+    @Test
     fun sizedUrl() {
         val template = "https://x/live_user_a-{width}x{height}.jpg"
         assertEquals("https://x/live_user_a-544x306.jpg", sizedImageUrl(template, 544, 306))

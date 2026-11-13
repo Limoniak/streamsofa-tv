@@ -40,3 +40,26 @@ pub const TOP_CATEGORIES: &str = "query TopCategories($first: Int, $after: Curso
 pub const CHANNEL_STREAM: &str = "query ChannelStream($login: String!) { user(login: $login) { \
     id login displayName profileImageURL(width: 70) broadcastSettings { title } \
     stream { id viewersCount createdAt game { id displayName } } } }";
+
+pub const CHANNEL: &str = "query Channel($login: String!) { user(login: $login) { \
+    id login displayName description profileImageURL(width: 150) } }";
+
+const VIDEO_FIELDS: &str = "id title lengthSeconds publishedAt viewCount \
+    previewThumbnailURL(width: 320, height: 180) owner { id login displayName }";
+
+/// Sans curseur : la page suivante exige un jeton d'intégrité que Lumen ne fournit pas.
+pub fn channel_videos() -> String {
+    format!(
+        "query ChannelVideos($id: ID!, $first: Int) {{ user(id: $id) {{ \
+         videos(first: $first, sort: TIME) {{ edges {{ node {{ {VIDEO_FIELDS} }} }} }} }} }}"
+    )
+}
+
+pub fn video() -> String {
+    format!("query Video($id: ID!) {{ video(id: $id) {{ {VIDEO_FIELDS} }} }}")
+}
+
+/// Commentaires autour d'un instant de la VOD (une fenêtre de quelques minutes).
+pub const VOD_COMMENTS: &str = "query VodComments($id: ID!, $offset: Int) { video(id: $id) { id \
+    comments(contentOffsetSeconds: $offset) { edges { node { id contentOffsetSeconds \
+    commenter { id login displayName } message { userColor fragments { text emote { emoteID } } } } } } } }";

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.itemsIndexed
@@ -25,13 +26,16 @@ import androidx.lifecycle.viewModelScope
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.lumen.core.Channel
 import dev.lumen.core.LiveStream
 import dev.lumen.data.CatalogRepository
 import dev.lumen.data.LoadError
 import dev.lumen.data.loadCatching
 import dev.lumen.data.messageRes
 import dev.lumen.data.toLoadError
+import dev.lumen.designsystem.ChannelCard
 import dev.lumen.designsystem.LumenCardSize
+import dev.lumen.designsystem.LumenColors
 import dev.lumen.designsystem.LumenInsets
 import dev.lumen.designsystem.MessageState
 import dev.lumen.designsystem.StreamCard
@@ -56,11 +60,16 @@ data class GridUiState(
     val cursor: String? = null,
 )
 
-/** Lives suivis en grille : une seule requête, le cœur parcourt déjà toutes les pages. */
+/**
+ * Lives suivis puis toutes les chaînes suivies (hors ligne comprises) : deux requêtes,
+ * le cœur parcourt déjà toutes les pages.
+ */
 @HiltViewModel
 class FollowingViewModel @Inject constructor(private val catalog: CatalogRepository) : ViewModel() {
     private val _state = MutableStateFlow(GridUiState())
     val state: StateFlow<GridUiState> = _state.asStateFlow()
+    private val _channels = MutableStateFlow<List<Channel>>(emptyList())
+    val channels: StateFlow<List<Channel>> = _channels.asStateFlow()
 
     init {
         reload()
@@ -69,6 +78,8 @@ class FollowingViewModel @Inject constructor(private val catalog: CatalogReposit
     fun reload() {
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
+            // Secondaires : en cas d'échec, les lives suffisent.
+            launch { loadCatching { catalog.followedChannels() }.onSuccess { _channels.value = it } }
             loadCatching { catalog.followedStreams() }
                 .onSuccess { items -> _state.value = GridUiState(items = items, loading = false) }
                 .onFailure { e -> _state.update { it.copy(loading = false, error = e.toLoadError()) } }
@@ -125,15 +136,19 @@ class CategoryViewModel @Inject constructor(
 @Composable
 fun FollowingRoute(
     onOpenStream: (String) -> Unit,
+    onOpenChannel: (String) -> Unit,
     onSignIn: () -> Unit,
     viewModel: FollowingViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val channels by viewModel.channels.collectAsStateWithLifecycle()
     StreamGridScreen(
         title = stringResource(R.string.following_title),
         state = state,
         emptyText = stringResource(R.string.home_no_followed),
         onOpenStream = onOpenStream,
+        onOpenChannel = onOpenChannel,
+        channels = channels,
         onRetry = viewModel::reload,
         onNearEnd = {},
         onSignIn = onSignIn,
@@ -141,13 +156,18 @@ fun FollowingRoute(
 }
 
 @Composable
-fun CategoryRoute(onOpenStream: (String) -> Unit, viewModel: CategoryViewModel = hiltViewModel()) {
+fun CategoryRoute(
+    onOpenStream: (String) -> Unit,
+    onOpenChannel: (String) -> Unit,
+    viewModel: CategoryViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     StreamGridScreen(
         title = viewModel.name,
         state = state,
         emptyText = stringResource(R.string.category_empty),
         onOpenStream = onOpenStream,
+        onOpenChannel = onOpenChannel,
         onRetry = viewModel::reload,
         onNearEnd = viewModel::loadMore,
         onSignIn = {},
@@ -160,12 +180,15 @@ fun StreamGridScreen(
     state: GridUiState,
     emptyText: String,
     onOpenStream: (String) -> Unit,
+    onOpenChannel: (String) -> Unit,
     onRetry: () -> Unit,
     onNearEnd: () -> Unit,
     onSignIn: () -> Unit,
+    channels: List<Channel> = emptyList(),
 ) {
     val memory = rememberFocusMemory()
-    val target = memory.target(state.items.map { it.login }, state.items.firstOrNull()?.login)
+    val keys = state.items.map { it.login } + channels.map { "ch:${it.login}" }
+    val target = memory.target(keys, keys.firstOrNull())
     LaunchedEffect(target != null) { if (target != null) memory.requester.requestWhenAttached() }
 
     Column(Modifier.fillMaxSize().padding(top = LumenInsets.vertical)) {
@@ -184,7 +207,7 @@ fun StreamGridScreen(
                     takeFocus = true,
                 )
             }
-            state.items.isEmpty() && !state.loading -> CenteredMessage {
+            state.items.isEmpty() && !state.loading && channels.isEmpty() -> CenteredMessage {
                 MessageState(emptyText, actionLabel = stringResource(DataR.string.retry), onAction = onRetry, takeFocus = true)
             }
             else -> LazyVerticalGrid(
@@ -204,8 +227,37 @@ fun StreamGridScreen(
                             memory.key = stream.login
                             onOpenStream(stream.login)
                         },
+                        onLongClick = {
+                            memory.key = stream.login
+                            onOpenChannel(stream.login)
+                        },
                         modifier = Modifier.restoreFocusHere(memory, stream.login == target),
                     )
+                }
+                if (state.items.isEmpty() && !state.loading) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Text(emptyText, style = MaterialTheme.typography.bodyLarge, color = LumenColors.OnSurfaceMuted)
+                    }
+                }
+                if (channels.isNotEmpty()) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Text(
+                            text = stringResource(R.string.following_channels),
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.padding(top = 16.dp),
+                        )
+                    }
+                    items(channels, key = { "ch:${it.login}" }) { channel ->
+                        val key = "ch:${channel.login}"
+                        ChannelCard(
+                            channel = channel.toCard(),
+                            onClick = {
+                                memory.key = key
+                                onOpenChannel(channel.login)
+                            },
+                            modifier = Modifier.restoreFocusHere(memory, key == target),
+                        )
+                    }
                 }
             }
         }
