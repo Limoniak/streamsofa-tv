@@ -26,4 +26,19 @@
     <string name="vod_no_chat">Pas de chat pour cette vidéo.</string>
     <string name="raid_title">Raid vers %1$s avec %2$s spectateurs</string>
     <string name="raid_hint">Ouverture dans %1$d s · OK maintenant · Retour pour rester</string>
+    <string name="player_audio_only">Son seul</string>
+    <string name="player_video">Vidéo</string>
+    <string name="player_audio_only_on">Son seul</string>
+    <string name="audio_only_channel">Lecture du son seul</string>
+    <string name="audio_only_running">Son seul, lecture en arrière-plan</string>
+    <string name="player_sleep_off">Mise en veille : non</string>
+    <string name="player_sleep">Mise en veille : %1$d min</string>
+    <string name="player_slept">Lecture arrêtée par la mise en veille.</string>
+    <string name="player_resume">Reprendre</string>
+    <string name="player_stats_show">Statistiques</string>
+    <string name="player_stats_hide">Masquer les statistiques</string>
+    <string name="stats_resolution">Résolution</string>
+    <string name="stats_bitrate">Débit</string>
+    <string name="stats_latency">Retard sur le direct</string>
+    <string name="stats_dropped">Images perdues</string>
 </resources>

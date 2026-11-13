@@ -98,6 +98,7 @@ fun PlayerRoute(
     var composing by remember { mutableStateOf(false) }
     var picking by remember { mutableStateOf(false) }
     var listing by remember { mutableStateOf(false) }
+    var showStats by rememberSaveable { mutableStateOf(false) }
     LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onStop() }
 
@@ -143,7 +144,7 @@ fun PlayerRoute(
                 }
                 when (event.key) {
                     Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> {
-                        if (state.status is PlayerStatus.Failed) viewModel.retry() else overlay = Overlay.Actions
+                        if (state.status is PlayerStatus.Failed || state.sleeping) viewModel.retry() else overlay = Overlay.Actions
                         true
                     }
                     Key.DirectionUp, Key.DirectionDown -> {
@@ -173,17 +174,29 @@ fun PlayerRoute(
                 PlayerView(context).apply {
                     useController = false
                     isFocusable = false
-                    keepScreenOn = true
                     setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
                     player = viewModel.player
                 }
             },
+            // Son seul ou minuterie écoulée : la télé peut passer en veille.
+            update = { it.keepScreenOn = !state.sleeping && !state.audioOnly },
             onRelease = { it.player = null },
             modifier = Modifier.fillMaxSize(),
         )
 
-        when (val status = state.status) {
-            is PlayerStatus.Failed -> MessageState(
+        // Remonté pour laisser la place au panneau d'infos.
+        if (state.audioOnly) AudioOnlyCard(state, Modifier.align(Alignment.Center).offset(y = (-120).dp))
+        if (showStats && !state.audioOnly) StatsOverlay(viewModel.player, Modifier.align(Alignment.TopEnd))
+
+        val status = state.status
+        when {
+            state.sleeping -> MessageState(
+                text = stringResource(R.string.player_slept),
+                actionLabel = stringResource(R.string.player_resume),
+                onAction = viewModel::retry,
+                modifier = Modifier.align(Alignment.Center),
+            )
+            status is PlayerStatus.Failed -> MessageState(
                 text = stringResource(status.error.messageRes),
                 actionLabel = stringResource(DataR.string.retry),
                 onAction = viewModel::retry,
@@ -211,6 +224,10 @@ fun PlayerRoute(
                     null
                 },
                 onChannel = { onOpenChannel(state.login) },
+                showStats = showStats,
+                onStats = { showStats = !showStats },
+                onAudioOnly = viewModel::toggleAudioOnly,
+                onSleep = viewModel::cycleSleepTimer,
                 modifier = Modifier.align(Alignment.BottomStart),
             )
         }
@@ -285,6 +302,10 @@ private fun InfoPanel(
     onQuality: (String?) -> Unit,
     onMulti: (() -> Unit)?,
     onChannel: () -> Unit,
+    showStats: Boolean,
+    onStats: () -> Unit,
+    onAudioOnly: () -> Unit,
+    onSleep: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showQuality by remember(showActions) { mutableStateOf(false) }
@@ -328,13 +349,29 @@ private fun InfoPanel(
                 Button(onClick = onToggleChat, modifier = Modifier.focusRequester(controlsFocus)) {
                     Text(stringResource(if (chatVisible) R.string.player_chat_hide else R.string.player_chat_show))
                 }
-                if (state.variants.isNotEmpty()) {
+                if (state.variants.isNotEmpty() && !state.audioOnly) {
                     Button(onClick = { showQuality = !showQuality }) {
                         Text(stringResource(R.string.player_quality, state.quality ?: stringResource(R.string.player_quality_auto)))
                     }
                 }
+                if (state.canAudioOnly) {
+                    Button(onClick = onAudioOnly) {
+                        Text(stringResource(if (state.audioOnly) R.string.player_video else R.string.player_audio_only))
+                    }
+                }
+                Button(onClick = onSleep) {
+                    Text(
+                        if (state.sleepMinutes == 0) stringResource(R.string.player_sleep_off)
+                        else stringResource(R.string.player_sleep, state.sleepMinutes),
+                    )
+                }
                 if (onMulti != null) Button(onClick = onMulti) { Text(stringResource(R.string.player_multi)) }
                 Button(onClick = onChannel) { Text(stringResource(R.string.player_channel)) }
+                if (!state.audioOnly) {
+                    Button(onClick = onStats) {
+                        Text(stringResource(if (showStats) R.string.player_stats_hide else R.string.player_stats_show))
+                    }
+                }
             }
             if (showQuality) {
                 Row(Modifier.actionRow(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -358,6 +395,15 @@ private fun InfoPanel(
             style = MaterialTheme.typography.labelLarge,
             color = LumenColors.OnSurfaceMuted,
         )
+    }
+}
+
+/** Son seul : la chaîne reste identifiable sur l'écran noir. */
+@Composable
+private fun AudioOnlyCard(state: PlayerUiState, modifier: Modifier = Modifier) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Avatar(state.stream?.avatarUrl.orEmpty(), state.stream?.displayName ?: state.login, size = 120.dp)
+        Text(stringResource(R.string.player_audio_only_on), style = MaterialTheme.typography.titleLarge, color = LumenColors.Accent)
     }
 }
 

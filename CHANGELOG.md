@@ -10,6 +10,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Channel zapping (Up / Down) without followed channels live, in guest mode for example: it goes through the popular streams.
 - The project is now licensed under the GNU General Public License v3.0 or later.
 - Screenshots and a short demo in the README.
+- The live player remembers the quality chosen for each channel.
+- Stream stats in the live player's action bar: resolution, bitrate, latency to live, dropped frames.
+- Audio only mode for live streams: less data, and the sound keeps playing when the screen goes to sleep.
+- Sleep timer (15, 30, 60 or 90 minutes) in the live player.
 
 ### Changed
 - Up / Down on a channel outside the zapping list now jumps to the first channel of the list.

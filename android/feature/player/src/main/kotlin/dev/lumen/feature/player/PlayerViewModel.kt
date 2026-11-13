@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
@@ -20,6 +21,7 @@ import dev.lumen.data.AccountsRepository
 import dev.lumen.data.CatalogRepository
 import dev.lumen.data.ChatRepository
 import dev.lumen.data.LoadError
+import dev.lumen.data.QUALITY_AUTO
 import dev.lumen.data.SettingsRepository
 import dev.lumen.data.loadCatching
 import dev.lumen.data.messageRes
@@ -57,7 +59,17 @@ data class PlayerUiState(
     val canZap: Boolean = false,
     /** Raid en cours : la chaîne cible s'ouvre à la fin du compte à rebours, sauf annulation. */
     val raid: Raid? = null,
+    /** La chaîne propose un flux audio seul. */
+    val canAudioOnly: Boolean = false,
+    val audioOnly: Boolean = false,
+    /** Minuterie de mise en veille choisie, en minutes ; 0 = aucune. */
+    val sleepMinutes: Int = 0,
+    /** Lecture arrêtée par la minuterie. */
+    val sleeping: Boolean = false,
 )
+
+/** Durées proposées par la minuterie, dans l'ordre où OK les fait défiler. */
+val SLEEP_OPTIONS = listOf(15, 30, 60, 90)
 
 /** Chaîne voisine dans la liste, en boucle ; hors liste, la première (la dernière en reculant). `null` s'il n'y a rien d'autre. */
 fun zapTarget(logins: List<String>, current: String, delta: Int): String? {
@@ -119,6 +131,8 @@ class PlayerViewModel @Inject constructor(
     private var followJob: Job? = null
 
     private var masterUrl: String? = null
+    private var audioUrl: String? = null
+    private var sleepJob: Job? = null
     private var job: Job? = null
     /** Une relance automatique par incident (jeton expiré, coupure courte), pas de boucle. */
     private var retried = false
@@ -194,6 +208,33 @@ class PlayerViewModel @Inject constructor(
         load(_state.value.login)
     }
 
+    /** Son seul : moins de données, et la lecture continue quand l'écran se met en veille. */
+    fun toggleAudioOnly() {
+        setAudioOnly(!_state.value.audioOnly)
+        play()
+    }
+
+    private fun setAudioOnly(on: Boolean) {
+        if (on == _state.value.audioOnly) return
+        _state.update { it.copy(audioOnly = on) }
+        player.setWakeMode(if (on) C.WAKE_MODE_NETWORK else C.WAKE_MODE_NONE)
+        // Démarré au premier plan : Android refuse un service de premier plan lancé depuis l'arrière-plan.
+        if (on) AudioOnlyService.start(context, _state.value.stream?.displayName ?: _state.value.login) else AudioOnlyService.stop(context)
+    }
+
+    /** Passe à la durée suivante de [SLEEP_OPTIONS], puis revient à « aucune ». */
+    fun cycleSleepTimer() {
+        val next = SLEEP_OPTIONS.firstOrNull { it > _state.value.sleepMinutes } ?: 0
+        sleepJob?.cancel()
+        _state.update { it.copy(sleepMinutes = next) }
+        if (next > 0) sleepJob = viewModelScope.launch {
+            delay(next * 60_000L)
+            setAudioOnly(false)
+            player.stop()
+            _state.update { it.copy(sleepMinutes = 0, sleeping = true) }
+        }
+    }
+
     /** 1 : pas de multi-view sur cet appareil. */
     val maxTiles: Int = DecoderProbe.maxStreams(context)
 
@@ -207,14 +248,19 @@ class PlayerViewModel @Inject constructor(
     fun selectQuality(name: String?) {
         qualityChosen = true
         _state.update { it.copy(quality = name) }
+        val login = _state.value.login
+        settings.update { copy(channelQuality = channelQuality + (login to (name ?: QUALITY_AUTO))) }
         play()
     }
 
-    fun onStop() = player.stop()
+    /** En son seul, la lecture continue en arrière-plan (écran de veille, écran éteint). */
+    fun onStop() {
+        if (!_state.value.audioOnly) player.stop()
+    }
 
     /** Retour au premier plan : on reprend au direct, pas là où l'image s'était figée. */
     fun onStart() {
-        if (masterUrl == null || _state.value.status is PlayerStatus.Failed) return
+        if (masterUrl == null || _state.value.status is PlayerStatus.Failed || _state.value.sleeping || player.isPlaying) return
         player.prepare()
         player.seekToDefaultPosition()
         player.play()
@@ -256,11 +302,13 @@ class PlayerViewModel @Inject constructor(
         job?.cancel()
         player.stop()
         masterUrl = null
+        audioUrl = null
         val known = catalog.followed.value.firstOrNull { it.login == login }
         followJob?.cancel()
         _state.update {
             it.copy(
                 raid = null,
+                sleeping = false,
                 login = login,
                 stream = known,
                 variants = emptyList(),
@@ -277,12 +325,21 @@ class PlayerViewModel @Inject constructor(
             loadCatching { catalog.livePlayback(login) }
                 .onSuccess { playback ->
                     masterUrl = playback.masterUrl
+                    audioUrl = playback.variants.firstOrNull { it.audioOnly }?.url
+                    // Sans flux audio seul sur la nouvelle chaîne, on revient à l'image.
+                    if (audioUrl == null) setAudioOnly(false)
                     val variants = playback.variants.filter { !it.audioOnly }
                     val maxQuality = settings.state.value.maxQuality
                     val default = if (qualityChosen || maxQuality == 0) null else pickVariant(variants, maxQuality)?.name
+                    val remembered = settings.state.value.channelQuality[login]
                     _state.update { s ->
-                        // La qualité choisie suit le zapping si la chaîne suivante la propose.
-                        s.copy(variants = variants, quality = s.quality?.takeIf { q -> variants.any { it.name == q } } ?: default)
+                        val quality = when {
+                            remembered == QUALITY_AUTO -> null
+                            variants.any { it.name == remembered } -> remembered
+                            // Sinon la qualité choisie suit le zapping si la chaîne suivante la propose.
+                            else -> s.quality?.takeIf { q -> variants.any { it.name == q } } ?: default
+                        }
+                        s.copy(variants = variants, quality = quality, canAudioOnly = audioUrl != null)
                     }
                     play()
                 }
@@ -292,7 +349,8 @@ class PlayerViewModel @Inject constructor(
 
     private fun play() {
         val state = _state.value
-        val url = state.variants.firstOrNull { it.name == state.quality }?.url ?: masterUrl ?: return
+        val url = (if (state.audioOnly) audioUrl else null)
+            ?: state.variants.firstOrNull { it.name == state.quality }?.url ?: masterUrl ?: return
         player.setMediaSource(liveMediaSource(context, url, settings.state.value.lowLatency))
         player.prepare()
         player.play()
@@ -317,6 +375,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     override fun onCleared() {
+        AudioOnlyService.stop(context)
         player.release()
     }
 }

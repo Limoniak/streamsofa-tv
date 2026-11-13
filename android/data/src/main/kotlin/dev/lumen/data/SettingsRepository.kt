@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.launch
 
+private const val QUALITY_PREFIX = "quality:"
+const val QUALITY_AUTO = "auto"
+
 /** Préférences de l'app, communes à tous les profils. */
 data class AppSettings(
     /** Chat ouvert dès le lancement d'un live ou d'une VOD. */
@@ -31,6 +34,8 @@ data class AppSettings(
     val hiddenUsers: String = "",
     /** Langue des lives dans une catégorie (code ISO 639-1) ; vide = toutes. */
     val streamLanguage: String = "",
+    /** Dernière qualité choisie à la main, par login de chaîne ([QUALITY_AUTO] pour Auto). */
+    val channelQuality: Map<String, String> = emptyMap(),
 ) {
     internal fun toMap() = mapOf(
         "chat_by_default" to chatByDefault.toString(),
@@ -42,7 +47,7 @@ data class AppSettings(
         "chat_hidden_words" to hiddenWords,
         "chat_hidden_users" to hiddenUsers,
         "stream_language" to streamLanguage,
-    )
+    ) + channelQuality.mapKeys { QUALITY_PREFIX + it.key }
 
     internal companion object {
         fun fromMap(map: Map<String, String>) = AppSettings().let { d ->
@@ -56,6 +61,7 @@ data class AppSettings(
                 hiddenWords = map["chat_hidden_words"] ?: d.hiddenWords,
                 hiddenUsers = map["chat_hidden_users"] ?: d.hiddenUsers,
                 streamLanguage = map["stream_language"] ?: d.streamLanguage,
+                channelQuality = map.filterKeys { it.startsWith(QUALITY_PREFIX) }.mapKeys { it.key.removePrefix(QUALITY_PREFIX) },
             )
         }
     }

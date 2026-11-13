@@ -12,10 +12,6 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 ## Watching
 
 - [ ] 🟡 "Stream ended" screen: offer the raid target, the next followed live, or the last broadcast.
-- [ ] 🟢 Remember the chosen quality per channel.
-- [ ] 🟢 Stream info overlay: resolution, bitrate, latency to live, dropped frames.
-- [ ] 🟢 Audio-only mode, to listen with the screen off.
-- [ ] 🟢 Sleep timer.
 - [ ] 🟡 Playback speed and chapters (game changes) for past broadcasts. ⚠️
 - [ ] 🟡 Picture-in-picture on devices that support it, to browse while watching.
 - [ ] 🟡 Multi-view: swap a tile for another channel without leaving the layout.

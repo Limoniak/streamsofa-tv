@@ -26,4 +26,19 @@
     <string name="vod_no_chat">No chat for this video.</string>
     <string name="raid_title">Raid to %1$s with %2$s viewers</string>
     <string name="raid_hint">Opening in %1$d s · OK now · Back to stay</string>
+    <string name="player_audio_only">Audio only</string>
+    <string name="player_video">Video</string>
+    <string name="player_audio_only_on">Audio only</string>
+    <string name="audio_only_channel">Audio only playback</string>
+    <string name="audio_only_running">Audio only, playing in the background</string>
+    <string name="player_sleep_off">Sleep timer: off</string>
+    <string name="player_sleep">Sleep timer: %1$d min</string>
+    <string name="player_slept">Stopped by the sleep timer.</string>
+    <string name="player_resume">Resume</string>
+    <string name="player_stats_show">Stream stats</string>
+    <string name="player_stats_hide">Hide stats</string>
+    <string name="stats_resolution">Resolution</string>
+    <string name="stats_bitrate">Bitrate</string>
+    <string name="stats_latency">Latency to live</string>
+    <string name="stats_dropped">Dropped frames</string>
 </resources>
