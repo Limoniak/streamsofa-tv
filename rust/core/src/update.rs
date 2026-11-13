@@ -9,7 +9,7 @@ use serde::Deserialize;
 use crate::error::CoreError;
 
 /// Dépôt dont les releases publient les APK (`streamsofa-<version>-<abi>.apk`).
-pub(crate) const REPO: &str = "Limoniak/lumen-tv";
+pub(crate) const REPO: &str = "Limoniak/streamsofa-tv";
 
 /// Une version plus récente que celle installée, avec l'APK adapté à l'appareil.
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]

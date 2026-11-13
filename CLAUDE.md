@@ -76,7 +76,7 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
 - [x] J7 : onglet Paramètres (chat au lancement, qualité au lancement d'un live, couleur d'accent,
   recherche de mise à jour au démarrage). Préférences globales dans `settings` (migration 3), lues par
   `SettingsRepository`. Accent = état Compose (`LumenColors.accent`), appliqué sans redémarrer.
-  Mise à jour : release GitHub `Limoniak/lumen-tv` plus récente → APK de l'ABI de l'appareil
+  Mise à jour : release GitHub `Limoniak/streamsofa-tv` plus récente → APK de l'ABI de l'appareil
   (`streamsofa-<version>-<abi>.apk`, sinon universel ; seul le suffixe `-<abi>.apk` compte), téléchargé par Rust, installé via FileProvider.
   Jamais proposée automatiquement sur une build de debug (signature différente).
   CI GitHub Actions : tests Rust + Android à chaque push, release signée sur tag `vX.Y.Z`
