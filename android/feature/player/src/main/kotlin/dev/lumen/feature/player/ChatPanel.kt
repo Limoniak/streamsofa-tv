@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +41,12 @@ import dev.lumen.designsystem.LumenColors
 private val ChatTextSize = 17.sp
 private val EmoteSize = 26.sp
 private val BadgeSize = 18.sp
+
+/**
+ * Largeur / hauteur des émotes non carrées (7TV en a beaucoup), apprise au premier affichage :
+ * aucune API ne la donne pour tous les fournisseurs. Les suivantes s'affichent d'emblée à la bonne largeur.
+ */
+private val emoteRatios = mutableStateMapOf<String, Float>()
 
 /** Colonne de chat à droite de la vidéo ; le plus récent en bas, sans défilement manuel. */
 @Composable
@@ -82,7 +89,9 @@ private fun ChatLine(line: ChatMessage) {
             )
         }
         if (line.fragments.isNotEmpty()) {
-            val (text, inline) = remember(line) { annotate(line) }
+            // Lu pendant la composition : une largeur apprise recompose les lignes qui portent l'émote.
+            val ratios = line.fragments.mapNotNull { (it as? ChatFragment.Emote)?.let { e -> emoteRatios[e.url] } }
+            val (text, inline) = remember(line, ratios) { annotate(line) }
             Text(text = text, inlineContent = inline, fontSize = ChatTextSize, color = LumenColors.OnSurface)
         }
     }
@@ -116,7 +125,18 @@ private fun annotate(line: ChatMessage): Pair<AnnotatedString, Map<String, Inlin
 }
 
 private fun imageContent(url: String, name: String, size: TextUnit) = InlineTextContent(
-    Placeholder(size, size, PlaceholderVerticalAlign.Center),
+    Placeholder(size * (emoteRatios[url] ?: 1f), size, PlaceholderVerticalAlign.Center),
 ) {
-    AsyncImage(model = url, contentDescription = name, modifier = Modifier.fillMaxSize())
+    AsyncImage(
+        model = url,
+        contentDescription = name,
+        modifier = Modifier.fillMaxSize(),
+        onSuccess = { success ->
+            val image = success.result.image
+            if (image.height > 0) {
+                val ratio = (image.width.toFloat() / image.height).coerceIn(0.5f, 4f)
+                if (kotlin.math.abs(ratio - 1f) > 0.05f && emoteRatios[url] != ratio) emoteRatios[url] = ratio
+            }
+        },
+    )
 }

@@ -34,7 +34,9 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
 - Scopes : `user:read:follows chat:read chat:edit user:write:chat user:read:emotes user:read:blocked_users`
   (en changer force tous les comptes à se reconnecter).
 - Envoi de chat via Helix (raison des refus), lecture via IRC WebSocket.
-- Faible latence V1 : segments standards + live offset serré ; parser prefetch en option expérimentale plus tard.
+- Faible latence : segments standards + live offset 5 s par défaut. Option expérimentale « Faible latence » :
+  les `#EXT-X-TWITCH-PREFETCH` deviennent des segments (`LowLatency.kt`) et la cible passe à 2 s
+  (mesuré : 3,7 s contre 7,2 s). Seules certaines chaînes en annoncent ; sans prefetch, aucun effet ni coupure.
 - Aperçus animés : un ExoPlayer partagé en 160p muet après 800 ms de focus, désactivé si `isLowRamDevice`.
 - TLS : rustls + ring + webpki-roots (pas d'OpenSSL, pas d'init JNI). DI : Hilt. Préférences : SQLite côté Rust.
 - Replay de chat VOD : pagination par offset uniquement, repli sur « VOD sans chat ».
@@ -56,6 +58,8 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
   Badges (GQL, globaux en cache), émotes tierces 7TV/BTTV/FFZ (module `emotes`, désactivables), mots et pseudos
   masqués + utilisateurs bloqués du compte (Helix) : `chat/decor.rs`, chargés en parallèle de la connexion IRC.
   Le replay VOD applique les filtres, sans badges (vides en anonyme) ni émotes tierces.
+  Émotes animées (Coil `AnimatedImageDecoder`, désactivées si `isLowRamDevice`) ; largeur réelle apprise au
+  premier affichage (`emoteRatios` dans `ChatPanel`).
 - [x] J5 : VOD + reprise + replay du chat. Validé sur l'émulateur : page chaîne (appui long sur une carte de live,
   ou « Chaînes suivies » dans Suivis), grille de VOD avec barre de reprise, lecteur VOD (OK pause, ◀ ▶ ±10 s,
   ±1 min en maintenant, ▼ chat), reprise par profil (table `vod_progress`), replay du chat synchronisé.
@@ -77,8 +81,8 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
   + profileinstaller. Keystore de release : à créer par l'utilisateur (README), jamais généré ici.
 
 Schéma SQLite (migrations dans `store/mod.rs`, clé `scope` = `global` | `guest` | id de compte) :
-`vod_progress` (migration 2), `settings` (migration 3, seule la portée `global` est utilisée ; filtres du chat dans `chat_hidden_words`/`chat_hidden_users`) ; prévus :
-`meta_cache(key,body,fetched_at,ttl_s)`.
+`vod_progress` (migration 2), `settings` (migration 3, seule la portée `global` est utilisée ; filtres du chat dans `chat_hidden_words`/`chat_hidden_users`), `meta_cache(key,body,fetched_at,ttl_s)` (migration 4 :
+badges et émotes, 24 h pour les globaux, 1 h par chaîne).
 
 ## Commandes
 

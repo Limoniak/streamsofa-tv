@@ -44,6 +44,14 @@ const MIGRATIONS: &[&str] = &["
         value  TEXT NOT NULL,
         PRIMARY KEY (scope, key)
     );
+", "
+    -- Réponses d'API décoratives (badges, émotes) gardées entre deux lancements.
+    CREATE TABLE meta_cache (
+        key        TEXT PRIMARY KEY,
+        body       TEXT NOT NULL,
+        fetched_at INTEGER NOT NULL,
+        ttl_s      INTEGER NOT NULL
+    );
 "];
 
 const ACTIVE_ACCOUNT: &str = "active_account_id";
@@ -171,6 +179,26 @@ impl Db {
         Ok(())
     }
 
+    /// `None` si absent ou expiré.
+    pub fn meta_get(&self, key: &str, now: i64) -> Result<Option<String>, CoreError> {
+        Ok(self
+            .conn()
+            .prepare_cached("SELECT body FROM meta_cache WHERE key = ?1 AND fetched_at + ttl_s > ?2")?
+            .query_row(params![key, now], |r| r.get(0))
+            .optional()?)
+    }
+
+    /// Enregistre `body` et purge au passage les entrées expirées.
+    pub fn meta_put(&self, key: &str, body: &str, now: i64, ttl_s: i64) -> Result<(), CoreError> {
+        let conn = self.conn();
+        conn.execute("DELETE FROM meta_cache WHERE fetched_at + ttl_s <= ?1", [now])?;
+        conn.execute(
+            "INSERT OR REPLACE INTO meta_cache (key, body, fetched_at, ttl_s) VALUES (?1, ?2, ?3, ?4)",
+            params![key, body, now, ttl_s],
+        )?;
+        Ok(())
+    }
+
     pub fn delete_account(&self, id: &str) -> Result<(), CoreError> {
         let mut conn = self.conn();
         let tx = conn.transaction()?;
@@ -277,6 +305,16 @@ mod tests {
         assert_eq!(db.active_account_id().unwrap().as_deref(), Some("1"));
         db.delete_account("1").unwrap();
         assert_eq!(db.active_account_id().unwrap(), None);
+    }
+
+    #[test]
+    fn meta_cache_expires() {
+        let db = Db::in_memory().unwrap();
+        db.meta_put("badges:global", "{}", 100, 60).unwrap();
+        assert_eq!(db.meta_get("badges:global", 159).unwrap().as_deref(), Some("{}"));
+        assert_eq!(db.meta_get("badges:global", 160).unwrap(), None);
+        db.meta_put("other", "x", 200, 60).unwrap();
+        assert_eq!(db.meta_get("badges:global", 0).unwrap(), None, "purgée au passage");
     }
 
     #[test]

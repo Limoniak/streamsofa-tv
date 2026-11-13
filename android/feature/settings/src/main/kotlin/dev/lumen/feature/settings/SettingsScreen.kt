@@ -93,6 +93,13 @@ fun SettingsRoute(viewModel: SettingsViewModel = hiltViewModel(), updates: Updat
             trailingContent = { AccentSwitch(settings.chatByDefault) },
             modifier = Modifier.focusRequester(firstFocus),
         )
+        ListItem(
+            selected = false,
+            onClick = { viewModel.update { copy(lowLatency = !lowLatency) } },
+            headlineContent = { Text(stringResource(R.string.settings_low_latency)) },
+            supportingContent = { Text(stringResource(R.string.settings_low_latency_hint)) },
+            trailingContent = { AccentSwitch(settings.lowLatency) },
+        )
         Label(R.string.settings_quality)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             QUALITIES.forEach { height ->

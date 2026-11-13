@@ -81,9 +81,6 @@ pub struct Core {
     github: String,
     /// Sans ALPN : une socket WebSocket reste en HTTP/1.1.
     chat_tls: Arc<rustls::ClientConfig>,
-    /// Communs à toutes les chaînes : chargés une fois par lancement, réessayés après un échec.
-    global_badges: tokio::sync::OnceCell<HashMap<String, String>>,
-    global_emotes: tokio::sync::OnceCell<EmoteMap>,
 }
 
 impl Core {
@@ -109,8 +106,6 @@ impl Core {
             chat_url: endpoints.chat,
             github: endpoints.github,
             chat_tls: Arc::new(http::tls_config()?),
-            global_badges: tokio::sync::OnceCell::new(),
-            global_emotes: tokio::sync::OnceCell::new(),
             http,
             client_id,
             accounts,
@@ -158,34 +153,54 @@ impl Core {
     /// Badges, émotes tierces et blocages du compte, ajoutés au fil de l'eau : tout est
     /// décoratif, un échec laisse simplement le chat tel que Twitch l'envoie.
     async fn load_decor(self: Arc<Self>, login: String, third_party: bool, decor: Arc<RwLock<Decor>>) {
-        let write = |f: &dyn Fn(&mut Decor)| f(&mut decor.write().unwrap_or_else(|e| e.into_inner()));
-        if let Ok(blocked) = self.with_helix(|token, user_id| {
-            let helix = &self.helix;
-            async move { helix.blocked_logins(&token, &user_id).await }
-        }).await {
-            write(&|d| d.hidden_users.extend(blocked.iter().flatten().cloned()));
-        }
-        if let Ok(global) = self.global_badges.get_or_try_init(|| self.gql.global_badges()).await {
-            // Les badges de la chaîne, déjà présents, priment.
-            write(&|d| global.iter().for_each(|(k, v)| { d.badges.entry(k.clone()).or_insert_with(|| v.clone()); }));
-        }
-        let Ok(Some((channel_id, badges))) = self.gql.channel_badges(&login).await else { return };
-        write(&|d| d.badges.extend(badges.iter().map(|(k, v)| (k.clone(), v.clone()))));
-        if !third_party {
-            return;
-        }
-        let global = self
-            .global_emotes
-            .get_or_try_init(|| async {
-                let map = emotes::global(&self.http).await;
-                if map.is_empty() { Err(()) } else { Ok(map) }
+        let write = |f: &mut dyn FnMut(&mut Decor)| f(&mut decor.write().unwrap_or_else(|e| e.into_inner()));
+        if let Ok(Some(blocked)) = self
+            .with_helix(|token, user_id| {
+                let helix = &self.helix;
+                async move { helix.blocked_logins(&token, &user_id).await }
             })
             .await
-            .cloned()
+        {
+            write(&mut |d| d.hidden_users.extend(blocked.iter().cloned()));
+        }
+        let global: Option<HashMap<String, String>> =
+            self.cached("badges:global", DAY_S, async { self.gql.global_badges().await.ok().filter(|m| !m.is_empty()) }).await;
+        let channel: Option<(String, HashMap<String, String>)> =
+            self.cached(&format!("badges:{login}"), HOUR_S, async { self.gql.channel_badges(&login).await.ok().flatten() }).await;
+        write(&mut |d| {
+            // Les badges de la chaîne priment sur les globaux du même nom.
+            d.badges.extend(global.iter().flatten().map(|(k, v)| (k.clone(), v.clone())));
+            d.badges.extend(channel.iter().flat_map(|(_, m)| m).map(|(k, v)| (k.clone(), v.clone())));
+        });
+        let Some((channel_id, _)) = channel.filter(|_| third_party) else { return };
+        let mut emotes: EmoteMap = self
+            .cached("emotes:global", DAY_S, async { Some(emotes::global(&self.http).await).filter(|m| !m.is_empty()) })
+            .await
             .unwrap_or_default();
-        let mut all = global;
-        all.extend(emotes::channel(&self.http, &channel_id).await);
-        write(&|d| d.emotes = all.clone());
+        // shortcut: un fournisseur en panne donne une liste partielle gardée une heure ; à affiner si gênant.
+        let channel_emotes: Option<EmoteMap> =
+            self.cached(&format!("emotes:{channel_id}"), HOUR_S, async { Some(emotes::channel(&self.http, &channel_id).await) }).await;
+        emotes.extend(channel_emotes.unwrap_or_default());
+        write(&mut |d| d.emotes = std::mem::take(&mut emotes));
+    }
+
+    /// Réponse décorative gardée `ttl_s` dans `meta_cache` ; `fetch` rend `None` pour ne rien garder.
+    async fn cached<T, F>(&self, key: &str, ttl_s: i64, fetch: F) -> Option<T>
+    where
+        T: serde::Serialize + serde::de::DeserializeOwned,
+        F: std::future::Future<Output = Option<T>>,
+    {
+        let now = unix_now();
+        let db = &self.accounts.db;
+        if let Some(value) = db.meta_get(key, now).ok().flatten().and_then(|body| serde_json::from_str(&body).ok()) {
+            return Some(value);
+        }
+        let value = fetch.await?;
+        if let Ok(body) = serde_json::to_string(&value) {
+            // Un cache non écrit sera simplement rechargé la prochaine fois.
+            let _ = db.meta_put(key, &body, now, ttl_s);
+        }
+        Some(value)
     }
 
     /// Complète des lives Helix avec l'avatar de chaque chaîne (un appel groupé).
@@ -519,7 +534,7 @@ impl Core {
     /// Mémorise où en est la VOD pour le profil actif (à appeler hors du thread principal).
     /// Renvoie `true` si elle compte désormais comme terminée.
     pub fn save_vod_progress(&self, video_id: String, position_s: u32, duration_s: u32) -> Result<bool, CoreError> {
-        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
+        let now = unix_now();
         self.accounts.db.save_vod_progress(&self.progress_scope()?, &video_id, position_s, duration_s, now)
     }
 
@@ -589,6 +604,13 @@ impl Core {
 }
 
 const SETTINGS_SCOPE: &str = "global";
+/// Durées de `meta_cache` : les badges et émotes globaux bougent rarement, ceux d'une chaîne un peu plus.
+const DAY_S: i64 = 24 * 3600;
+const HOUR_S: i64 = 3600;
+
+fn unix_now() -> i64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0)
+}
 
 /// Raison lisible d'un refus d'usher (corps JSON `[{"error": "..."}]`), sans recopier l'URL.
 fn usher_reason(body: &str) -> String {

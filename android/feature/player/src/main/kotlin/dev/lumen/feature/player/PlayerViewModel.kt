@@ -63,12 +63,12 @@ fun zapTarget(logins: List<String>, current: String, delta: Int): String? {
 private const val LIVE_OFFSET_MS = 5_000L
 
 /** Élément de lecture d'un live, partagé par le lecteur et le multi-view. */
-internal fun liveMediaItem(url: String): MediaItem = MediaItem.Builder()
+internal fun liveMediaItem(url: String, targetOffsetMs: Long = LIVE_OFFSET_MS): MediaItem = MediaItem.Builder()
     .setUri(url)
     .setMimeType(MimeTypes.APPLICATION_M3U8)
     .setLiveConfiguration(
         MediaItem.LiveConfiguration.Builder()
-            .setTargetOffsetMs(LIVE_OFFSET_MS)
+            .setTargetOffsetMs(targetOffsetMs)
             // Rattrapage du direct imperceptible plutôt qu'un saut.
             .setMinPlaybackSpeed(0.97f)
             .setMaxPlaybackSpeed(1.03f)
@@ -237,7 +237,7 @@ class PlayerViewModel @Inject constructor(
     private fun play() {
         val state = _state.value
         val url = state.variants.firstOrNull { it.name == state.quality }?.url ?: masterUrl ?: return
-        player.setMediaItem(liveMediaItem(url))
+        player.setMediaSource(liveMediaSource(context, url, settings.state.value.lowLatency))
         player.prepare()
         player.play()
     }

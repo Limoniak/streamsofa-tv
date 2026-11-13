@@ -18,6 +18,8 @@ data class AppSettings(
     val chatByDefault: Boolean = false,
     /** Hauteur maximale de la qualité choisie au lancement d'un live ; 0 = Auto. */
     val maxQuality: Int = 0,
+    /** Lecture des segments en cours d'encodage (expérimental). */
+    val lowLatency: Boolean = false,
     /** Clé d'`AccentColor` (design system). */
     val accent: String = "violet",
     /** Recherche d'une nouvelle version au démarrage (builds de release uniquement). */
@@ -31,6 +33,7 @@ data class AppSettings(
     internal fun toMap() = mapOf(
         "chat_by_default" to chatByDefault.toString(),
         "max_quality" to maxQuality.toString(),
+        "low_latency" to lowLatency.toString(),
         "accent" to accent,
         "check_updates" to checkUpdates.toString(),
         "third_party_emotes" to thirdPartyEmotes.toString(),
@@ -43,6 +46,7 @@ data class AppSettings(
             AppSettings(
                 chatByDefault = map["chat_by_default"]?.toBooleanStrictOrNull() ?: d.chatByDefault,
                 maxQuality = map["max_quality"]?.toIntOrNull() ?: d.maxQuality,
+                lowLatency = map["low_latency"]?.toBooleanStrictOrNull() ?: d.lowLatency,
                 accent = map["accent"] ?: d.accent,
                 checkUpdates = map["check_updates"]?.toBooleanStrictOrNull() ?: d.checkUpdates,
                 thirdPartyEmotes = map["third_party_emotes"]?.toBooleanStrictOrNull() ?: d.thirdPartyEmotes,
