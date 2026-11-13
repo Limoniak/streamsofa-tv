@@ -42,7 +42,9 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
 ## Jalons
 
 - [x] J1 : squelette Gradle + Rust + UniFFI, 3 ABI.
-- [x] J2 : auth Device Code, multi-compte, Keystore. **Pas encore testé sur une vraie box ni contre le vrai Twitch.**
+- [x] J2 : auth Device Code, multi-compte, Keystore. Validé contre le vrai Twitch sur l'émulateur Google TV
+  (connexion, persistance après redémarrage, jeton chiffré et absent des logs, invité, boîte de retrait).
+  Pas encore testé sur une vraie box.
 - [ ] J3 : accueil + suivis + lecteur live (Media3 HLS), shell avec barre latérale, test D-pad.
 - [ ] J4 : chat (lecture puis envoi), batching côté Rust toutes les ~100 ms, buffer borné.
 - [ ] J5 : VOD + reprise + replay du chat.
@@ -63,3 +65,12 @@ adb install -r android/app/build/outputs/apk/debug/app-universal-debug.apk
 ```
 
 Prérequis et configuration (`local.properties`, Client ID Twitch) : voir `README.md`.
+
+## Poste de dev (Windows)
+
+- `JAVA_HOME` système pointe vers un JRE : lancer Gradle avec le JDK d'Android Studio
+  (`$env:JAVA_HOME = "$env:ProgramFiles\Android\Android Studio\jbr"`).
+- Émulateur de test : AVD `Lumen_GoogleTV` (Google TV, Android 16, 1080p, x86_64, WHPX).
+  Itérer avec `-Plumen.abis=x86_64` et `adb -s emulator-5554 ...` (un téléphone est souvent branché aussi).
+- Captures d'écran : `adb shell screencap -p /sdcard/s.png` puis `adb pull` (la redirection `>` de
+  PowerShell 5.1 corrompt les PNG).
