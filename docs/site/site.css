@@ -53,7 +53,7 @@ a { color: inherit; }
 }
 .nav .wrap { display: flex; align-items: center; gap: 28px; height: 72px; }
 .brand { display: flex; align-items: center; text-decoration: none; }
-.brand img { height: 40px; width: auto; }
+.brand img { height: 45px; width: auto; }
 .nav-links { display: flex; gap: 6px; margin-left: auto; }
 .nav-links a {
   text-decoration: none; color: var(--muted); font-weight: 500; font-size: 15px;
@@ -262,7 +262,7 @@ code { font-family: var(--mono); font-size: .9em; }
 /* Pied de page */
 footer { border-top: 1px solid var(--line); padding: 48px 0 56px; color: var(--muted); font-size: 15px; }
 footer .wrap { display: grid; grid-template-columns: 1.4fr 1fr; gap: 32px; }
-footer img { height: 34px; width: auto; margin-bottom: 14px; }
+footer img { height: 40px; width: auto; margin-bottom: 14px; }
 footer p { margin: 0 0 8px; }
 footer nav { display: flex; flex-wrap: wrap; gap: 8px 22px; justify-content: flex-end; align-content: flex-start; }
 footer nav a { text-decoration: none; display: inline-flex; gap: 8px; align-items: center; }
