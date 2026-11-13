@@ -88,7 +88,7 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
   Intégration TV : liens `lumen://` et twitch.tv (`singleTask`, `addOnNewIntentListener`), « Continuer à regarder »
   via `TvContract.WatchNextPrograms` (publié en quittant une VOD, retiré une fois finie, jamais remis si l'utilisateur
   l'a retiré), recherche globale/vocale via `SearchProvider` + `searchable.xml`. Google TV peut ignorer les deux
-  pour une app hors Play Store. Suivre/ne plus suivre : impossible, Twitch a retiré l'endpoint Helix (2023) ;
+  pour une app hors Play Store. Suivre/ne plus suivre : impossible, Twitch a retiré les endpoints de l'API (27 juillet 2021) ;
   le contourner via GQL exigerait un jeton web et une vérification d'intégrité, exclu.
 
 Schéma SQLite (migrations dans `store/mod.rs`, clé `scope` = `global` | `guest` | id de compte) :
