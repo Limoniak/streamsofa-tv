@@ -8,7 +8,7 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
 ## Architecture
 
 - `rust/core` (`lumen-core`) : cœur métier, exposé à Kotlin via UniFFI (proc-macros, async tokio).
-  `api.rs` est la seule surface publique. Modules : `auth`, `accounts`, `helix`, `store` (SQLite), `qr`, `secret`.
+  `api.rs` est la seule surface publique. Modules : `auth`, `accounts`, `helix`, `gql`, `hls`, `catalog`, `chat` (IRC WebSocket), `store` (SQLite), `qr`, `secret`.
 - `android/core-bridge` : compile le `.so` (cargo-ndk, 3 ABI) et génère les bindings à chaque build.
 - `android/data` : Hilt, `CoreHolder`, `AccountsRepository`, `KeystoreSecretStore`.
 - `android/feature/*` : un module par fonctionnalité (`auth`, `home`, `player`).
@@ -48,7 +48,10 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
 - [x] J3 : accueil + suivis + lecteur live (Media3 HLS), shell avec barre latérale, test D-pad.
   Validé sur l'émulateur : catalogue Helix et invité (GQL), lecture, qualité fixe, zapping, reprise au direct.
   Les pubs Twitch insérées dans le flux passent normalement.
-- [ ] J4 : chat (lecture puis envoi), batching côté Rust toutes les ~100 ms, buffer borné.
+- [~] J4 : chat (lecture puis envoi), batching côté Rust toutes les ~100 ms, buffer borné.
+  Lecture validée sur l'émulateur (IRC anonyme justinfan, émotes Twitch, couleurs, modération, 150 lignes).
+  Envoi Helix testé contre un faux serveur seulement : à valider par l'utilisateur dans son propre salon.
+  Reste : badges, émotes tierces (7TV/BTTV/FFZ), filtres de chat.
 - [ ] J5 : VOD + reprise + replay du chat.
 - [ ] J6 : multi-view (2 à 4 flux, sonde `MediaCodecList` + repli à l'exécution).
 - [ ] J7 : paramètres, thèmes, mise à jour auto via GitHub Releases, CI, Baseline Profiles, keystore de release.

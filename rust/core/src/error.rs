@@ -31,6 +31,9 @@ pub enum CoreError {
     /// L'API interne GQL a répondu dans un format inattendu : Twitch l'a probablement modifiée.
     #[error("l'API interne de Twitch a changé ({operation}) : {detail}")]
     GqlChanged { operation: String, detail: String },
+    /// Twitch a refusé un message de chat (mode abonnés, lenteur, AutoMod…) : `detail` est sa raison.
+    #[error("message refusé : {detail}")]
+    ChatRejected { detail: String },
     #[error("stockage sécurisé indisponible : {reason}")]
     SecretStore { reason: String },
     #[error("base locale indisponible : {reason}")]

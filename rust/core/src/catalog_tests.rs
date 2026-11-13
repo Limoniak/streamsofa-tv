@@ -261,3 +261,34 @@ async fn usher_refusals_are_explained_without_leaking_the_url() {
         other => panic!("Unavailable attendu, obtenu {other:?}"),
     }
 }
+
+// --- Envoi de chat : Helix -----------------------------------------------------------------
+
+#[tokio::test]
+async fn sending_chat_uses_helix_and_reports_twitch_refusals() {
+    let h = Harness::new().await;
+    assert!(matches!(h.core.send_chat("b1".into(), "salut".into()).await, Err(CoreError::NotSignedIn)));
+
+    h.sign_in("u1", "alice").await;
+    Mock::given(method("POST"))
+        .and(path("/helix/chat/messages"))
+        .and(header("Authorization", "Bearer access-alice"))
+        .and(body_string_contains("\"sender_id\":\"u1\""))
+        .and(body_string_contains("\"message\":\"salut\""))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": [{ "message_id": "x", "is_sent": true }] })))
+        .up_to_n_times(1)
+        .mount(&h.server)
+        .await;
+    h.core.send_chat("b1".into(), "  salut  ".into()).await.unwrap();
+
+    Mock::given(method("POST"))
+        .and(path("/helix/chat/messages"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": [{ "message_id": "", "is_sent": false,
+            "drop_reason": { "code": "followers_only", "message": "Réservé aux followers." } }] })))
+        .mount(&h.server)
+        .await;
+    match h.core.send_chat("b1".into(), "salut".into()).await {
+        Err(CoreError::ChatRejected { detail }) => assert_eq!(detail, "Réservé aux followers."),
+        other => panic!("{other:?}"),
+    }
+}

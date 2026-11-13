@@ -131,6 +131,46 @@ impl HelixClient {
         }
     }
 
+    /// Envoie un message au nom du compte. Un refus de Twitch (mode abonnés, AutoMod…)
+    /// arrive en 200 avec `is_sent: false` et une raison lisible.
+    pub async fn send_chat_message(
+        &self,
+        token: &Secret,
+        broadcaster_id: &str,
+        sender_id: &str,
+        message: &str,
+    ) -> Result<(), CoreError> {
+        #[derive(Deserialize)]
+        struct DropReason {
+            #[serde(default)]
+            message: String,
+        }
+        #[derive(Deserialize)]
+        struct Sent {
+            is_sent: bool,
+            drop_reason: Option<DropReason>,
+        }
+        let response = self
+            .http
+            .post(format!("{}/chat/messages", self.base))
+            .header("Client-Id", &self.client_id)
+            .bearer_auth(token.expose())
+            .json(&serde_json::json!({ "broadcaster_id": broadcaster_id, "sender_id": sender_id, "message": message }))
+            .send()
+            .await?;
+        if !response.status().is_success() {
+            return Err(api_error(response).await);
+        }
+        let page: Page<Sent> = response.json().await?;
+        match page.data.into_iter().next() {
+            Some(Sent { is_sent: true, .. }) => Ok(()),
+            Some(Sent { drop_reason, .. }) => Err(CoreError::ChatRejected {
+                detail: drop_reason.map(|r| r.message).filter(|m| !m.is_empty()).unwrap_or_else(|| "refusé par Twitch".into()),
+            }),
+            None => Err(CoreError::Api { status: 200, detail: "réponse d'envoi vide".into() }),
+        }
+    }
+
     /// Profil du propriétaire du jeton.
     pub async fn current_user(&self, token: &Secret) -> Result<HelixUser, CoreError> {
         let page: Page<HelixUser> = self.get("/users", &[], token).await?;

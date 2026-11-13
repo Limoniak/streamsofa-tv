@@ -11,17 +11,27 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.lumen.core.AccountState
+import dev.lumen.core.CoreException
 import dev.lumen.core.LiveStream
 import dev.lumen.core.Variant
+import dev.lumen.data.AccountsRepository
 import dev.lumen.data.CatalogRepository
+import dev.lumen.data.ChatRepository
 import dev.lumen.data.LoadError
 import dev.lumen.data.loadCatching
+import dev.lumen.data.messageRes
 import dev.lumen.data.toLoadError
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -53,12 +63,24 @@ private const val LIVE_OFFSET_MS = 5_000L
 
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
-    @ApplicationContext context: Context,
+    @ApplicationContext private val context: Context,
     savedState: SavedStateHandle,
     private val catalog: CatalogRepository,
+    private val chatRepo: ChatRepository,
+    accounts: AccountsRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(PlayerUiState(login = checkNotNull(savedState["login"])))
     val state: StateFlow<PlayerUiState> = _state.asStateFlow()
+
+    private val _chat = MutableStateFlow(ChatUiState())
+    val chat: StateFlow<ChatUiState> = _chat.asStateFlow()
+    private var chatJob: Job? = null
+    private var chatLogin: String? = null
+
+    /** L'envoi exige un compte actif et valide ; en invité le chat reste en lecture. */
+    val canSend: StateFlow<Boolean> = accounts.snapshot
+        .map { snap -> snap?.accounts?.any { it.id == snap.activeId && it.state == AccountState.OK } == true }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     val player: ExoPlayer = ExoPlayer.Builder(context).build().apply { playWhenReady = true }
 
@@ -112,7 +134,39 @@ class PlayerViewModel @Inject constructor(
         player.play()
     }
 
+    fun sendChat(text: String) {
+        val broadcasterId = _state.value.stream?.channelId ?: return
+        viewModelScope.launch {
+            val failure = try {
+                chatRepo.send(broadcasterId, text)
+                null
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: CoreException.ChatRejected) {
+                e.detail
+            } catch (e: Throwable) {
+                context.getString(e.toLoadError().messageRes)
+            }
+            // Le message envoyé revient par le salon ; seul un refus s'affiche localement.
+            if (failure != null) _chat.update { it.copy(lines = it.lines + systemLine(failure)) }
+        }
+    }
+
+    /** Une relance du flux (jeton expiré) ne doit pas couper le chat : on ne rejoint qu'au changement de chaîne. */
+    private fun joinChat(login: String) {
+        if (login == chatLogin) return
+        chatLogin = login
+        chatJob?.cancel()
+        _chat.value = ChatUiState()
+        chatJob = viewModelScope.launch {
+            chatRepo.events(login)
+                .catch { e -> _chat.update { it.copy(lines = it.lines + systemLine(context.getString(e.toLoadError().messageRes))) } }
+                .collect { batch -> _chat.update { it.applyEvents(batch) } }
+        }
+    }
+
     private fun load(login: String) {
+        joinChat(login)
         job?.cancel()
         player.stop()
         masterUrl = null

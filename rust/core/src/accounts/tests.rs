@@ -80,6 +80,7 @@ impl Harness {
                 helix: format!("{}/helix", server.uri()),
                 gql: format!("{}/gql", server.uri()),
                 usher: server.uri(),
+                chat: server.uri().replace("http", "ws"),
                 min_poll_interval: Duration::from_millis(10),
             },
         )

@@ -2,4 +2,7 @@
 <resources>
     <string name="player_quality_auto">Auto</string>
     <string name="player_zap_hint">◀ ▶ changer de chaîne suivie</string>
+    <string name="chat_connecting">Connexion au chat…</string>
+    <string name="chat_compose_hint">Votre message</string>
+    <string name="chat_send">Envoyer</string>
 </resources>

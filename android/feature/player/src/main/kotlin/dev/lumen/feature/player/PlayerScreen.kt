@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -17,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,12 +64,17 @@ private const val OVERLAY_TIMEOUT_MS = 5_000L
 
 /**
  * Télécommande : OK affiche les infos et la qualité, gauche/droite zappe entre les chaînes
- * suivies, Retour ferme d'abord le panneau. Haut/bas restent libres pour le chat (J4).
+ * suivies, bas affiche ou masque le chat, haut ouvre la saisie d'un message (compte connecté).
+ * Retour ferme d'abord le panneau.
  */
 @OptIn(UnstableApi::class)
 @Composable
 fun PlayerRoute(viewModel: PlayerViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val chat by viewModel.chat.collectAsStateWithLifecycle()
+    val canSend by viewModel.canSend.collectAsStateWithLifecycle()
+    var chatVisible by rememberSaveable { mutableStateOf(true) }
+    var composing by remember { mutableStateOf(false) }
     LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onStop() }
 
@@ -89,7 +97,7 @@ fun PlayerRoute(viewModel: PlayerViewModel = hiltViewModel()) {
     }
     BackHandler(enabled = overlay == Overlay.Controls) { overlay = Overlay.Hidden }
 
-    Box(
+    Row(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
@@ -116,12 +124,24 @@ fun PlayerRoute(viewModel: PlayerViewModel = hiltViewModel()) {
                         viewModel.zap(1)
                         true
                     }
+                    Key.DirectionDown -> {
+                        chatVisible = !chatVisible
+                        true
+                    }
+                    Key.DirectionUp -> {
+                        if (canSend && state.stream != null) {
+                            chatVisible = true
+                            composing = true
+                        }
+                        true
+                    }
                     else -> false
                 }
             }
             .focusRequester(rootFocus)
             .focusable(),
     ) {
+      Box(Modifier.weight(1f).fillMaxHeight()) {
         AndroidView(
             factory = { context ->
                 PlayerView(context).apply {
@@ -155,7 +175,21 @@ fun PlayerRoute(viewModel: PlayerViewModel = hiltViewModel()) {
                 modifier = Modifier.align(Alignment.BottomStart),
             )
         }
+      }
+        if (chatVisible) ChatPanel(chat, Modifier.width(340.dp).fillMaxHeight())
     }
+
+    if (composing) {
+        ChatComposer(
+            onSend = {
+                viewModel.sendChat(it)
+                composing = false
+            },
+            onDismiss = { composing = false },
+        )
+    }
+    // La boîte de saisie fermée, la télécommande revient au lecteur.
+    LaunchedEffect(composing) { if (!composing) rootFocus.requestWhenAttached() }
 }
 
 @kotlin.OptIn(ExperimentalTvMaterial3Api::class)

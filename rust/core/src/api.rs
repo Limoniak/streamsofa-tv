@@ -6,6 +6,7 @@ use std::time::Duration;
 use crate::accounts::{Account, AccountManager, AccountsListener, AccountsSnapshot, DeviceLogin};
 use crate::auth::AuthClient;
 use crate::catalog::{Category, CategoryPage, LiveStream, StreamPage};
+use crate::chat::{self, ChatListener, ChatSession};
 use crate::error::CoreError;
 use crate::gql::GqlClient;
 use crate::helix::{HelixClient, HelixStream};
@@ -39,6 +40,7 @@ pub(crate) struct Endpoints {
     pub helix: String,
     pub gql: String,
     pub usher: String,
+    pub chat: String,
     pub min_poll_interval: Duration,
 }
 
@@ -49,6 +51,7 @@ impl Default for Endpoints {
             helix: "https://api.twitch.tv/helix".into(),
             gql: "https://gql.twitch.tv/gql".into(),
             usher: "https://usher.ttvnw.net".into(),
+            chat: "wss://irc-ws.chat.twitch.tv:443".into(),
             min_poll_interval: Duration::from_secs(1),
         }
     }
@@ -67,6 +70,9 @@ pub struct Core {
     gql: GqlClient,
     http: reqwest::Client,
     usher: String,
+    chat_url: String,
+    /// Sans ALPN : une socket WebSocket reste en HTTP/1.1.
+    chat_tls: Arc<rustls::ClientConfig>,
 }
 
 impl Core {
@@ -89,6 +95,8 @@ impl Core {
             helix: HelixClient::new(http.clone(), endpoints.helix, client_id.clone()),
             gql: GqlClient::new(http.clone(), endpoints.gql, random_hex(32)),
             usher: endpoints.usher,
+            chat_url: endpoints.chat,
+            chat_tls: Arc::new(http::tls_config()?),
             http,
             client_id,
             accounts,
@@ -337,6 +345,33 @@ impl Core {
             return Err(CoreError::GqlChanged { operation: "usher".into(), detail: "playlist sans qualité".into() });
         }
         Ok(Playback { master_url, variants })
+    }
+}
+
+#[uniffi::export(async_runtime = "tokio")]
+impl Core {
+    // --- Chat ----------------------------------------------------------------------------
+
+    /// Rejoint le salon d'une chaîne en lecture seule (anonyme, y compris avec un compte).
+    /// `async` pour s'exécuter dans le runtime du cœur, qui porte la connexion.
+    pub async fn join_chat(&self, channel_login: String, listener: Arc<dyn ChatListener>) -> Arc<ChatSession> {
+        Arc::new(chat::spawn(self.chat_url.clone(), self.chat_tls.clone(), channel_login, listener))
+    }
+
+    /// Envoie un message avec le compte actif, via Helix pour connaître la raison d'un refus.
+    pub async fn send_chat(&self, broadcaster_id: String, text: String) -> Result<(), CoreError> {
+        let text = text.trim();
+        if text.is_empty() {
+            return Ok(());
+        }
+        // Limite de Twitch, en caractères.
+        let text: String = text.chars().take(500).collect();
+        let (channel, message) = (broadcaster_id.as_str(), text.as_str());
+        self.with_helix(|token: Secret, sender: String| async move {
+            self.helix.send_chat_message(&token, channel, &sender, message).await
+        })
+        .await?
+        .ok_or(CoreError::NotSignedIn)
     }
 }
 
