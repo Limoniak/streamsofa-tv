@@ -73,7 +73,8 @@ fun PlayerRoute(viewModel: PlayerViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val chat by viewModel.chat.collectAsStateWithLifecycle()
     val canSend by viewModel.canSend.collectAsStateWithLifecycle()
-    var chatVisible by rememberSaveable { mutableStateOf(true) }
+    // Masqué par défaut : la vidéo d'abord, Bas affiche le chat.
+    var chatVisible by rememberSaveable { mutableStateOf(false) }
     var composing by remember { mutableStateOf(false) }
     LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onStop() }
