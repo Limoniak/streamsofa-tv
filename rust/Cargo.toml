@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+members = ["core", "uniffi-bindgen"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+
+[workspace.dependencies]
+uniffi = "0.32"
+
+# Les .so embarqués dans l'APK : taille réduite, mais on garde l'unwinding
+# pour qu'UniFFI convertisse un panic en exception Kotlin plutôt que de tuer l'app.
+[profile.release]
+opt-level = "s"
+lto = "thin"
+codegen-units = 1
+strip = true

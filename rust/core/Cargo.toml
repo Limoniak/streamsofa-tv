@@ -1,0 +1,17 @@
+[package]
+name = "lumen-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "lumen_core"
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+uniffi = { workspace = true, features = ["tokio"] }
+tokio = { version = "1", features = ["rt-multi-thread", "time", "sync", "macros"] }
+thiserror = "2"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "time", "sync", "macros", "test-util"] }

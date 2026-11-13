@@ -1,0 +1,8 @@
+# Copier ce fichier en local.properties (non versionné) et le compléter.
+
+# Chemin du SDK Android (Android Studio le renseigne tout seul).
+sdk.dir=/chemin/vers/Android/Sdk
+
+# Client ID de l'application enregistrée sur https://dev.twitch.tv/console/apps
+# (type de client : « Public »). Requis à partir du jalon 2.
+twitch.clientId=
