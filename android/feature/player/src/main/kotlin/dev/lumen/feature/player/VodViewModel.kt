@@ -60,7 +60,7 @@ private const val CHAT_CONTEXT_S = 30u
 
 @HiltViewModel
 class VodViewModel @Inject constructor(
-    @ApplicationContext context: Context,
+    @ApplicationContext private val context: Context,
     savedState: SavedStateHandle,
     private val catalog: CatalogRepository,
     settings: SettingsRepository,
@@ -152,7 +152,7 @@ class VodViewModel @Inject constructor(
                 }
                 .onFailure { e ->
                     _state.update {
-                        it.copy(video = video.await() ?: it.video, status = PlayerStatus.Failed(e.toLoadError()), detail = e.unavailableDetail)
+                        it.copy(video = video.await() ?: it.video, status = PlayerStatus.Failed(e.toLoadError()), detail = e.unavailableDetail(context))
                     }
                 }
         }

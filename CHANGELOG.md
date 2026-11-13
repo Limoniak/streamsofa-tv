@@ -5,6 +5,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+- English interface. The app follows the system language (English or French) and can be set per app in the Android settings on Android 13 and later.
+- Channel zapping (Up / Down) without followed channels live, in guest mode for example: it goes through the popular streams.
+- The project is now licensed under the GNU General Public License v3.0 or later.
+- Screenshots and a short demo in the README.
+
+### Changed
+- Up / Down on a channel outside the zapping list now jumps to the first channel of the list.
+
 ## [0.2.0] - 2026-11-13
 
 ### Changed

@@ -7,10 +7,7 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 
 ## Next up
 
-- [ ] 🟡 English interface, with the language picked from the system (the app is French only today).
-- [ ] 🟢 Screenshots and a short demo GIF in the README.
-- [ ] 🟢 Choose and add a license.
-- [ ] 🟢 Channel zapping (Up / Down) in guest mode, using the popular streams list.
+- [ ] 🟡 More interface languages (English and French today); translations welcome.
 
 ## Watching
 

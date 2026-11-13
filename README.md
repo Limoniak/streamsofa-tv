@@ -11,6 +11,11 @@
   <a href="https://github.com/Limoniak/streamsofa-tv/releases/latest"><img src="https://img.shields.io/github/v/release/Limoniak/streamsofa-tv?style=flat-square&color=B79CFF&labelColor=1B1622" alt="Latest release"></a>
   <a href="https://github.com/Limoniak/streamsofa-tv/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Limoniak/streamsofa-tv/ci.yml?branch=main&style=flat-square&labelColor=1B1622" alt="CI"></a>
   <img src="https://img.shields.io/badge/Android%20TV-8.0%2B-FFB38A?style=flat-square&labelColor=1B1622" alt="Android TV 8.0+">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-F4EEE8?style=flat-square&labelColor=1B1622" alt="License: GPL-3.0"></a>
+</p>
+
+<p align="center">
+  <img src="docs/demo.gif" alt="Browsing popular streams, opening a live, showing the chat, changing channel and opening the live list with the remote" width="720">
 </p>
 
 > [!NOTE]
@@ -28,11 +33,20 @@
 | **Android TV** | "Continue watching" row, global and voice search, `twitch.tv` links open in the app. |
 | **Raids** | When the channel you watch raids, a banner offers to follow it. |
 
-The interface is currently in French.
+The interface is in English and French and follows the system language. On Android 13 and later it can also be set for the app alone in the Android settings.
 
 Ads inserted by Twitch play as usual: StreamSofa never blocks them and never tries to unlock subscriber or Turbo perks.
 
 What could come next is listed in the [roadmap](ROADMAP.md).
+
+## Screenshots
+
+| | |
+|---|---|
+| ![Home with popular live streams and categories](docs/screenshots/home.jpg) | ![Live player with the action bar and the chat](docs/screenshots/player.jpg) |
+| **Home**: followed channels first, then popular streams and categories. | **Player**: OK opens the action bar, Right shows the chat. |
+| ![List of live channels over the player](docs/screenshots/live-list.jpg) | ![Settings screen](docs/screenshots/settings.jpg) |
+| **Live list**: Left opens it, Up and Down change channel directly. | **Settings**: chat, quality, low latency, accent color, updates. |
 
 ## Install
 
@@ -128,3 +142,7 @@ cd android && ./gradlew :app:generateBaselineProfile -Plumen.abis=x86_64
 - Wordmark set in [Fraunces](https://github.com/undercasetype/Fraunces) (SIL Open Font License), converted to vector paths.
 - Third-party emotes from [7TV](https://7tv.app), [BetterTTV](https://betterttv.com) and [FrankerFaceZ](https://www.frankerfacez.com).
 - Twitch is a trademark of Twitch Interactive, Inc.
+
+## License
+
+StreamSofa is free software, released under the [GNU General Public License v3.0 or later](LICENSE).

@@ -1,30 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="profiles_title">Qui regarde ?</string>
-    <string name="profiles_add">Ajouter un compte</string>
-    <string name="profiles_guest">Invité</string>
-    <string name="profiles_guest_hint">Sans connexion, chat en lecture seule</string>
-    <string name="profiles_active">Actif</string>
-    <string name="profiles_needs_reauth">Reconnexion requise</string>
-    <string name="profiles_remove_hint">Appui long sur un profil pour le retirer de cet appareil.</string>
-    <string name="profiles_remove_title">Retirer %1$s de cet appareil ?</string>
-    <string name="profiles_remove_body">Le compte Twitch n\'est pas supprimé. Vous pourrez le reconnecter à tout moment.</string>
-    <string name="profiles_remove_confirm">Retirer</string>
-    <string name="profiles_remove_cancel">Annuler</string>
+    <string name="profiles_title">Who\'s watching?</string>
+    <string name="profiles_add">Add an account</string>
+    <string name="profiles_guest">Guest</string>
+    <string name="profiles_guest_hint">No sign-in, read-only chat</string>
+    <string name="profiles_active">Active</string>
+    <string name="profiles_needs_reauth">Sign-in required</string>
+    <string name="profiles_remove_hint">Long press a profile to remove it from this device.</string>
+    <string name="profiles_remove_title">Remove %1$s from this device?</string>
+    <string name="profiles_remove_body">The Twitch account is not deleted. You can sign in again at any time.</string>
+    <string name="profiles_remove_confirm">Remove</string>
+    <string name="profiles_remove_cancel">Cancel</string>
 
-    <string name="login_title">Connecter un compte Twitch</string>
-    <string name="login_step_scan">Scannez le QR code avec votre téléphone, ou ouvrez</string>
+    <string name="login_title">Sign in to a Twitch account</string>
+    <string name="login_step_scan">Scan the QR code with your phone, or open</string>
     <string name="login_url">twitch.tv/activate</string>
-    <string name="login_step_code">puis saisissez ce code :</string>
-    <string name="login_waiting">En attente de votre validation…</string>
-    <string name="login_requesting">Demande d\'un code à Twitch…</string>
-    <string name="login_success">Bienvenue, %1$s !</string>
-    <string name="login_retry">Obtenir un nouveau code</string>
-    <string name="login_back">Retour</string>
-    <string name="login_error_expired">Le code a expiré avant d\'être validé.</string>
-    <string name="login_error_network">Impossible de joindre Twitch. Vérifiez la connexion réseau.</string>
-    <string name="login_error_not_configured">Cette version de l\'application n\'a pas de Client ID Twitch.</string>
-    <string name="login_error_storage">Le stockage sécurisé de l\'appareil a refusé d\'enregistrer le compte.</string>
-    <string name="login_error_other">La connexion a échoué. Réessayez dans un instant.</string>
-    <string name="login_note">La lecture reste anonyme : les avantages Turbo ou d\'abonnement ne s\'y appliquent pas.</string>
+    <string name="login_step_code">and enter this code:</string>
+    <string name="login_waiting">Waiting for your approval…</string>
+    <string name="login_requesting">Asking Twitch for a code…</string>
+    <string name="login_success">Welcome, %1$s!</string>
+    <string name="login_retry">Get a new code</string>
+    <string name="login_back">Back</string>
+    <string name="login_error_expired">The code expired before it was approved.</string>
+    <string name="login_error_network">Can\'t reach Twitch. Check your network connection.</string>
+    <string name="login_error_not_configured">This build of the app has no Twitch Client ID.</string>
+    <string name="login_error_storage">The device\'s secure storage refused to save the account.</string>
+    <string name="login_error_other">Sign-in failed. Try again in a moment.</string>
+    <string name="login_note">Playback stays anonymous: Turbo and subscription perks don\'t apply.</string>
 </resources>

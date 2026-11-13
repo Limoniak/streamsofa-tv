@@ -376,7 +376,7 @@ async fn subscriber_only_vods_are_refused_not_bypassed() {
         .mount(&h.server)
         .await;
     match h.core.vod_playback("31".into()).await {
-        Err(CoreError::Unavailable { detail }) => assert_eq!(detail, "Vidéo réservée aux abonnés de la chaîne."),
+        Err(CoreError::Unavailable { detail }) => assert_eq!(detail, "Manifest is restricted"),
         other => panic!("Unavailable attendu, obtenu {other:?}"),
     }
     assert!(matches!(h.core.vod_playback("../x".into()).await, Err(CoreError::Unavailable { .. })));

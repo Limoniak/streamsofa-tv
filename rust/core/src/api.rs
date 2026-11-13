@@ -781,7 +781,8 @@ fn unix_now() -> i64 {
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0)
 }
 
-/// Raison lisible d'un refus d'usher (corps JSON `[{"error": "..."}]`), sans recopier l'URL.
+/// Raison brute d'un refus d'usher (corps JSON `[{"error": "..."}]`), sans recopier l'URL ;
+/// traduite côté Kotlin (`unavailableDetail`). Vide si Twitch n'en donne pas.
 fn usher_reason(body: &str) -> String {
     #[derive(serde::Deserialize)]
     struct UsherError {
@@ -791,8 +792,7 @@ fn usher_reason(body: &str) -> String {
     serde_json::from_str::<Vec<UsherError>>(body)
         .ok()
         .and_then(|errors| errors.into_iter().map(|e| e.error).find(|e| !e.is_empty()))
-        .map(|e| if e == "Manifest is restricted" { "Vidéo réservée aux abonnés de la chaîne.".into() } else { e })
-        .unwrap_or_else(|| "lecture refusée par Twitch".into())
+        .unwrap_or_default()
 }
 
 #[uniffi::export]

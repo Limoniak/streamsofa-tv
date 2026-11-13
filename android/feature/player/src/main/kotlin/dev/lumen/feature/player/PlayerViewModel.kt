@@ -59,10 +59,11 @@ data class PlayerUiState(
     val raid: Raid? = null,
 )
 
-/** Chaîne voisine dans la liste, en boucle ; `null` si [current] n'y figure pas ou est seule. */
+/** Chaîne voisine dans la liste, en boucle ; hors liste, la première (la dernière en reculant). `null` s'il n'y a rien d'autre. */
 fun zapTarget(logins: List<String>, current: String, delta: Int): String? {
+    if (logins.none { it != current }) return null
     val index = logins.indexOf(current)
-    if (index < 0 || logins.size < 2) return null
+    if (index < 0) return if (delta > 0) logins.first() else logins.last()
     return logins[Math.floorMod(index + delta, logins.size)]
 }
 
@@ -111,6 +112,9 @@ class PlayerViewModel @Inject constructor(
 
     val player: ExoPlayer = ExoPlayer.Builder(context).build().apply { playWhenReady = true }
 
+    /** Lives populaires, pour zapper sans suivis en live (invité). */
+    private var popular: List<String> = emptyList()
+
     private var raidJob: Job? = null
     private var followJob: Job? = null
 
@@ -131,9 +135,11 @@ class PlayerViewModel @Inject constructor(
             override fun onPlayerError(error: PlaybackException) = handleError(error)
         })
         viewModelScope.launch {
-            catalog.followed.collect { list ->
-                _state.update { s -> s.copy(canZap = zapTarget(list.map { it.login }, s.login, 1) != null) }
-            }
+            catalog.followed.collect { refreshCanZap() }
+        }
+        if (catalog.followed.value.isEmpty()) viewModelScope.launch {
+            popular = loadCatching { catalog.topStreams(null).items }.getOrDefault(emptyList()).map { it.login }
+            refreshCanZap()
         }
         // EventSub ne connaît la chaîne que par son id : on suit celui du live affiché.
         viewModelScope.launch {
@@ -166,8 +172,12 @@ class PlayerViewModel @Inject constructor(
         _state.update { it.copy(raid = null) }
     }
 
+    private fun zapLogins(): List<String> = catalog.followed.value.map { it.login }.ifEmpty { popular }
+
+    private fun refreshCanZap() = _state.update { it.copy(canZap = zapTarget(zapLogins(), it.login, 1) != null) }
+
     fun zap(delta: Int) {
-        val next = zapTarget(catalog.followed.value.map { it.login }, _state.value.login, delta) ?: return
+        val next = zapTarget(zapLogins(), _state.value.login, delta) ?: return
         retried = false
         load(next)
     }
@@ -255,7 +265,7 @@ class PlayerViewModel @Inject constructor(
                 stream = known,
                 variants = emptyList(),
                 status = PlayerStatus.Loading,
-                canZap = zapTarget(catalog.followed.value.map { s -> s.login }, login, 1) != null,
+                canZap = zapTarget(zapLogins(), login, 1) != null,
             )
         }
         job = viewModelScope.launch {

@@ -1,5 +1,6 @@
 package dev.lumen.data
 
+import android.content.Context
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -45,9 +46,11 @@ fun Throwable.toLoadError(): LoadError = when (this) {
     else -> LoadError.Other
 }
 
-/** Raison donnée par Twitch quand elle refuse la lecture (« réservé aux abonnés… »). */
-val Throwable.unavailableDetail: String?
-    get() = (this as? CoreException.Unavailable)?.detail
+/** Raison donnée par Twitch quand elle refuse la lecture, traduite quand on la connaît. */
+fun Throwable.unavailableDetail(context: Context): String? = when (val detail = (this as? CoreException.Unavailable)?.detail) {
+    "Manifest is restricted" -> context.getString(R.string.error_subscribers_only)
+    else -> detail?.ifEmpty { null }
+}
 
 /** Reprise d'une VOD : secondes vues et fin atteinte. */
 data class VodProgress(val positionS: UInt, val finished: Boolean)

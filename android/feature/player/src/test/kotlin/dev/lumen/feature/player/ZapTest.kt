@@ -15,8 +15,14 @@ class ZapTest {
     }
 
     @Test
-    fun noTargetOutsideListOrAlone() {
-        assertNull(zapTarget(logins, "z", 1))
+    fun outsideListStartsAtAnEnd() {
+        assertEquals("a", zapTarget(logins, "z", 1))
+        assertEquals("c", zapTarget(logins, "z", -1))
+    }
+
+    @Test
+    fun noTargetWhenAlone() {
         assertNull(zapTarget(listOf("a"), "a", 1))
+        assertNull(zapTarget(emptyList(), "a", 1))
     }
 }

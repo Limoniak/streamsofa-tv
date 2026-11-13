@@ -1,10 +1,11 @@
 # StreamSofa — contexte pour Claude Code
 
 Client Twitch non officiel pour Android TV / Google TV, alternative moderne à S0undTV.
-Distribution en APK sideload via GitHub Releases. Aucune affiliation avec Twitch.
+Distribution en APK sideload via GitHub Releases, licence GPL-3.0-or-later. Aucune affiliation avec Twitch.
 Priorités, dans l'ordre : performance, connexion Twitch fiable, multi-compte, design 10-foot.
-L'utilisateur parle français ; l'UI, les commentaires et les messages de commit sont en français.
-Exceptions : `README.md` et `CHANGELOG.md` sont en anglais (chaque changement visible va dans `Unreleased`).
+L'utilisateur parle français ; les commentaires et les messages de commit sont en français.
+L'UI suit la langue du système : anglais dans `values/strings.xml` (défaut), français dans `values-fr/` ; toujours ajouter les deux.
+Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque changement visible va dans `Unreleased`).
 
 ## Architecture
 
@@ -48,7 +49,7 @@ Exceptions : `README.md` et `CHANGELOG.md` sont en anglais (chaque changement vi
   assis dans un canapé lavande, Fraunces SOFT 100 / 750 (OFL) converti en tracés ; icône = le canapé avec un « s ».
   Fichiers générés : `banner.xml`, `ic_launcher.xml`, `docs/logo.svg` (script hors dépôt). Palette : fonds prune
   `#130F19`/`#1B1622`, texte crème `#F4EEE8`, accent lavande `#B79CFF`, pêche `#FFB38A` (clé d'accent `orange` conservée).
-- Télécommande du lecteur live, style télé (choix de l'utilisateur) : ▲ ▼ zappent entre les suivis en live, ◀ ouvre la
+- Télécommande du lecteur live, style télé (choix de l'utilisateur) : ▲ ▼ zappent entre les suivis en live (sinon les lives populaires), ◀ ouvre la
   liste des lives (`LiveList`, suivis sinon top), ▶ affiche le chat puis va sur son bouton « Écrire »
   (compte connecté ; ◀ revient à la vidéo, ▶ masque le chat), OK ouvre la barre d'actions (Chat, Qualité, Multi-view,
   Page de la chaîne). L'aide des touches reste affichée dans le panneau d'infos. La saisie ne s'ouvre que par OK sur « Écrire ».

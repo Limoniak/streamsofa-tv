@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Paramètres</string>
+    <string name="settings_playback">Lecture</string>
+    <string name="settings_chat_default">Afficher le chat au lancement</string>
+    <string name="settings_chat_default_hint">Sinon, ▶ l\'affiche pendant la lecture.</string>
+    <string name="settings_quality">Qualité au lancement d\'un live</string>
+    <string name="settings_quality_auto">Auto</string>
+    <string name="settings_theme">Couleur d\'accent</string>
+    <string name="accent_violet">Violet</string>
+    <string name="accent_blue">Bleu</string>
+    <string name="accent_green">Vert</string>
+    <string name="accent_peach">Pêche</string>
+    <string name="accent_pink">Rose</string>
+    <string name="settings_updates">Mises à jour</string>
+    <string name="settings_check_updates">Rechercher au démarrage</string>
+    <string name="settings_version">Version installée : %1$s</string>
+    <string name="update_check_now">Rechercher maintenant</string>
+    <string name="update_checking">Recherche…</string>
+    <string name="update_up_to_date">StreamSofa est à jour.</string>
+    <string name="update_available">Version %1$s disponible</string>
+    <string name="update_size">%1$s Mo</string>
+    <string name="update_install">Installer</string>
+    <string name="update_later">Plus tard</string>
+    <string name="update_downloading">Téléchargement…</string>
+    <string name="settings_chat">Chat</string>
+    <string name="settings_third_party_emotes">Émotes 7TV, BTTV et FFZ</string>
+    <string name="settings_third_party_emotes_hint">Chargées depuis ces services à l\'ouverture du chat.</string>
+    <string name="settings_hidden_words">Mots masqués</string>
+    <string name="settings_hidden_users">Pseudos masqués</string>
+    <string name="settings_none">Aucun</string>
+    <string name="settings_chat_hint">Les utilisateurs bloqués sur Twitch sont aussi masqués. Changements appliqués à la prochaine ouverture du chat.</string>
+    <string name="settings_list_hint">Séparés par des virgules</string>
+    <string name="settings_save">Enregistrer</string>
+    <string name="settings_cancel">Annuler</string>
+    <string name="settings_low_latency">Faible latence (expérimental)</string>
+    <string name="settings_low_latency_hint">Jusqu\'à 3 s de retard en moins, sur les chaînes qui le permettent. Peut provoquer des coupures sur une connexion lente.</string>
+</resources>
