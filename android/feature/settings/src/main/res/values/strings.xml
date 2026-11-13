@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Paramètres</string>
+    <string name="settings_playback">Lecture</string>
+    <string name="settings_chat_default">Afficher le chat au lancement</string>
+    <string name="settings_chat_default_hint">Sinon, Bas l\'affiche pendant la lecture.</string>
+    <string name="settings_quality">Qualité au lancement d\'un live</string>
+    <string name="settings_quality_auto">Auto</string>
+    <string name="settings_theme">Couleur d\'accent</string>
+    <string name="accent_violet">Violet</string>
+    <string name="accent_blue">Bleu</string>
+    <string name="accent_green">Vert</string>
+    <string name="accent_orange">Orange</string>
+    <string name="accent_pink">Rose</string>
+    <string name="settings_updates">Mises à jour</string>
+    <string name="settings_check_updates">Rechercher au démarrage</string>
+    <string name="settings_version">Version installée : %1$s</string>
+    <string name="update_check_now">Rechercher maintenant</string>
+    <string name="update_checking">Recherche…</string>
+    <string name="update_up_to_date">Lumen est à jour.</string>
+    <string name="update_available">Version %1$s disponible</string>
+    <string name="update_size">%1$s Mo</string>
+    <string name="update_install">Installer</string>
+    <string name="update_later">Plus tard</string>
+    <string name="update_downloading">Téléchargement…</string>
+</resources>

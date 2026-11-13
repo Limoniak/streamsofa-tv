@@ -14,6 +14,7 @@ use crate::hls::{self, Playback};
 use crate::http;
 use crate::secret::Secret;
 use crate::store::Db;
+use crate::update::{self, AppUpdate};
 
 /// Configuration fournie par l'application au démarrage.
 #[derive(Debug, Clone, uniffi::Record)]
@@ -41,6 +42,7 @@ pub(crate) struct Endpoints {
     pub gql: String,
     pub usher: String,
     pub chat: String,
+    pub github: String,
     pub min_poll_interval: Duration,
 }
 
@@ -52,6 +54,7 @@ impl Default for Endpoints {
             gql: "https://gql.twitch.tv/gql".into(),
             usher: "https://usher.ttvnw.net".into(),
             chat: "wss://irc-ws.chat.twitch.tv:443".into(),
+            github: "https://api.github.com".into(),
             min_poll_interval: Duration::from_secs(1),
         }
     }
@@ -73,6 +76,7 @@ pub struct Core {
     http: reqwest::Client,
     usher: String,
     chat_url: String,
+    github: String,
     /// Sans ALPN : une socket WebSocket reste en HTTP/1.1.
     chat_tls: Arc<rustls::ClientConfig>,
 }
@@ -98,6 +102,7 @@ impl Core {
             gql: GqlClient::new(http.clone(), endpoints.gql, random_hex(32)),
             usher: endpoints.usher,
             chat_url: endpoints.chat,
+            github: endpoints.github,
             chat_tls: Arc::new(http::tls_config()?),
             http,
             client_id,
@@ -514,6 +519,31 @@ impl Core {
         .ok_or(CoreError::NotSignedIn)
     }
 }
+
+/// Préférences (portée `global`) et mise à jour de l'app.
+#[uniffi::export(async_runtime = "tokio")]
+impl Core {
+    /// Toutes les préférences enregistrées ; une clé absente prend la valeur par défaut de l'app.
+    pub fn settings(&self) -> Result<HashMap<String, String>, CoreError> {
+        self.accounts.db.settings(SETTINGS_SCOPE)
+    }
+
+    pub fn set_setting(&self, key: String, value: String) -> Result<(), CoreError> {
+        self.accounts.db.set_setting(SETTINGS_SCOPE, &key, &value)
+    }
+
+    /// Release GitHub plus récente que `current_version`, avec l'APK de la première ABI de `abis`.
+    pub async fn check_update(&self, current_version: String, abis: Vec<String>) -> Result<Option<AppUpdate>, CoreError> {
+        update::check(&self.http, &self.github, &current_version, &abis).await
+    }
+
+    /// Télécharge l'APK d'une mise à jour vers `dest_path` (remplacé s'il existe).
+    pub async fn download_update(&self, apk_url: String, dest_path: String) -> Result<(), CoreError> {
+        update::download(&self.http, &apk_url, Path::new(&dest_path)).await
+    }
+}
+
+const SETTINGS_SCOPE: &str = "global";
 
 /// Raison lisible d'un refus d'usher (corps JSON `[{"error": "..."}]`), sans recopier l'URL.
 fn usher_reason(body: &str) -> String {

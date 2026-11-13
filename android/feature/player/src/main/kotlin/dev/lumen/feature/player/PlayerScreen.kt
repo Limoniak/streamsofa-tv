@@ -4,6 +4,8 @@ import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -76,8 +78,8 @@ fun PlayerRoute(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val chat by viewModel.chat.collectAsStateWithLifecycle()
     val canSend by viewModel.canSend.collectAsStateWithLifecycle()
-    // Masqué par défaut : la vidéo d'abord, Bas affiche le chat.
-    var chatVisible by rememberSaveable { mutableStateOf(false) }
+    // Masqué par défaut (réglable) : la vidéo d'abord, Bas affiche le chat.
+    var chatVisible by rememberSaveable { mutableStateOf(viewModel.chatByDefault) }
     var composing by remember { mutableStateOf(false) }
     var picking by remember { mutableStateOf(false) }
     LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onStart() }
@@ -267,7 +269,8 @@ private fun InfoPanel(
             }
         }
         if (showControls && state.variants.isNotEmpty()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            // Défile quand le chat réduit la largeur : le focus amène la puce en vue.
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 val options = listOf<String?>(null) + state.variants.map { it.name }
                 options.forEach { name ->
                     val selected = name == state.quality

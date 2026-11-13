@@ -18,10 +18,12 @@ rootProject.name = "lumen"
 
 include(
     ":app",
+    ":baselineprofile",
     ":core-bridge",
     ":data",
     ":designsystem",
     ":feature:auth",
     ":feature:home",
     ":feature:player",
+    ":feature:settings",
 )

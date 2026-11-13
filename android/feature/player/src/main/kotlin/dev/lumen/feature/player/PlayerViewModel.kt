@@ -19,6 +19,7 @@ import dev.lumen.data.AccountsRepository
 import dev.lumen.data.CatalogRepository
 import dev.lumen.data.ChatRepository
 import dev.lumen.data.LoadError
+import dev.lumen.data.SettingsRepository
 import dev.lumen.data.loadCatching
 import dev.lumen.data.messageRes
 import dev.lumen.data.toLoadError
@@ -82,7 +83,12 @@ class PlayerViewModel @Inject constructor(
     private val catalog: CatalogRepository,
     private val chatRepo: ChatRepository,
     accounts: AccountsRepository,
+    private val settings: SettingsRepository,
 ) : ViewModel() {
+    val chatByDefault: Boolean get() = settings.state.value.chatByDefault
+    /** Une fois une qualité choisie à la main (Auto compris), le réglage par défaut ne s'applique plus. */
+    private var qualityChosen = false
+
     private val _state = MutableStateFlow(PlayerUiState(login = checkNotNull(savedState["login"])))
     val state: StateFlow<PlayerUiState> = _state.asStateFlow()
 
@@ -145,6 +151,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun selectQuality(name: String?) {
+        qualityChosen = true
         _state.update { it.copy(quality = name) }
         play()
     }
@@ -215,9 +222,11 @@ class PlayerViewModel @Inject constructor(
                 .onSuccess { playback ->
                     masterUrl = playback.masterUrl
                     val variants = playback.variants.filter { !it.audioOnly }
+                    val maxQuality = settings.state.value.maxQuality
+                    val default = if (qualityChosen || maxQuality == 0) null else pickVariant(variants, maxQuality)?.name
                     _state.update { s ->
                         // La qualité choisie suit le zapping si la chaîne suivante la propose.
-                        s.copy(variants = variants, quality = s.quality?.takeIf { q -> variants.any { it.name == q } })
+                        s.copy(variants = variants, quality = s.quality?.takeIf { q -> variants.any { it.name == q } } ?: default)
                     }
                     play()
                 }

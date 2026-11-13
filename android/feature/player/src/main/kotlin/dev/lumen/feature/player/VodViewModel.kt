@@ -16,6 +16,7 @@ import dev.lumen.core.ChatEvent
 import dev.lumen.core.ChatState
 import dev.lumen.core.Video
 import dev.lumen.data.CatalogRepository
+import dev.lumen.data.SettingsRepository
 import dev.lumen.data.LoadError
 import dev.lumen.data.loadCatching
 import dev.lumen.data.toLoadError
@@ -61,7 +62,9 @@ class VodViewModel @Inject constructor(
     @ApplicationContext context: Context,
     savedState: SavedStateHandle,
     private val catalog: CatalogRepository,
+    settings: SettingsRepository,
 ) : ViewModel() {
+    val chatByDefault = settings.state.value.chatByDefault
     private val id: String = checkNotNull(savedState["id"])
     private val _state = MutableStateFlow(VodUiState(id))
     val state: StateFlow<VodUiState> = _state.asStateFlow()

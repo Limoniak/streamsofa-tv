@@ -27,6 +27,8 @@ import dev.lumen.feature.home.HomeRoute
 import dev.lumen.feature.player.MultiViewRoute
 import dev.lumen.feature.player.PlayerRoute
 import dev.lumen.feature.player.VodPlayerRoute
+import dev.lumen.feature.settings.SettingsRoute
+import dev.lumen.feature.settings.UpdatePrompt
 import javax.inject.Inject
 
 private object Routes {
@@ -39,6 +41,7 @@ private object Routes {
     const val CHANNEL = "channel/{login}"
     const val VOD = "vod/{id}"
     const val MULTI = "multi/{logins}"
+    const val SETTINGS = "settings"
 
     fun category(id: String, name: String) = "category/${Uri.encode(id)}?name=${Uri.encode(name)}"
     fun live(login: String) = "live/${Uri.encode(login)}"
@@ -96,6 +99,10 @@ fun LumenNavHost(session: SessionViewModel = hiltViewModel()) {
                     onReconnect = { navController.navigate(Routes.LOGIN) },
                 )
             }
+            UpdatePrompt()
+        }
+        composable(Routes.SETTINGS) {
+            Shell(ShellTab.Settings, onTab = navController::openTab) { SettingsRoute() }
         }
         composable(Routes.FOLLOWING) {
             Shell(ShellTab.Following, onTab = navController::openTab) {
@@ -149,6 +156,10 @@ private fun NavController.openTab(tab: ShellTab) {
             launchSingleTop = true
         }
         ShellTab.Following -> navigate(Routes.FOLLOWING) {
+            popUpTo(Routes.HOME)
+            launchSingleTop = true
+        }
+        ShellTab.Settings -> navigate(Routes.SETTINGS) {
             popUpTo(Routes.HOME)
             launchSingleTop = true
         }

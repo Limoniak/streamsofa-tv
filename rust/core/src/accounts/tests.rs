@@ -81,6 +81,7 @@ impl Harness {
                 gql: format!("{}/gql", server.uri()),
                 usher: server.uri(),
                 chat: server.uri().replace("http", "ws"),
+                github: server.uri(),
                 min_poll_interval: Duration::from_millis(10),
             },
         )

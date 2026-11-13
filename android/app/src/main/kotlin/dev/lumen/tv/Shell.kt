@@ -29,6 +29,7 @@ enum class ShellTab(@StringRes val label: Int, @DrawableRes val icon: Int) {
     Home(R.string.nav_home, R.drawable.ic_nav_home),
     Following(R.string.nav_following, R.drawable.ic_nav_favorite),
     Profiles(R.string.nav_profiles, R.drawable.ic_nav_person),
+    Settings(R.string.nav_settings, R.drawable.ic_nav_settings),
 }
 
 /** Barre latérale repliée en icônes ; elle s'ouvre quand le focus y entre (gauche). */

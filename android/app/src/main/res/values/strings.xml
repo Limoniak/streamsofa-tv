@@ -4,4 +4,5 @@
     <string name="nav_home">Accueil</string>
     <string name="nav_following">Suivis</string>
     <string name="nav_profiles">Profils</string>
+    <string name="nav_settings">Paramètres</string>
 </resources>

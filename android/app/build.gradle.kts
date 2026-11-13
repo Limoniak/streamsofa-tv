@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.baselineprofile)
 }
 
 fun loadProperties(name: String) = Properties().apply {
@@ -16,6 +17,13 @@ val localProperties = loadProperties("local.properties")
 // keystore.properties (non versionné) : storeFile, storePassword, keyAlias, keyPassword.
 val keystoreProperties = loadProperties("keystore.properties")
 
+// Version publiée : la CI la passe depuis le tag (`-Plumen.versionName=1.2.3`).
+val appVersionName = providers.gradleProperty("lumen.versionName").getOrElse("0.1.0")
+// 1.2.3 -> 10203 : toujours croissant tant que mineur et correctif restent sous 100.
+val appVersionCode = appVersionName.substringBefore('-').split('.').map { it.toInt() }
+    .let { (it + listOf(0, 0, 0)).take(3) }
+    .let { (major, minor, patch) -> major * 10_000 + minor * 100 + patch }
+
 android {
     namespace = "dev.lumen.tv"
     compileSdk = 37
@@ -25,8 +33,8 @@ android {
         applicationId = "dev.lumen.tv"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         buildConfigField(
             "String",
@@ -86,6 +94,7 @@ dependencies {
     implementation(project(":feature:auth"))
     implementation(project(":feature:home"))
     implementation(project(":feature:player"))
+    implementation(project(":feature:settings"))
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
@@ -95,6 +104,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.coroutines.android)
+    // Installe le Baseline Profile au premier lancement d'un APK sideloadé (pas de Play Store).
+    implementation(libs.profileinstaller)
+    baselineProfile(project(":baselineprofile"))
 
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)

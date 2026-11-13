@@ -69,7 +69,7 @@ fun VodPlayerRoute(viewModel: VodViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val clock by viewModel.clock.collectAsStateWithLifecycle()
     val chat by viewModel.chat.collectAsStateWithLifecycle()
-    var chatVisible by rememberSaveable { mutableStateOf(false) }
+    var chatVisible by rememberSaveable { mutableStateOf(viewModel.chatByDefault) }
     var overlay by remember { mutableStateOf(true) }
     var interactions by remember { mutableIntStateOf(0) }
     val rootFocus = remember { FocusRequester() }

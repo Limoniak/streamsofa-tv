@@ -15,6 +15,7 @@ mod http;
 mod qr;
 mod secret;
 mod store;
+mod update;
 
 #[cfg(test)]
 mod catalog_tests;
@@ -26,5 +27,6 @@ pub use chat::{ChatEvent, ChatFragment, ChatListener, ChatMessage, ChatSession, 
 pub use error::CoreError;
 pub use hls::{Playback, Variant};
 pub use qr::QrMatrix;
+pub use update::AppUpdate;
 
 uniffi::setup_scaffolding!();

@@ -8,10 +8,11 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
 ## Architecture
 
 - `rust/core` (`lumen-core`) : cœur métier, exposé à Kotlin via UniFFI (proc-macros, async tokio).
-  `api.rs` est la seule surface publique. Modules : `auth`, `accounts`, `helix`, `gql`, `hls`, `catalog`, `chat` (IRC WebSocket), `store` (SQLite), `qr`, `secret`.
+  `api.rs` est la seule surface publique. Modules : `auth`, `accounts`, `helix`, `gql`, `hls`, `catalog`, `chat` (IRC WebSocket), `store` (SQLite), `qr`, `secret`, `update` (GitHub Releases).
 - `android/core-bridge` : compile le `.so` (cargo-ndk, 3 ABI) et génère les bindings à chaque build.
 - `android/data` : Hilt, `CoreHolder`, `AccountsRepository`, `KeystoreSecretStore`.
-- `android/feature/*` : un module par fonctionnalité (`auth`, `home`, `player`).
+- `android/feature/*` : un module par fonctionnalité (`auth`, `home`, `player`, `settings`).
+- `android/baselineprofile` : générateur du Baseline Profile de `:app`.
 - `android/designsystem` : thème, couleurs, marges overscan.
 - `android/app` : Activity unique, NavHost.
 
@@ -63,17 +64,25 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
   Un ExoPlayer par tuile, qualité fixe (720p à 2, 480p à 3-4), son sur la tuile focalisée ; erreur décodeur
   → qualité inférieure puis « l'appareil ne peut pas ». OK = plein écran, appui long OK = retirer.
   Validé sur l'émulateur avec 4 flux.
-- [ ] J7 : paramètres, thèmes, mise à jour auto via GitHub Releases, CI, Baseline Profiles, keystore de release.
+- [x] J7 : onglet Paramètres (chat au lancement, qualité au lancement d'un live, couleur d'accent,
+  recherche de mise à jour au démarrage). Préférences globales dans `settings` (migration 3), lues par
+  `SettingsRepository`. Accent = état Compose (`LumenColors.accent`), appliqué sans redémarrer.
+  Mise à jour : release GitHub `Limoniak/lumen-tv` plus récente → APK de l'ABI de l'appareil
+  (`lumen-<version>-<abi>.apk`, sinon universel), téléchargé par Rust, installé via FileProvider.
+  Jamais proposée automatiquement sur une build de debug (signature différente).
+  CI GitHub Actions : tests Rust + Android à chaque push, release signée sur tag `vX.Y.Z`
+  (version issue du tag ; secrets décrits dans le README). Baseline Profile : module `:baselineprofile`
+  + profileinstaller. Keystore de release : à créer par l'utilisateur (README), jamais généré ici.
 
-Schéma SQLite (migrations dans `store/mod.rs`, clé `scope` = `global` | `guest` | id de compte) : `vod_progress` existe (migration 2) ; prévus pour la suite :
-`settings(scope,key,value)`, `chat_filters(scope,kind,value)`,
-`meta_cache(key,body,fetched_at,ttl_s)`.
+Schéma SQLite (migrations dans `store/mod.rs`, clé `scope` = `global` | `guest` | id de compte) :
+`vod_progress` (migration 2), `settings` (migration 3, seule la portée `global` est utilisée) ; prévus :
+`chat_filters(scope,kind,value)`, `meta_cache(key,body,fetched_at,ttl_s)`.
 
 ## Commandes
 
 ```bash
 cd rust && cargo test
-cd android && ./gradlew :core-bridge:testDebugUnitTest :feature:auth:testDebugUnitTest
+cd android && ./gradlew :core-bridge:testDebugUnitTest :data:testDebugUnitTest :feature:auth:testDebugUnitTest :feature:player:testDebugUnitTest
 cd android && ./gradlew :app:assembleDebug          # -Plumen.abis=arm64-v8a pour itérer vite
 adb install -r android/app/build/outputs/apk/debug/app-universal-debug.apk
 ```

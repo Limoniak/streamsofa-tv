@@ -36,6 +36,14 @@ const MIGRATIONS: &[&str] = &["
         updated_at  INTEGER NOT NULL,
         PRIMARY KEY (scope, video_id)
     );
+", "
+    -- `scope` : `global`, `guest` ou id du compte. Valeurs en texte, interprétées côté app.
+    CREATE TABLE settings (
+        scope  TEXT NOT NULL,
+        key    TEXT NOT NULL,
+        value  TEXT NOT NULL,
+        PRIMARY KEY (scope, key)
+    );
 "];
 
 const ACTIVE_ACCOUNT: &str = "active_account_id";
@@ -147,11 +155,28 @@ impl Db {
         Ok(out)
     }
 
+    pub fn settings(&self, scope: &str) -> Result<HashMap<String, String>, CoreError> {
+        let conn = self.conn();
+        let mut stmt = conn.prepare_cached("SELECT key, value FROM settings WHERE scope = ?1")?;
+        let rows = stmt.query_map([scope], |r| Ok((r.get(0)?, r.get(1)?)))?;
+        Ok(rows.collect::<Result<_, _>>()?)
+    }
+
+    pub fn set_setting(&self, scope: &str, key: &str, value: &str) -> Result<(), CoreError> {
+        self.conn().execute(
+            "INSERT INTO settings (scope, key, value) VALUES (?1, ?2, ?3)
+             ON CONFLICT(scope, key) DO UPDATE SET value = excluded.value",
+            params![scope, key, value],
+        )?;
+        Ok(())
+    }
+
     pub fn delete_account(&self, id: &str) -> Result<(), CoreError> {
         let mut conn = self.conn();
         let tx = conn.transaction()?;
         tx.execute("DELETE FROM accounts WHERE id = ?1", [id])?;
         tx.execute("DELETE FROM vod_progress WHERE scope = ?1", [id])?;
+        tx.execute("DELETE FROM settings WHERE scope = ?1", [id])?;
         tx.execute("DELETE FROM app_state WHERE key = ?1 AND value = ?2", params![ACTIVE_ACCOUNT, id])?;
         tx.commit()?;
         Ok(())
@@ -252,5 +277,17 @@ mod tests {
         assert_eq!(db.active_account_id().unwrap().as_deref(), Some("1"));
         db.delete_account("1").unwrap();
         assert_eq!(db.active_account_id().unwrap(), None);
+    }
+
+    #[test]
+    fn settings_are_overwritten_per_scope() {
+        let db = Db::in_memory().unwrap();
+        db.set_setting("global", "accent", "violet").unwrap();
+        db.set_setting("global", "accent", "blue").unwrap();
+        db.set_setting("42", "accent", "green").unwrap();
+        assert_eq!(db.settings("global").unwrap().get("accent").map(String::as_str), Some("blue"));
+        db.upsert_account(&account("42"), "", 1).unwrap();
+        db.delete_account("42").unwrap();
+        assert!(db.settings("42").unwrap().is_empty());
     }
 }
