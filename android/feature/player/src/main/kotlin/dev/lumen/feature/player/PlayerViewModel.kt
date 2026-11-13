@@ -12,6 +12,8 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.lumen.core.ChannelActivity
+import dev.lumen.core.PickerEmote
 import dev.lumen.core.AccountState
 import dev.lumen.core.CoreException
 import dev.lumen.core.LiveStream
@@ -122,6 +124,7 @@ class PlayerViewModel @Inject constructor(
 ) : ViewModel() {
     val chatByDefault: Boolean get() = settings.state.value.chatByDefault
     val chatTimestamps: Boolean get() = settings.state.value.chatTimestamps
+    val chatLook: ChatLook get() = settings.state.value.chatLook()
     /** Une fois une qualité choisie à la main (Auto compris), le réglage par défaut ne s'applique plus. */
     private var qualityChosen = false
 
@@ -266,6 +269,9 @@ class PlayerViewModel @Inject constructor(
     suspend fun liveList(): List<LiveStream> =
         catalog.followed.value.ifEmpty { loadCatching { catalog.topStreams(null).items }.getOrDefault(emptyList()) }
 
+    /** Sondage et prédiction de la chaîne affichée. */
+    suspend fun channelActivity(): ChannelActivity = catalog.channelActivity(_state.value.login)
+
     /** Chaînes à ajouter au multi-view. */
     suspend fun multiCandidates(): List<LiveStream> = liveList().filter { it.login != _state.value.login }
 
@@ -290,11 +296,13 @@ class PlayerViewModel @Inject constructor(
         player.play()
     }
 
-    fun sendChat(text: String) {
+    suspend fun chatEmotes(): List<PickerEmote> = _state.value.stream?.channelId?.let { chatRepo.emotes(it) }.orEmpty()
+
+    fun sendChat(text: String, replyTo: String? = null) {
         val broadcasterId = _state.value.stream?.channelId ?: return
         viewModelScope.launch {
             val failure = try {
-                chatRepo.send(broadcasterId, text)
+                chatRepo.send(broadcasterId, text, replyTo)
                 null
             } catch (e: CancellationException) {
                 throw e

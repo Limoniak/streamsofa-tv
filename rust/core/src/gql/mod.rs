@@ -13,8 +13,8 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::catalog::{
-    box_art_template, parse_utc, thumbnail_template, video_thumbnail, Category, CategoryPage, Channel, ChannelAbout, Chapter, Clip, ClipQuality,
-    LiveStream, Panel, ReplayComment, ScheduleSegment, SearchChannel, SearchResults, StreamPage, Video,
+    box_art_template, parse_utc, thumbnail_template, video_thumbnail, Category, CategoryPage, Channel, ChannelAbout, ChannelActivity, Chapter,
+    Clip, ClipQuality, LiveStream, Panel, Poll, PollChoice, Prediction, PredictionOutcome, PredictionStatus, ReplayComment, ScheduleSegment, SearchChannel, SearchResults, StreamPage, Video,
 };
 use crate::hls::url_query;
 use crate::chat::{emote_url, readable_color, ChatFragment, ChatMessage};
@@ -205,6 +205,124 @@ impl GqlClient {
         Ok(chapters)
     }
 
+    /// Sondage visible (en cours ou tout juste terminé) et prédiction en cours.
+    pub async fn channel_activity(&self, login: &str) -> Result<ChannelActivity, CoreError> {
+        #[derive(Deserialize)]
+        struct GVotes {
+            #[serde(default)]
+            total: u32,
+        }
+        #[derive(Deserialize)]
+        struct GChoice {
+            #[serde(default)]
+            title: String,
+            votes: Option<GVotes>,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct GPoll {
+            #[serde(default)]
+            title: String,
+            #[serde(default)]
+            status: String,
+            #[serde(default)]
+            remaining_duration_milliseconds: u64,
+            votes: Option<GVotes>,
+            #[serde(default)]
+            choices: Vec<GChoice>,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct GOutcome {
+            #[serde(default)]
+            id: String,
+            #[serde(default)]
+            title: String,
+            #[serde(default)]
+            total_points: u64,
+            #[serde(default)]
+            total_users: u32,
+        }
+        #[derive(Deserialize)]
+        struct GId {
+            id: String,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct GPrediction {
+            #[serde(default)]
+            title: String,
+            #[serde(default)]
+            status: String,
+            #[serde(default)]
+            created_at: String,
+            #[serde(default)]
+            prediction_window_seconds: i64,
+            #[serde(default)]
+            outcomes: Vec<GOutcome>,
+            winning_outcome: Option<GId>,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct GChannel {
+            #[serde(default)]
+            active_prediction_events: Vec<GPrediction>,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct GUser {
+            viewable_poll: Option<GPoll>,
+            channel: Option<GChannel>,
+        }
+        #[derive(Deserialize)]
+        struct Data {
+            user: Option<GUser>,
+        }
+        let data: Data = self.run("ChannelActivity", queries::CHANNEL_ACTIVITY, json!({ "login": login.to_lowercase() })).await?;
+        let Some(user) = data.user else { return Ok(ChannelActivity { poll: None, prediction: None }) };
+        let poll = user.viewable_poll.and_then(|p| {
+            // Archivé, modéré ou invalide : plus rien à montrer.
+            let active = match p.status.as_str() {
+                "ACTIVE" => true,
+                "COMPLETED" | "TERMINATED" => false,
+                _ => return None,
+            };
+            Some(Poll {
+                title: p.title,
+                total_votes: p.votes.map_or(0, |v| v.total),
+                choices: p.choices.into_iter().map(|c| PollChoice { title: c.title, votes: c.votes.map_or(0, |v| v.total) }).collect(),
+                active,
+                remaining_ms: p.remaining_duration_milliseconds,
+            })
+        });
+        let prediction = user.channel.and_then(|c| c.active_prediction_events.into_iter().next()).and_then(|p| {
+            let status = match p.status.as_str() {
+                "ACTIVE" => PredictionStatus::Active,
+                "LOCKED" | "RESOLVE_PENDING" => PredictionStatus::Locked,
+                "RESOLVED" => PredictionStatus::Resolved,
+                // Annulée : rien à montrer.
+                _ => return None,
+            };
+            let winner = p.winning_outcome.map(|w| w.id);
+            Some(Prediction {
+                title: p.title,
+                status,
+                locks_at_s: parse_utc(&p.created_at).map_or(0, |t| t + p.prediction_window_seconds),
+                outcomes: p
+                    .outcomes
+                    .into_iter()
+                    .map(|o| PredictionOutcome {
+                        winner: winner.as_deref() == Some(o.id.as_str()),
+                        title: o.title,
+                        points: o.total_points,
+                        users: o.total_users,
+                    })
+                    .collect(),
+            })
+        });
+        Ok(ChannelActivity { poll, prediction })
+    }
+
     /// Chat d'une VOD à partir de `offset_s` ; vide si la VOD n'a pas (ou plus) de chat.
     pub async fn vod_comments(&self, video_id: &str, offset_s: u32) -> Result<Vec<ReplayComment>, CoreError> {
         #[derive(Deserialize)]
@@ -274,6 +392,7 @@ impl GqlClient {
                         timestamp_ms: 0,
                         // Vides en anonyme dans le replay : inutile de les demander.
                         badges: Vec::new(),
+                        reply_to: None,
                     },
                 })
             })

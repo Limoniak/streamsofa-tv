@@ -53,7 +53,9 @@ import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.FilterChip
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import dev.lumen.core.ChannelActivity
 import dev.lumen.core.Raid
+import dev.lumen.data.loadCatching
 import dev.lumen.data.messageRes
 import dev.lumen.designsystem.Avatar
 import dev.lumen.designsystem.LumenColors
@@ -67,6 +69,7 @@ import dev.lumen.data.R as DataR
 
 private enum class Overlay { Hidden, Info, Actions }
 
+private const val ACTIVITY_REFRESH_MS = 15_000L
 private const val OVERLAY_TIMEOUT_MS = 5_000L
 
 /** Place laissée au bouton agrandi par le focus, que la zone défilante rognerait. */
@@ -134,6 +137,40 @@ fun PlayerRoute(
     BackHandler(enabled = listing) { listing = false }
     BackHandler(enabled = writeFocused) { rootFocus.requestFocus() }
     BackHandler(enabled = state.raid != null) { viewModel.cancelRaid() }
+
+    val look = remember { viewModel.chatLook }
+    // Sondage et prédiction relus toutes les 15 s, seulement chat affiché : aucun flux temps réel en anonyme.
+    var channelActivity by remember { mutableStateOf<ChannelActivity?>(null) }
+    LaunchedEffect(chatVisible, state.login) {
+        channelActivity = null
+        while (chatVisible) {
+            channelActivity = loadCatching { viewModel.channelActivity() }.getOrNull()
+            delay(ACTIVITY_REFRESH_MS)
+        }
+    }
+    // Même colonne à côté de la vidéo ou par-dessus (option « Chat par-dessus la vidéo »).
+    val chatColumn: @Composable (Modifier) -> Unit = { modifier ->
+        Column(modifier) {
+            channelActivity?.takeIf { it.poll != null || it.prediction != null }?.let { ActivityCard(it) }
+            ChatPanel(chat, Modifier.weight(1f).fillMaxWidth(), mention = myLogin, timestamps = viewModel.chatTimestamps, look = look)
+            if (canWrite) {
+                WriteButton(
+                    onClick = {
+                        overlay = Overlay.Hidden
+                        composing = true
+                    },
+                    onLeave = { rootFocus.requestFocus() },
+                    onHideChat = {
+                        rootFocus.requestFocus()
+                        chatVisible = false
+                    },
+                    modifier = Modifier
+                        .focusRequester(writeFocus)
+                        .onFocusChanged { writeFocused = it.isFocused },
+                )
+            }
+        }
+    }
 
     Row(
         modifier = Modifier
@@ -227,6 +264,8 @@ fun PlayerRoute(
 
         state.raid?.let { RaidBanner(it, Modifier.align(Alignment.TopStart)) }
 
+        if (chatVisible && !inPip && look.overlay) chatColumn(Modifier.align(Alignment.CenterEnd).width(look.width).fillMaxHeight())
+
         if (overlay != Overlay.Hidden && !inPip) {
             InfoPanel(
                 state = state,
@@ -272,36 +311,18 @@ fun PlayerRoute(
             )
         }
       }
-        if (chatVisible && !inPip) {
-            Column(Modifier.width(340.dp).fillMaxHeight().background(LumenColors.Background)) {
-                ChatPanel(chat, Modifier.weight(1f).fillMaxWidth(), mention = myLogin, timestamps = viewModel.chatTimestamps)
-                if (canWrite) {
-                    WriteButton(
-                        onClick = {
-                            overlay = Overlay.Hidden
-                            composing = true
-                        },
-                        onLeave = { rootFocus.requestFocus() },
-                        onHideChat = {
-                            rootFocus.requestFocus()
-                            chatVisible = false
-                        },
-                        modifier = Modifier
-                            .focusRequester(writeFocus)
-                            .onFocusChanged { writeFocused = it.isFocused },
-                    )
-                }
-            }
-        }
+        if (chatVisible && !inPip && !look.overlay) chatColumn(Modifier.width(look.width).fillMaxHeight().background(LumenColors.Background))
     }
 
     if (composing) {
         ChatComposer(
-            onSend = {
-                viewModel.sendChat(it)
+            onSend = { text, replyTo ->
+                viewModel.sendChat(text, replyTo)
                 composing = false
             },
+            replyCandidates = { chat.replyCandidates() },
             onDismiss = { composing = false },
+            loadEmotes = viewModel::chatEmotes,
         )
     }
     if (picking) {

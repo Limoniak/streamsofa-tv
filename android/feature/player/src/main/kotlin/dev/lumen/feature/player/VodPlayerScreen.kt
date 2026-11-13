@@ -152,11 +152,16 @@ fun VodPlayerRoute(viewModel: VodViewModel = hiltViewModel()) {
                 else -> Unit
             }
 
+            if (chatVisible && viewModel.chatLook.overlay) {
+                ChatPanel(chat, Modifier.align(Alignment.CenterEnd).width(viewModel.chatLook.width).fillMaxHeight(), look = viewModel.chatLook)
+            }
             if (overlay) {
                 VodInfo(state, clock, Modifier.align(Alignment.BottomStart))
             }
         }
-        if (chatVisible) ChatPanel(chat, Modifier.width(340.dp).fillMaxHeight())
+        if (chatVisible && !viewModel.chatLook.overlay) {
+            ChatPanel(chat, Modifier.width(viewModel.chatLook.width).fillMaxHeight(), look = viewModel.chatLook)
+        }
     }
 }
 

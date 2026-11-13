@@ -50,4 +50,17 @@
     <string name="multi_replace">Replace with another channel</string>
     <string name="multi_remove">Remove</string>
     <string name="player_pip">Picture-in-picture</string>
+    <string name="chat_emotes">Emotes</string>
+    <string name="chat_emotes_loading">Loading emotes…</string>
+    <string name="chat_emotes_empty">No emotes available.</string>
+    <string name="chat_reply">Reply</string>
+    <string name="chat_reply_cancel">Don\'t reply</string>
+    <string name="chat_replying_to">Replying to %1$s: %2$s</string>
+    <string name="activity_poll">Poll</string>
+    <string name="activity_poll_left">%1$d votes · %2$s left</string>
+    <string name="activity_poll_ended">Poll ended · %1$d votes</string>
+    <string name="activity_prediction">Prediction</string>
+    <string name="activity_prediction_open">Predictions open · %1$s left</string>
+    <string name="activity_prediction_locked">Predictions closed, waiting for the result</string>
+    <string name="activity_prediction_won">Result: %1$s</string>
 </resources>

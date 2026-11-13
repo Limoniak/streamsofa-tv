@@ -65,6 +65,12 @@ pub const VIDEO_CHAPTERS: &str = "query VideoChapters($id: ID!) { video(id: $id)
     moments(momentRequestType: VIDEO_CHAPTER_MARKERS, types: [GAME_CHANGE]) { edges { node { \
     positionMilliseconds description details { ... on GameChangeMomentDetails { game { displayName } } } } } } } }";
 
+/// Lisible en anonyme : `viewablePoll` (sur l'utilisateur) et les prédictions de la chaîne.
+pub const CHANNEL_ACTIVITY: &str = "query ChannelActivity($login: String!) { user(login: $login) { \
+    viewablePoll { title status remainingDurationMilliseconds votes { total } choices { title votes { total } } } \
+    channel { activePredictionEvents { title status createdAt predictionWindowSeconds \
+    outcomes { id title totalPoints totalUsers } winningOutcome { id } } } } }";
+
 pub const VOD_COMMENTS: &str = "query VodComments($id: ID!, $offset: Int) { video(id: $id) { id \
     comments(contentOffsetSeconds: $offset) { edges { node { id contentOffsetSeconds \
     commenter { id login displayName } message { userColor fragments { text emote { emoteID } } } } } } } }";

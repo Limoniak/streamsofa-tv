@@ -50,4 +50,17 @@
     <string name="multi_replace">Remplacer par une autre chaîne</string>
     <string name="multi_remove">Retirer</string>
     <string name="player_pip">Incrustation</string>
+    <string name="chat_emotes">Émotes</string>
+    <string name="chat_emotes_loading">Chargement des émotes…</string>
+    <string name="chat_emotes_empty">Aucune émote disponible.</string>
+    <string name="chat_reply">Répondre</string>
+    <string name="chat_reply_cancel">Ne plus répondre</string>
+    <string name="chat_replying_to">Réponse à %1$s : %2$s</string>
+    <string name="activity_poll">Sondage</string>
+    <string name="activity_poll_left">%1$d votes · encore %2$s</string>
+    <string name="activity_poll_ended">Sondage terminé · %1$d votes</string>
+    <string name="activity_prediction">Prédiction</string>
+    <string name="activity_prediction_open">Paris ouverts · encore %1$s</string>
+    <string name="activity_prediction_locked">Paris fermés, résultat attendu</string>
+    <string name="activity_prediction_won">Résultat : %1$s</string>
 </resources>

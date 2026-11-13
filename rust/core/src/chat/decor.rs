@@ -122,6 +122,7 @@ mod tests {
             system: None,
             timestamp_ms: 0,
             badges: vec![],
+            reply_to: None,
         }
     }
 

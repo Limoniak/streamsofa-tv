@@ -52,4 +52,17 @@ fun systemLine(text: String) = ChatMessage(
     system = text,
     timestampMs = System.currentTimeMillis(),
     badges = emptyList(),
+    replyTo = null,
 )
+
+/** Texte du message, émotes comprises par leur nom. */
+fun ChatMessage.plainText(): String = fragments.joinToString("") {
+    when (it) {
+        is ChatFragment.Text -> it.text
+        is ChatFragment.Emote -> it.name
+    }
+}
+
+/** Messages auxquels on peut répondre : ceux des spectateurs, le plus récent en tête. */
+fun ChatUiState.replyCandidates(max: Int = 30): List<ChatMessage> =
+    lines.filter { it.system == null && it.userId.isNotEmpty() }.takeLast(max).asReversed()

@@ -35,7 +35,12 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
 - Catalogue : Helix quand un compte est connecté, GQL en mode invité, derrière un même trait.
 - Scopes : `user:read:follows chat:read chat:edit user:write:chat user:read:emotes user:read:blocked_users`
   (en changer force tous les comptes à se reconnecter).
-- Envoi de chat via Helix (raison des refus), lecture via IRC WebSocket.
+- Envoi de chat via Helix (raison des refus), lecture via IRC WebSocket. Réponses : tags IRC `reply-parent-*` affichés
+  au-dessus du message, envoi avec `reply_parent_message_id` (choix parmi les 30 derniers messages, figés à l'ouverture).
+  Sélecteur d'émotes : Helix `chat/emotes/user` (celles de la chaîne d'abord) + émotes tierces de la chaîne (cache `emotes:<id>`).
+- Sondages et prédictions : GQL anonyme (`user.viewablePoll`, `channel.activePredictionEvents`), relus toutes les 15 s
+  seulement quand le chat est affiché (PubSub n'existe plus, EventSub exige les scopes du diffuseur). Lecture seule.
+- Apparence du chat (`chat_text_size`, `chat_width`, `chat_overlay`) : `ChatLook`, lu à l'ouverture du lecteur.
 - Faible latence : segments standards + live offset 5 s par défaut. Option expérimentale « Faible latence » :
   les `#EXT-X-TWITCH-PREFETCH` deviennent des segments (`LowLatency.kt`) et la cible passe à 2 s
   (mesuré : 3,7 s contre 7,2 s). Seules certaines chaînes en annoncent ; sans prefetch, aucun effet ni coupure.

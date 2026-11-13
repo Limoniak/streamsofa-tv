@@ -162,6 +162,29 @@ fun SettingsRoute(viewModel: SettingsViewModel = hiltViewModel(), updates: Updat
         )
         ListItem(
             selected = false,
+            onClick = { viewModel.update { copy(chatOverlay = !chatOverlay) } },
+            headlineContent = { Text(stringResource(R.string.settings_chat_overlay)) },
+            supportingContent = { Text(stringResource(R.string.settings_chat_overlay_hint)) },
+            trailingContent = { AccentSwitch(settings.chatOverlay) },
+        )
+        Label(R.string.settings_chat_text_size)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            listOf(R.string.settings_size_small, R.string.settings_size_medium, R.string.settings_size_large).forEachIndexed { index, label ->
+                FilterChip(selected = settings.chatTextSize == index, onClick = { viewModel.update { copy(chatTextSize = index) } }) {
+                    Text(stringResource(label))
+                }
+            }
+        }
+        Label(R.string.settings_chat_width)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            listOf(R.string.settings_width_narrow, R.string.settings_width_normal, R.string.settings_width_wide).forEachIndexed { index, label ->
+                FilterChip(selected = settings.chatWidth == index, onClick = { viewModel.update { copy(chatWidth = index) } }) {
+                    Text(stringResource(label))
+                }
+            }
+        }
+        ListItem(
+            selected = false,
             onClick = { editingWords = true },
             headlineContent = { Text(stringResource(R.string.settings_hidden_words)) },
             supportingContent = { Text(settings.hiddenWords.ifBlank { stringResource(R.string.settings_none) }, maxLines = 1) },

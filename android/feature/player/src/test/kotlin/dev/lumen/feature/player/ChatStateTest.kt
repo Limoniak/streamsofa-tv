@@ -12,7 +12,7 @@ import org.junit.Test
 class ChatStateTest {
     private fun msg(id: String, user: String = "u$id") = ChatMessage(
         id = id, userId = user, login = user, displayName = user, color = 0u,
-        fragments = listOf(ChatFragment.Text("salut")), action = false, system = null, timestampMs = 0, badges = emptyList(),
+        fragments = listOf(ChatFragment.Text("salut")), action = false, system = null, timestampMs = 0, badges = emptyList(), replyTo = null,
     )
 
     private fun ChatUiState.ids() = lines.map { it.id }

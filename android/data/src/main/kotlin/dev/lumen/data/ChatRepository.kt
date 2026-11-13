@@ -6,6 +6,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dev.lumen.core.ChatEvent
 import dev.lumen.core.ChatListener
+import dev.lumen.core.PickerEmote
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.channels.BufferOverflow
@@ -18,8 +19,11 @@ interface ChatRepository {
     /** Lots d'événements du salon de [login] ; la connexion vit tant que le flux est collecté. */
     fun events(login: String): Flow<List<ChatEvent>>
 
-    /** Envoie avec le compte actif ; lève `ChatRejected` avec la raison de Twitch. */
-    suspend fun send(broadcasterId: String, text: String)
+    /** Envoie avec le compte actif, en réponse à [replyTo] si donné ; lève `ChatRejected` avec la raison de Twitch. */
+    suspend fun send(broadcasterId: String, text: String, replyTo: String? = null)
+
+    /** Émotes que le compte actif peut envoyer dans la chaîne, celles de la chaîne en tête. */
+    suspend fun emotes(broadcasterId: String): List<PickerEmote>
 }
 
 @Singleton
@@ -39,8 +43,10 @@ internal class RustChatRepository @Inject constructor(
         awaitClose { session.destroy() }
     }.buffer(capacity = 32, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
-    override suspend fun send(broadcasterId: String, text: String) =
-        coreHolder.get().sendChat(broadcasterId, text)
+    override suspend fun send(broadcasterId: String, text: String, replyTo: String?) =
+        coreHolder.get().sendChat(broadcasterId, text, replyTo)
+
+    override suspend fun emotes(broadcasterId: String) = coreHolder.get().chatEmotes(broadcasterId)
 }
 
 @Module

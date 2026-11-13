@@ -27,7 +27,9 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
@@ -37,6 +39,7 @@ import coil3.compose.AsyncImage
 import dev.lumen.core.ChatFragment
 import dev.lumen.core.ChatMessage
 import dev.lumen.core.ChatState
+import dev.lumen.data.AppSettings
 import dev.lumen.designsystem.LumenColors
 import java.time.Instant
 import java.time.ZoneId
@@ -55,13 +58,29 @@ private val emoteRatios = mutableStateMapOf<String, Float>()
 
 private val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
 
+/** Apparence du chat choisie dans les paramètres. */
+data class ChatLook(val scale: Float = 1f, val width: Dp = 340.dp, val overlay: Boolean = false)
+
+fun AppSettings.chatLook() = ChatLook(
+    scale = listOf(0.85f, 1f, 1.25f)[chatTextSize.coerceIn(0, 2)],
+    width = listOf(280.dp, 340.dp, 440.dp)[chatWidth.coerceIn(0, 2)],
+    overlay = chatOverlay,
+)
+
 /**
  * Colonne de chat à droite de la vidéo ; le plus récent en bas, sans défilement manuel.
  * [mention] : login du compte actif, dont les citations sont mises en valeur.
  */
 @Composable
-fun ChatPanel(chat: ChatUiState, modifier: Modifier = Modifier, mention: String? = null, timestamps: Boolean = false) {
-    Box(modifier.background(LumenColors.Background)) {
+fun ChatPanel(
+    chat: ChatUiState,
+    modifier: Modifier = Modifier,
+    mention: String? = null,
+    timestamps: Boolean = false,
+    look: ChatLook = ChatLook(),
+) {
+    // Par-dessus la vidéo : fond assombri, assez transparent pour voir l'image.
+    Box(modifier.background(if (look.overlay) Color.Black.copy(alpha = 0.45f) else LumenColors.Background)) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             // Liste inversée : un nouveau message s'insère en bas sans gérer le défilement.
@@ -72,7 +91,7 @@ fun ChatPanel(chat: ChatUiState, modifier: Modifier = Modifier, mention: String?
             // Sans clé : la position suit l'index 0, donc le bas. Avec des clés, Compose garderait
             // l'ancien message à l'écran et les nouveaux arriveraient sous le bord.
             items(chat.lines.asReversed()) { line ->
-                ChatLine(line, mention, timestamps)
+                ChatLine(line, mention, timestamps, look.scale)
             }
         }
         if (chat.state != ChatState.JOINED && chat.lines.isEmpty()) {
@@ -87,7 +106,7 @@ fun ChatPanel(chat: ChatUiState, modifier: Modifier = Modifier, mention: String?
 }
 
 @Composable
-private fun ChatLine(line: ChatMessage, mention: String?, timestamps: Boolean) {
+private fun ChatLine(line: ChatMessage, mention: String?, timestamps: Boolean, scale: Float) {
     val system = line.system
     val mentioned = remember(line, mention) { mention != null && line.mentions(mention) }
     val time = if (timestamps && line.timestampMs > 0) {
@@ -108,10 +127,19 @@ private fun ChatLine(line: ChatMessage, mention: String?, timestamps: Boolean) {
                 },
             ),
     ) {
+        line.replyTo?.let { parent ->
+            Text(
+                text = "↪ @${parent.displayName} : ${parent.body}",
+                fontSize = ChatTextSize * scale * 0.8f,
+                color = LumenColors.OnSurfaceMuted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
         if (system != null) {
             Text(
                 text = system,
-                fontSize = ChatTextSize,
+                fontSize = ChatTextSize * scale,
                 fontStyle = FontStyle.Italic,
                 color = LumenColors.Accent,
             )
@@ -119,19 +147,19 @@ private fun ChatLine(line: ChatMessage, mention: String?, timestamps: Boolean) {
         if (line.fragments.isNotEmpty()) {
             // Lu pendant la composition : une largeur apprise recompose les lignes qui portent l'émote.
             val ratios = line.fragments.mapNotNull { (it as? ChatFragment.Emote)?.let { e -> emoteRatios[e.url] } }
-            val (text, inline) = remember(line, ratios, time) { annotate(line, time) }
-            Text(text = text, inlineContent = inline, fontSize = ChatTextSize, color = LumenColors.OnSurface)
+            val (text, inline) = remember(line, ratios, time, scale) { annotate(line, time, scale) }
+            Text(text = text, inlineContent = inline, fontSize = ChatTextSize * scale, color = LumenColors.OnSurface)
         }
     }
 }
 
-private fun annotate(line: ChatMessage, time: String?): Pair<AnnotatedString, Map<String, InlineTextContent>> {
+private fun annotate(line: ChatMessage, time: String?, scale: Float): Pair<AnnotatedString, Map<String, InlineTextContent>> {
     val nameColor = Color(line.color.toInt())
     val inline = HashMap<String, InlineTextContent>()
     val text = buildAnnotatedString {
         if (time != null) withStyle(SpanStyle(color = LumenColors.OnSurfaceMuted)) { append("$time ") }
         for (url in line.badges) {
-            inline.getOrPut(url) { imageContent(url, "", BadgeSize) }
+            inline.getOrPut(url) { imageContent(url, "", BadgeSize * scale) }
             appendInlineContent(url, " ")
             append(" ")
         }
@@ -143,7 +171,7 @@ private fun annotate(line: ChatMessage, time: String?): Pair<AnnotatedString, Ma
                 when (fragment) {
                     is ChatFragment.Text -> append(fragment.text)
                     is ChatFragment.Emote -> {
-                        inline.getOrPut(fragment.url) { imageContent(fragment.url, fragment.name, EmoteSize) }
+                        inline.getOrPut(fragment.url) { imageContent(fragment.url, fragment.name, EmoteSize * scale) }
                         appendInlineContent(fragment.url, fragment.name)
                     }
                 }

@@ -156,6 +156,15 @@ impl From<HelixSearchChannel> for SearchChannel {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct HelixEmote {
+    pub id: String,
+    pub name: String,
+    /// Chaîne propriétaire ; `0` pour les émotes globales de Twitch.
+    #[serde(default)]
+    pub owner_id: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct HelixGame {
     pub id: String,
     pub name: String,
@@ -238,6 +247,7 @@ impl HelixClient {
         broadcaster_id: &str,
         sender_id: &str,
         message: &str,
+        reply_to: Option<&str>,
     ) -> Result<(), CoreError> {
         #[derive(Deserialize)]
         struct DropReason {
@@ -254,7 +264,12 @@ impl HelixClient {
             .post(format!("{}/chat/messages", self.base))
             .header("Client-Id", &self.client_id)
             .bearer_auth(token.expose())
-            .json(&serde_json::json!({ "broadcaster_id": broadcaster_id, "sender_id": sender_id, "message": message }))
+            .json(&serde_json::json!({
+                "broadcaster_id": broadcaster_id,
+                "sender_id": sender_id,
+                "message": message,
+                "reply_parent_message_id": reply_to,
+            }))
             .send()
             .await?;
         if !response.status().is_success() {
@@ -292,6 +307,26 @@ impl HelixClient {
     pub async fn user_by_login(&self, token: &Secret, login: &str) -> Result<Option<HelixUser>, CoreError> {
         let page: Page<HelixUser> = self.get("/users", &[("login", &login.to_lowercase())], token).await?;
         Ok(page.data.into_iter().next())
+    }
+
+    /// Émotes Twitch que le compte peut envoyer dans la chaîne (abonnements, suiveurs, globales).
+    pub async fn user_emotes(&self, token: &Secret, user_id: &str, broadcaster_id: &str) -> Result<Vec<HelixEmote>, CoreError> {
+        let mut emotes = Vec::new();
+        let mut after: Option<String> = None;
+        // shortcut: 10 pages au plus (quelques milliers d'émotes), assez pour un sélecteur.
+        for _ in 0..10 {
+            let mut query = vec![("user_id", user_id), ("broadcaster_id", broadcaster_id)];
+            if let Some(after) = after.as_deref() {
+                query.push(("after", after));
+            }
+            let page: Page<HelixEmote> = self.get("/chat/emotes/user", &query, token).await?;
+            after = page.next_cursor();
+            emotes.extend(page.data);
+            if after.is_none() {
+                break;
+            }
+        }
+        Ok(emotes)
     }
 
     /// Pseudos (minuscules) des utilisateurs bloqués par le compte, toutes pages confondues.

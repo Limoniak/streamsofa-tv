@@ -9,13 +9,6 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 
 - [ ] 🟡 More interface languages (English and French today); translations welcome.
 
-## Chat
-
-- [ ] 🟡 Chat appearance settings: text size, panel width, transparent overlay on top of the video.
-- [ ] 🟡 Emote picker for sending (the account's emotes are already readable).
-- [ ] 🟡 Reply to a message and show reply threads.
-- [ ] 🔴 Read-only polls and predictions. ⚠️
-
 ## Discover
 
 - [ ] 🟡 Android TV launcher row with your followed channels that are live.

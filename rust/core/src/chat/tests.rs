@@ -157,3 +157,32 @@ async fn session_joins_anonymously_batches_and_reconnects() {
         "message et suppression livrés dans le même lot : {batches:?}"
     );
 }
+
+#[test]
+fn picker_puts_channel_emotes_first() {
+    let twitch = |id: &str, name: &str, owner: &str| crate::helix::HelixEmote { id: id.into(), name: name.into(), owner_id: owner.into() };
+    let order = picker_order(
+        "42",
+        vec![twitch("1", "Kappa", "0"), twitch("2", "otherHi", "7"), twitch("3", "chanHype", "42")],
+        vec![("catJAM".into(), "https://7tv/catjam".into()), ("Kappa".into(), "https://bttv/kappa".into())],
+    );
+    let names: Vec<&str> = order.iter().map(|e| e.name.as_str()).collect();
+    // La Kappa globale de Twitch est un doublon de celle de BTTV, rangée plus haut.
+    assert_eq!(names, ["chanHype", "catJAM", "Kappa", "otherHi"]);
+    assert_eq!(order[0].url, emote_url("3"));
+    assert_eq!(order[2].url, "https://bttv/kappa");
+}
+
+#[test]
+fn reply_keeps_parent_message() {
+    let line = parse_line(
+        "@display-name=Bob;id=m2;login=bob;reply-parent-display-name=Alice;reply-parent-msg-body=salut\\sà\\stous;\
+reply-parent-msg-id=m1;reply-parent-user-login=alice;user-id=2 :bob!bob@bob.tmi.twitch.tv PRIVMSG #chan :@Alice coucou",
+    )
+    .unwrap();
+    let Some(ChatEvent::Message { message }) = to_event(&line) else { panic!("message attendu") };
+    assert_eq!(message.reply_to, Some(ReplyParent { display_name: "Alice".into(), body: "salut à tous".into() }));
+    let plain = parse_line(PRIVMSG).unwrap();
+    let Some(ChatEvent::Message { message }) = to_event(&plain) else { panic!("message attendu") };
+    assert_eq!(message.reply_to, None);
+}

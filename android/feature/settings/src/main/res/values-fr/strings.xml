@@ -48,4 +48,14 @@
     <string name="settings_crash_log_exported">Enregistré dans Téléchargements : %1$s</string>
     <string name="settings_beta_updates">Versions bêta</string>
     <string name="settings_beta_updates_hint">Propose aussi les pré-versions : les nouveautés plus tôt, mais moins testées.</string>
+    <string name="settings_chat_overlay">Chat par-dessus la vidéo</string>
+    <string name="settings_chat_overlay_hint">Un chat transparent sur l\'image, au lieu d\'être à côté.</string>
+    <string name="settings_chat_text_size">Taille du texte du chat</string>
+    <string name="settings_size_small">Petite</string>
+    <string name="settings_size_medium">Moyenne</string>
+    <string name="settings_size_large">Grande</string>
+    <string name="settings_chat_width">Largeur du chat</string>
+    <string name="settings_width_narrow">Étroit</string>
+    <string name="settings_width_normal">Normal</string>
+    <string name="settings_width_wide">Large</string>
 </resources>

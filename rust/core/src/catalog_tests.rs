@@ -267,7 +267,7 @@ async fn usher_refusals_are_explained_without_leaking_the_url() {
 #[tokio::test]
 async fn sending_chat_uses_helix_and_reports_twitch_refusals() {
     let h = Harness::new().await;
-    assert!(matches!(h.core.send_chat("b1".into(), "salut".into()).await, Err(CoreError::NotSignedIn)));
+    assert!(matches!(h.core.send_chat("b1".into(), "salut".into(), None).await, Err(CoreError::NotSignedIn)));
 
     h.sign_in("u1", "alice").await;
     Mock::given(method("POST"))
@@ -275,11 +275,12 @@ async fn sending_chat_uses_helix_and_reports_twitch_refusals() {
         .and(header("Authorization", "Bearer access-alice"))
         .and(body_string_contains("\"sender_id\":\"u1\""))
         .and(body_string_contains("\"message\":\"salut\""))
+        .and(body_string_contains("\"reply_parent_message_id\":\"m1\""))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": [{ "message_id": "x", "is_sent": true }] })))
         .up_to_n_times(1)
         .mount(&h.server)
         .await;
-    h.core.send_chat("b1".into(), "  salut  ".into()).await.unwrap();
+    h.core.send_chat("b1".into(), "  salut  ".into(), Some("m1".into())).await.unwrap();
 
     Mock::given(method("POST"))
         .and(path("/helix/chat/messages"))
@@ -287,7 +288,7 @@ async fn sending_chat_uses_helix_and_reports_twitch_refusals() {
             "drop_reason": { "code": "followers_only", "message": "Réservé aux followers." } }] })))
         .mount(&h.server)
         .await;
-    match h.core.send_chat("b1".into(), "salut".into()).await {
+    match h.core.send_chat("b1".into(), "salut".into(), None).await {
         Err(CoreError::ChatRejected { detail }) => assert_eq!(detail, "Réservé aux followers."),
         other => panic!("{other:?}"),
     }
@@ -409,4 +410,46 @@ async fn vod_chat_starts_at_the_offset_and_keeps_emotes() {
         comments[0].message.fragments[1],
         crate::chat::ChatFragment::Emote { id: "25".into(), name: "Kappa".into(), url: crate::chat::emote_url("25") }
     );
+}
+
+#[tokio::test]
+async fn channel_activity_reads_poll_and_prediction() {
+    let h = Harness::new().await;
+    Mock::given(method("POST"))
+        .and(path("/gql"))
+        .and(body_string_contains("\"operationName\":\"ChannelActivity\""))
+        .and(body_string_contains("\"login\":\"alpha\""))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": { "user": {
+            "viewablePoll": { "title": "Quel jeu ?", "status": "ACTIVE", "remainingDurationMilliseconds": 42000,
+                "votes": { "total": 30 }, "choices": [
+                    { "title": "Elden Ring", "votes": { "total": 20 } }, { "title": "Celeste", "votes": { "total": 10 } }] },
+            "channel": { "activePredictionEvents": [{ "title": "Il gagne ?", "status": "RESOLVED",
+                "createdAt": "2026-11-13T09:00:00Z", "predictionWindowSeconds": 120,
+                "outcomes": [{ "id": "o1", "title": "Oui", "totalPoints": 5000, "totalUsers": 12 },
+                             { "id": "o2", "title": "Non", "totalPoints": 800, "totalUsers": 3 }],
+                "winningOutcome": { "id": "o2" } }] } } } })))
+        .mount(&h.server)
+        .await;
+    let activity = h.core.channel_activity("Alpha".into()).await.unwrap();
+    let poll = activity.poll.unwrap();
+    assert_eq!((poll.title.as_str(), poll.total_votes, poll.active, poll.remaining_ms), ("Quel jeu ?", 30, true, 42000));
+    assert_eq!(poll.choices[1], crate::catalog::PollChoice { title: "Celeste".into(), votes: 10 });
+    let prediction = activity.prediction.unwrap();
+    assert_eq!(prediction.status, crate::catalog::PredictionStatus::Resolved);
+    assert_eq!(prediction.locks_at_s, crate::catalog::parse_utc("2026-11-13T09:02:00Z").unwrap());
+    assert_eq!(prediction.outcomes.iter().map(|o| o.winner).collect::<Vec<_>>(), [false, true]);
+}
+
+#[tokio::test]
+async fn channel_activity_without_poll_or_prediction() {
+    let h = Harness::new().await;
+    Mock::given(method("POST"))
+        .and(path("/gql"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": { "user": {
+            "viewablePoll": { "title": "vieux", "status": "ARCHIVED", "choices": [] },
+            "channel": { "activePredictionEvents": [] } } } })))
+        .mount(&h.server)
+        .await;
+    let activity = h.core.channel_activity("alpha".into()).await.unwrap();
+    assert_eq!((activity.poll, activity.prediction), (None, None));
 }

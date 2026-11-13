@@ -35,6 +35,12 @@ data class AppSettings(
     val thirdPartyEmotes: Boolean = true,
     /** Heure affichée devant chaque message du chat. */
     val chatTimestamps: Boolean = false,
+    /** Taille du texte du chat : 0 petit, 1 moyen, 2 grand. */
+    val chatTextSize: Int = 1,
+    /** Largeur du chat : 0 étroit, 1 normal, 2 large. */
+    val chatWidth: Int = 1,
+    /** Chat transparent par-dessus la vidéo plutôt qu'à côté. */
+    val chatOverlay: Boolean = false,
     /** Listes séparées par des virgules, appliquées par le cœur à l'ouverture du chat. */
     val hiddenWords: String = "",
     val hiddenUsers: String = "",
@@ -55,6 +61,9 @@ data class AppSettings(
         "crash_log" to crashLog.toString(),
         "third_party_emotes" to thirdPartyEmotes.toString(),
         "chat_timestamps" to chatTimestamps.toString(),
+        "chat_text_size" to chatTextSize.toString(),
+        "chat_width" to chatWidth.toString(),
+        "chat_overlay" to chatOverlay.toString(),
         "chat_hidden_words" to hiddenWords,
         "chat_hidden_users" to hiddenUsers,
         "stream_language" to streamLanguage,
@@ -73,6 +82,9 @@ data class AppSettings(
                 crashLog = map["crash_log"]?.toBooleanStrictOrNull() ?: d.crashLog,
                 thirdPartyEmotes = map["third_party_emotes"]?.toBooleanStrictOrNull() ?: d.thirdPartyEmotes,
                 chatTimestamps = map["chat_timestamps"]?.toBooleanStrictOrNull() ?: d.chatTimestamps,
+                chatTextSize = map["chat_text_size"]?.toIntOrNull() ?: d.chatTextSize,
+                chatWidth = map["chat_width"]?.toIntOrNull() ?: d.chatWidth,
+                chatOverlay = map["chat_overlay"]?.toBooleanStrictOrNull() ?: d.chatOverlay,
                 hiddenWords = map["chat_hidden_words"] ?: d.hiddenWords,
                 hiddenUsers = map["chat_hidden_users"] ?: d.hiddenUsers,
                 streamLanguage = map["stream_language"] ?: d.streamLanguage,

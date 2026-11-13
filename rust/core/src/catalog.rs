@@ -104,6 +104,56 @@ pub struct Chapter {
     pub title: String,
 }
 
+/// Sondage et prédiction en cours sur une chaîne, en lecture seule.
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct ChannelActivity {
+    pub poll: Option<Poll>,
+    pub prediction: Option<Prediction>,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Poll {
+    pub title: String,
+    pub choices: Vec<PollChoice>,
+    pub total_votes: u32,
+    /// `false` : sondage terminé, on montre le résultat.
+    pub active: bool,
+    pub remaining_ms: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct PollChoice {
+    pub title: String,
+    pub votes: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Enum)]
+pub enum PredictionStatus {
+    /// Paris ouverts jusqu'à `locks_at_s`.
+    Active,
+    /// Paris fermés, résultat attendu.
+    Locked,
+    Resolved,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Prediction {
+    pub title: String,
+    pub status: PredictionStatus,
+    pub outcomes: Vec<PredictionOutcome>,
+    /// Fin des paris, en secondes Unix.
+    pub locks_at_s: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct PredictionOutcome {
+    pub title: String,
+    /// Points de chaîne misés.
+    pub points: u64,
+    pub users: u32,
+    pub winner: bool,
+}
+
 /// Un clip ; `slug` sert à le lire.
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
 pub struct Clip {

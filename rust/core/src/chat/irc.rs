@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use super::{ChatEvent, ChatFragment, ChatMessage};
+use super::{ChatEvent, ChatFragment, ChatMessage, ReplyParent};
 
 #[derive(Debug, Default, PartialEq)]
 pub struct IrcLine {
@@ -120,6 +120,16 @@ fn message(line: &IrcLine, system: Option<String>) -> ChatMessage {
         display_name,
         action,
         badges: Vec::new(),
+        reply_to: match line.tag("reply-parent-msg-id") {
+            "" => None,
+            _ => Some(ReplyParent {
+                display_name: match line.tag("reply-parent-display-name") {
+                    "" => line.tag("reply-parent-user-login").to_owned(),
+                    name => name.to_owned(),
+                },
+                body: line.tag("reply-parent-msg-body").to_owned(),
+            }),
+        },
     }
 }
 

@@ -11,7 +11,7 @@ use crate::catalog::{
 };
 use crate::eventsub::{self, RaidListener, RaidWatch};
 use crate::chat::decor::{Decor, THIRD_PARTY_EMOTES};
-use crate::chat::{self, ChatListener, ChatSession};
+use crate::chat::{self, ChatListener, ChatSession, PickerEmote};
 use crate::emotes::{self, EmoteMap};
 use crate::error::CoreError;
 use crate::gql::GqlClient;
@@ -700,6 +700,11 @@ impl Core {
     /// Chat d'une VOD à partir de `offset_s`, en ordre chronologique. Une liste vide
     /// signifie la fin du chat, ou une VOD sans chat.
     /// Chapitres (changements de jeu) d'une VOD ; vide si elle n'en a pas.
+    /// Sondage et prédiction de la chaîne, en lecture seule (GQL anonyme, à relire périodiquement).
+    pub async fn channel_activity(&self, login: String) -> Result<crate::catalog::ChannelActivity, CoreError> {
+        self.gql.channel_activity(&login).await
+    }
+
     pub async fn vod_chapters(&self, video_id: String) -> Result<Vec<crate::catalog::Chapter>, CoreError> {
         self.gql.video_chapters(&video_id).await
     }
@@ -737,17 +742,39 @@ impl Core {
         Arc::new(RaidWatch { task: Some(task.abort_handle()) })
     }
 
+    /// Émotes que le compte actif peut envoyer dans la chaîne, pour le sélecteur. Vide sans compte.
+    pub async fn chat_emotes(&self, broadcaster_id: String) -> Result<Vec<PickerEmote>, CoreError> {
+        let channel = broadcaster_id.as_str();
+        let twitch = self
+            .with_helix(|token: Secret, user_id: String| async move { self.helix.user_emotes(&token, &user_id, channel).await })
+            .await?
+            .ok_or(CoreError::NotSignedIn)?;
+        let third_party = self.settings().unwrap_or_default().get(THIRD_PARTY_EMOTES).map(String::as_str) != Some("false");
+        // Même cache que l'habillage du chat : déjà rempli si le chat est ouvert.
+        let channel_emotes: EmoteMap = if third_party {
+            self.cached(&format!("emotes:{channel}"), HOUR_S, async { Some(emotes::channel(&self.http, channel).await) })
+                .await
+                .unwrap_or_default()
+        } else {
+            EmoteMap::new()
+        };
+        let mut third_party: Vec<(String, String)> = channel_emotes.into_iter().collect();
+        third_party.sort_by(|a, b| a.0.to_lowercase().cmp(&b.0.to_lowercase()));
+        Ok(chat::picker_order(channel, twitch, third_party))
+    }
+
     /// Envoie un message avec le compte actif, via Helix pour connaître la raison d'un refus.
-    pub async fn send_chat(&self, broadcaster_id: String, text: String) -> Result<(), CoreError> {
+    /// `reply_to` : identifiant du message auquel on répond.
+    pub async fn send_chat(&self, broadcaster_id: String, text: String, reply_to: Option<String>) -> Result<(), CoreError> {
         let text = text.trim();
         if text.is_empty() {
             return Ok(());
         }
         // Limite de Twitch, en caractères.
         let text: String = text.chars().take(500).collect();
-        let (channel, message) = (broadcaster_id.as_str(), text.as_str());
+        let (channel, message, reply_to) = (broadcaster_id.as_str(), text.as_str(), reply_to.as_deref());
         self.with_helix(|token: Secret, sender: String| async move {
-            self.helix.send_chat_message(&token, channel, &sender, message).await
+            self.helix.send_chat_message(&token, channel, &sender, message, reply_to).await
         })
         .await?
         .ok_or(CoreError::NotSignedIn)

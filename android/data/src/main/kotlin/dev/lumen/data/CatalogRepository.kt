@@ -8,6 +8,7 @@ import dagger.hilt.components.SingletonComponent
 import dev.lumen.core.CategoryPage
 import dev.lumen.core.Channel
 import dev.lumen.core.ChannelAbout
+import dev.lumen.core.ChannelActivity
 import dev.lumen.core.Chapter
 import dev.lumen.core.Clip
 import dev.lumen.core.ClipQuality
@@ -96,6 +97,7 @@ interface CatalogRepository {
     suspend fun saveVodProgress(id: String, positionS: UInt, durationS: UInt): Boolean
     suspend fun vodChat(id: String, offsetS: UInt): List<ReplayComment>
     suspend fun vodChapters(id: String): List<Chapter>
+    suspend fun channelActivity(login: String): ChannelActivity
 
     suspend fun channelAbout(login: String): ChannelAbout?
     suspend fun channelClips(login: String): List<Clip>
@@ -159,6 +161,8 @@ internal class RustCatalogRepository @Inject constructor(
     override suspend fun vodChat(id: String, offsetS: UInt) = coreHolder.get().vodChat(id, offsetS)
 
     override suspend fun vodChapters(id: String) = coreHolder.get().vodChapters(id)
+
+    override suspend fun channelActivity(login: String) = coreHolder.get().channelActivity(login)
 
     override suspend fun channelAbout(login: String) = coreHolder.get().channelAbout(login)
 

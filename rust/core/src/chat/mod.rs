@@ -51,6 +51,44 @@ pub struct ChatMessage {
     pub timestamp_ms: i64,
     /// Images des badges (abonné, modérateur…), dans l'ordre de Twitch.
     pub badges: Vec<String>,
+    /// Message auquel celui-ci répond (fil de réponses de Twitch).
+    pub reply_to: Option<ReplyParent>,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct ReplyParent {
+    pub display_name: String,
+    pub body: String,
+}
+
+/// Émote proposée dans le sélecteur d'envoi : on insère son nom dans le message.
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct PickerEmote {
+    pub name: String,
+    pub url: String,
+}
+
+/// Ordre du sélecteur : émotes Twitch de la chaîne, puis ses émotes tierces, puis le reste
+/// (autres abonnements, globales en dernier). Un nom déjà vu n'est pas répété.
+pub(crate) fn picker_order(
+    broadcaster_id: &str,
+    twitch: Vec<crate::helix::HelixEmote>,
+    third_party: Vec<(String, String)>,
+) -> Vec<PickerEmote> {
+    let rank = |owner: &str| match owner {
+        o if o == broadcaster_id => 0,
+        "0" | "" => 3,
+        _ => 2,
+    };
+    let mut all: Vec<(u8, PickerEmote)> = twitch
+        .into_iter()
+        .map(|e| (rank(&e.owner_id), PickerEmote { url: irc::emote_url(&e.id), name: e.name }))
+        .chain(third_party.into_iter().map(|(name, url)| (1, PickerEmote { name, url })))
+        .collect();
+    // Tri stable : l'ordre de Twitch est gardé dans chaque groupe.
+    all.sort_by_key(|(rank, _)| *rank);
+    let mut seen = std::collections::HashSet::new();
+    all.into_iter().map(|(_, e)| e).filter(|e| seen.insert(e.name.clone())).collect()
 }
 
 #[derive(Debug, Clone, PartialEq, uniffi::Enum)]

@@ -26,6 +26,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - When a live stream ends, or a channel is offline, the player offers the raid target, the next live channel and the channel's last broadcast.
 - Multi-view: a long press on OK lets you replace a tile with another channel, without stopping the other tiles.
 - Picture-in-picture in the live player's action bar, on devices that support it.
+- Chat appearance (Settings > Chat): text size, width, and a see-through chat on top of the video.
+- Emote picker when writing a message: the account's Twitch emotes, the channel's first, and its 7TV / BTTV / FFZ emotes.
+- Chat replies: a reply shows the message it answers, and the composer can reply to a recent message.
+- Polls and predictions of the channel, read-only, at the top of the chat.
 
 ### Changed
 - Up / Down on a channel outside the zapping list now jumps to the first channel of the list.
