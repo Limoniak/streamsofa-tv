@@ -119,6 +119,7 @@ fn message(line: &IrcLine, system: Option<String>) -> ChatMessage {
         login,
         display_name,
         action,
+        badges: Vec::new(),
     }
 }
 

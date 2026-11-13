@@ -7,6 +7,7 @@ mod api;
 mod auth;
 mod catalog;
 mod chat;
+mod emotes;
 mod error;
 mod gql;
 mod helix;

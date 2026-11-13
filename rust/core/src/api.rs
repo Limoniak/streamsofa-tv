@@ -1,12 +1,14 @@
 use std::collections::HashMap;
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 use crate::accounts::{Account, AccountManager, AccountsListener, AccountsSnapshot, DeviceLogin};
 use crate::auth::AuthClient;
 use crate::catalog::{Category, CategoryPage, Channel, LiveStream, ReplayComment, StreamPage, Video, VideoPage};
+use crate::chat::decor::{Decor, THIRD_PARTY_EMOTES};
 use crate::chat::{self, ChatListener, ChatSession};
+use crate::emotes::{self, EmoteMap};
 use crate::error::CoreError;
 use crate::gql::GqlClient;
 use crate::helix::{HelixClient, HelixStream};
@@ -79,6 +81,9 @@ pub struct Core {
     github: String,
     /// Sans ALPN : une socket WebSocket reste en HTTP/1.1.
     chat_tls: Arc<rustls::ClientConfig>,
+    /// Communs à toutes les chaînes : chargés une fois par lancement, réessayés après un échec.
+    global_badges: tokio::sync::OnceCell<HashMap<String, String>>,
+    global_emotes: tokio::sync::OnceCell<EmoteMap>,
 }
 
 impl Core {
@@ -104,6 +109,8 @@ impl Core {
             chat_url: endpoints.chat,
             github: endpoints.github,
             chat_tls: Arc::new(http::tls_config()?),
+            global_badges: tokio::sync::OnceCell::new(),
+            global_emotes: tokio::sync::OnceCell::new(),
             http,
             client_id,
             accounts,
@@ -146,6 +153,39 @@ impl Core {
             },
             other => other.map(Some),
         }
+    }
+
+    /// Badges, émotes tierces et blocages du compte, ajoutés au fil de l'eau : tout est
+    /// décoratif, un échec laisse simplement le chat tel que Twitch l'envoie.
+    async fn load_decor(self: Arc<Self>, login: String, third_party: bool, decor: Arc<RwLock<Decor>>) {
+        let write = |f: &dyn Fn(&mut Decor)| f(&mut decor.write().unwrap_or_else(|e| e.into_inner()));
+        if let Ok(blocked) = self.with_helix(|token, user_id| {
+            let helix = &self.helix;
+            async move { helix.blocked_logins(&token, &user_id).await }
+        }).await {
+            write(&|d| d.hidden_users.extend(blocked.iter().flatten().cloned()));
+        }
+        if let Ok(global) = self.global_badges.get_or_try_init(|| self.gql.global_badges()).await {
+            // Les badges de la chaîne, déjà présents, priment.
+            write(&|d| global.iter().for_each(|(k, v)| { d.badges.entry(k.clone()).or_insert_with(|| v.clone()); }));
+        }
+        let Ok(Some((channel_id, badges))) = self.gql.channel_badges(&login).await else { return };
+        write(&|d| d.badges.extend(badges.iter().map(|(k, v)| (k.clone(), v.clone()))));
+        if !third_party {
+            return;
+        }
+        let global = self
+            .global_emotes
+            .get_or_try_init(|| async {
+                let map = emotes::global(&self.http).await;
+                if map.is_empty() { Err(()) } else { Ok(map) }
+            })
+            .await
+            .cloned()
+            .unwrap_or_default();
+        let mut all = global;
+        all.extend(emotes::channel(&self.http, &channel_id).await);
+        write(&|d| d.emotes = all.clone());
     }
 
     /// Complète des lives Helix avec l'avatar de chaque chaîne (un appel groupé).
@@ -487,8 +527,9 @@ impl Core {
     /// signifie la fin du chat, ou une VOD sans chat.
     pub async fn vod_chat(&self, video_id: String, offset_s: u32) -> Result<Vec<ReplayComment>, CoreError> {
         let mut comments = self.gql.vod_comments(&video_id, offset_s).await?;
+        let filters = Decor::with_filters(&self.settings()?);
         // Twitch renvoie aussi quelques messages juste avant l'instant demandé.
-        comments.retain(|c| c.offset_s >= offset_s);
+        comments.retain(|c| c.offset_s >= offset_s && !filters.hides(&c.message));
         Ok(comments)
     }
 }
@@ -499,8 +540,12 @@ impl Core {
 
     /// Rejoint le salon d'une chaîne en lecture seule (anonyme, y compris avec un compte).
     /// `async` pour s'exécuter dans le runtime du cœur, qui porte la connexion.
-    pub async fn join_chat(&self, channel_login: String, listener: Arc<dyn ChatListener>) -> Arc<ChatSession> {
-        Arc::new(chat::spawn(self.chat_url.clone(), self.chat_tls.clone(), channel_login, listener))
+    pub async fn join_chat(self: Arc<Self>, channel_login: String, listener: Arc<dyn ChatListener>) -> Arc<ChatSession> {
+        let settings = self.settings().unwrap_or_default();
+        let third_party = settings.get(THIRD_PARTY_EMOTES).map(String::as_str) != Some("false");
+        let decor = Arc::new(RwLock::new(Decor::with_filters(&settings)));
+        let loader = self.clone().load_decor(channel_login.to_lowercase(), third_party, decor.clone());
+        Arc::new(chat::spawn(self.chat_url.clone(), self.chat_tls.clone(), channel_login, listener, decor, loader))
     }
 
     /// Envoie un message avec le compte actif, via Helix pour connaître la raison d'un refus.

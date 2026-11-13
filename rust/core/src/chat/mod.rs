@@ -3,11 +3,13 @@
 //! Les événements sont regroupés et livrés à Kotlin toutes les ~100 ms : un chat rapide
 //! (des centaines de messages par seconde) ne déclenche qu'une dizaine de recompositions.
 
+pub(crate) mod decor;
 mod irc;
 #[cfg(test)]
 mod tests;
 
-use std::sync::Arc;
+use std::future::Future;
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 use futures_util::{SinkExt, StreamExt};
@@ -16,6 +18,7 @@ use tokio::time::Instant;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::Connector;
 
+use decor::Decor;
 use irc::parse_line;
 pub(crate) use irc::{emote_url, readable_color};
 
@@ -46,6 +49,8 @@ pub struct ChatMessage {
     /// Texte système d'un abonnement, raid ou annonce.
     pub system: Option<String>,
     pub timestamp_ms: i64,
+    /// Images des badges (abonné, modérateur…), dans l'ordre de Twitch.
+    pub badges: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, uniffi::Enum)]
@@ -85,17 +90,27 @@ impl Drop for ChatSession {
     }
 }
 
-pub(crate) fn spawn(url: String, tls: Arc<rustls::ClientConfig>, channel: String, listener: Arc<dyn ChatListener>) -> ChatSession {
-    let task = tokio::spawn(run(url, tls, channel.to_lowercase(), listener));
+/// `loader` remplit `decor` pendant que la connexion s'établit ; couper la session l'annule aussi.
+pub(crate) fn spawn(
+    url: String,
+    tls: Arc<rustls::ClientConfig>,
+    channel: String,
+    listener: Arc<dyn ChatListener>,
+    decor: Arc<RwLock<Decor>>,
+    loader: impl Future<Output = ()> + Send + 'static,
+) -> ChatSession {
+    let task = tokio::spawn(async move {
+        tokio::join!(loader, run(url, tls, channel.to_lowercase(), listener, decor));
+    });
     ChatSession { task: task.abort_handle() }
 }
 
-async fn run(url: String, tls: Arc<rustls::ClientConfig>, channel: String, listener: Arc<dyn ChatListener>) {
+async fn run(url: String, tls: Arc<rustls::ClientConfig>, channel: String, listener: Arc<dyn ChatListener>, decor: Arc<RwLock<Decor>>) {
     let mut backoff = Duration::from_secs(1);
     let mut state = ChatState::Connecting;
     loop {
         listener.on_events(vec![ChatEvent::State { state: state.clone() }]);
-        let joined = session(&url, &tls, &channel, listener.as_ref()).await;
+        let joined = session(&url, &tls, &channel, listener.as_ref(), &decor).await;
         // Une session qui avait abouti repart vite ; des échecs répétés espacent les essais.
         backoff = if joined { Duration::from_secs(1) } else { (backoff * 2).min(MAX_BACKOFF) };
         state = ChatState::Reconnecting;
@@ -105,7 +120,7 @@ async fn run(url: String, tls: Arc<rustls::ClientConfig>, channel: String, liste
 }
 
 /// Une connexion complète ; rend `true` si le salon avait été rejoint.
-async fn session(url: &str, tls: &Arc<rustls::ClientConfig>, channel: &str, listener: &dyn ChatListener) -> bool {
+async fn session(url: &str, tls: &Arc<rustls::ClientConfig>, channel: &str, listener: &dyn ChatListener, decor: &RwLock<Decor>) -> bool {
     let connector = Some(Connector::Rustls(tls.clone()));
     let Ok(Ok((socket, _))) = tokio::time::timeout(
         Duration::from_secs(10),
@@ -162,7 +177,17 @@ async fn session(url: &str, tls: &Arc<rustls::ClientConfig>, channel: &str, list
                             joined = true;
                             batch.push(ChatEvent::State { state: ChatState::Joined });
                         }
-                        _ => batch.extend(irc::to_event(&line)),
+                        _ => {
+                            let Some(mut event) = irc::to_event(&line) else { continue };
+                            if let ChatEvent::Message { message } = &mut event {
+                                let decor = decor.read().unwrap_or_else(|e| e.into_inner());
+                                if decor.hides(message) {
+                                    continue;
+                                }
+                                decor.apply(message, line.tag("badges"));
+                            }
+                            batch.push(event);
+                        }
                     }
                 }
                 if batch.len() > MAX_BATCH {

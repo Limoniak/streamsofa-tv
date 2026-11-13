@@ -15,7 +15,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -69,6 +71,8 @@ fun SettingsRoute(viewModel: SettingsViewModel = hiltViewModel(), updates: Updat
     val update by updates.state.collectAsStateWithLifecycle()
     val firstFocus = remember { FocusRequester() }
     LaunchedEffect(Unit) { firstFocus.requestWhenAttached() }
+    /** Liste en cours d'édition : `true` = mots, `false` = pseudos. */
+    var editingWords by remember { mutableStateOf<Boolean?>(null) }
 
     Column(
         modifier = Modifier
@@ -100,6 +104,28 @@ fun SettingsRoute(viewModel: SettingsViewModel = hiltViewModel(), updates: Updat
                 }
             }
         }
+
+        Section(R.string.settings_chat)
+        ListItem(
+            selected = false,
+            onClick = { viewModel.update { copy(thirdPartyEmotes = !thirdPartyEmotes) } },
+            headlineContent = { Text(stringResource(R.string.settings_third_party_emotes)) },
+            supportingContent = { Text(stringResource(R.string.settings_third_party_emotes_hint)) },
+            trailingContent = { AccentSwitch(settings.thirdPartyEmotes) },
+        )
+        ListItem(
+            selected = false,
+            onClick = { editingWords = true },
+            headlineContent = { Text(stringResource(R.string.settings_hidden_words)) },
+            supportingContent = { Text(settings.hiddenWords.ifBlank { stringResource(R.string.settings_none) }, maxLines = 1) },
+        )
+        ListItem(
+            selected = false,
+            onClick = { editingWords = false },
+            headlineContent = { Text(stringResource(R.string.settings_hidden_users)) },
+            supportingContent = { Text(settings.hiddenUsers.ifBlank { stringResource(R.string.settings_none) }, maxLines = 1) },
+        )
+        Text(stringResource(R.string.settings_chat_hint), color = LumenColors.OnSurfaceMuted, style = MaterialTheme.typography.bodySmall)
 
         Section(R.string.settings_theme)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -141,6 +167,18 @@ fun SettingsRoute(viewModel: SettingsViewModel = hiltViewModel(), updates: Updat
             }
             if (status != null) Text(status, color = LumenColors.OnSurfaceMuted)
         }
+    }
+
+    editingWords?.let { words ->
+        ListEditDialog(
+            title = if (words) R.string.settings_hidden_words else R.string.settings_hidden_users,
+            initial = if (words) settings.hiddenWords else settings.hiddenUsers,
+            onSave = { value ->
+                viewModel.update { if (words) copy(hiddenWords = value) else copy(hiddenUsers = value) }
+                editingWords = null
+            },
+            onDismiss = { editingWords = null },
+        )
     }
 }
 

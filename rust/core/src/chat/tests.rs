@@ -133,7 +133,8 @@ async fn session_joins_anonymously_batches_and_reconnects() {
     });
 
     let collector = Arc::new(Collector::default());
-    let session = spawn(url, Arc::new(crate::http::tls_config().unwrap()), "Chan".into(), collector.clone());
+    let decor = Arc::new(std::sync::RwLock::new(super::Decor::default()));
+    let session = spawn(url, Arc::new(crate::http::tls_config().unwrap()), "Chan".into(), collector.clone(), decor, async {});
 
     collector
         .wait_for(|events| events.iter().filter(|e| **e == ChatEvent::State { state: ChatState::Joined }).count() == 2)

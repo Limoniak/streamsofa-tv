@@ -259,6 +259,30 @@ impl HelixClient {
         Ok(page.data.into_iter().next())
     }
 
+    /// Pseudos (minuscules) des utilisateurs bloqués par le compte, toutes pages confondues.
+    pub async fn blocked_logins(&self, token: &Secret, user_id: &str) -> Result<Vec<String>, CoreError> {
+        #[derive(Deserialize)]
+        struct Blocked {
+            user_login: String,
+        }
+        let mut logins = Vec::new();
+        let mut after: Option<String> = None;
+        // shortcut: 10 pages (1000 comptes) au plus, largement assez pour une liste de blocage.
+        for _ in 0..10 {
+            let mut query = vec![("broadcaster_id", user_id), ("first", "100")];
+            if let Some(after) = after.as_deref() {
+                query.push(("after", after));
+            }
+            let page: Page<Blocked> = self.get("/users/blocks", &query, token).await?;
+            after = page.next_cursor();
+            logins.extend(page.data.into_iter().map(|b| b.user_login.to_lowercase()));
+            if after.is_none() {
+                break;
+            }
+        }
+        Ok(logins)
+    }
+
     /// Chaînes suivies, en live ou non, de la plus récemment suivie à la plus ancienne.
     pub async fn followed_channels(&self, token: &Secret, user_id: &str, after: Option<&str>) -> Result<Page<HelixFollow>, CoreError> {
         let mut query = vec![("user_id", user_id), ("first", "100")];

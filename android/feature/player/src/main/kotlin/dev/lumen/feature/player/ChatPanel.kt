@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
@@ -38,6 +39,7 @@ import dev.lumen.designsystem.LumenColors
 
 private val ChatTextSize = 17.sp
 private val EmoteSize = 26.sp
+private val BadgeSize = 18.sp
 
 /** Colonne de chat à droite de la vidéo ; le plus récent en bas, sans défilement manuel. */
 @Composable
@@ -90,6 +92,11 @@ private fun annotate(line: ChatMessage): Pair<AnnotatedString, Map<String, Inlin
     val nameColor = Color(line.color.toInt())
     val inline = HashMap<String, InlineTextContent>()
     val text = buildAnnotatedString {
+        for (url in line.badges) {
+            inline.getOrPut(url) { imageContent(url, "", BadgeSize) }
+            appendInlineContent(url, " ")
+            append(" ")
+        }
         withStyle(SpanStyle(color = nameColor, fontWeight = FontWeight.Bold)) { append(line.displayName) }
         append(if (line.action) " " else " : ")
         // `/me` : tout le message dans la couleur du pseudo, comme sur Twitch.
@@ -98,7 +105,7 @@ private fun annotate(line: ChatMessage): Pair<AnnotatedString, Map<String, Inlin
                 when (fragment) {
                     is ChatFragment.Text -> append(fragment.text)
                     is ChatFragment.Emote -> {
-                        inline.getOrPut(fragment.url) { emoteContent(fragment.url, fragment.name) }
+                        inline.getOrPut(fragment.url) { imageContent(fragment.url, fragment.name, EmoteSize) }
                         appendInlineContent(fragment.url, fragment.name)
                     }
                 }
@@ -108,8 +115,8 @@ private fun annotate(line: ChatMessage): Pair<AnnotatedString, Map<String, Inlin
     return text to inline
 }
 
-private fun emoteContent(url: String, name: String) = InlineTextContent(
-    Placeholder(EmoteSize, EmoteSize, PlaceholderVerticalAlign.Center),
+private fun imageContent(url: String, name: String, size: TextUnit) = InlineTextContent(
+    Placeholder(size, size, PlaceholderVerticalAlign.Center),
 ) {
     AsyncImage(model = url, contentDescription = name, modifier = Modifier.fillMaxSize())
 }

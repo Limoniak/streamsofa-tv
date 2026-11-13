@@ -22,12 +22,20 @@ data class AppSettings(
     val accent: String = "violet",
     /** Recherche d'une nouvelle version au démarrage (builds de release uniquement). */
     val checkUpdates: Boolean = true,
+    /** Émotes 7TV, BTTV et FFZ dans le chat. */
+    val thirdPartyEmotes: Boolean = true,
+    /** Listes séparées par des virgules, appliquées par le cœur à l'ouverture du chat. */
+    val hiddenWords: String = "",
+    val hiddenUsers: String = "",
 ) {
     internal fun toMap() = mapOf(
         "chat_by_default" to chatByDefault.toString(),
         "max_quality" to maxQuality.toString(),
         "accent" to accent,
         "check_updates" to checkUpdates.toString(),
+        "third_party_emotes" to thirdPartyEmotes.toString(),
+        "chat_hidden_words" to hiddenWords,
+        "chat_hidden_users" to hiddenUsers,
     )
 
     internal companion object {
@@ -37,6 +45,9 @@ data class AppSettings(
                 maxQuality = map["max_quality"]?.toIntOrNull() ?: d.maxQuality,
                 accent = map["accent"] ?: d.accent,
                 checkUpdates = map["check_updates"]?.toBooleanStrictOrNull() ?: d.checkUpdates,
+                thirdPartyEmotes = map["third_party_emotes"]?.toBooleanStrictOrNull() ?: d.thirdPartyEmotes,
+                hiddenWords = map["chat_hidden_words"] ?: d.hiddenWords,
+                hiddenUsers = map["chat_hidden_users"] ?: d.hiddenUsers,
             )
         }
     }

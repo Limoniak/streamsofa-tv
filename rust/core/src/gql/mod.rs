@@ -6,6 +6,8 @@
 
 mod queries;
 
+use std::collections::HashMap;
+
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -224,10 +226,38 @@ impl GqlClient {
                         action: false,
                         system: None,
                         timestamp_ms: 0,
+                        // Vides en anonyme dans le replay : inutile de les demander.
+                        badges: Vec::new(),
                     },
                 })
             })
             .collect())
+    }
+
+    /// `set/version` → image.
+    pub async fn global_badges(&self) -> Result<HashMap<String, String>, CoreError> {
+        #[derive(Deserialize)]
+        struct Data {
+            badges: Option<Vec<Option<GBadge>>>,
+        }
+        let data: Data = self.run("GlobalBadges", queries::GLOBAL_BADGES, json!({})).await?;
+        Ok(badge_map(data.badges.unwrap_or_default()))
+    }
+
+    /// Identifiant de la chaîne (pour les émotes tierces) et ses badges ; `None` si elle n'existe pas.
+    pub async fn channel_badges(&self, login: &str) -> Result<Option<(String, HashMap<String, String>)>, CoreError> {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct User {
+            id: String,
+            broadcast_badges: Option<Vec<Option<GBadge>>>,
+        }
+        #[derive(Deserialize)]
+        struct Data {
+            user: Option<User>,
+        }
+        let data: Data = self.run("ChannelBadges", queries::CHANNEL_BADGES, json!({ "login": login })).await?;
+        Ok(data.user.map(|u| (u.id, badge_map(u.broadcast_badges.unwrap_or_default()))))
     }
 
     pub async fn top_streams(&self, after: Option<&str>, first: u32) -> Result<StreamPage, CoreError> {
@@ -481,4 +511,18 @@ fn stream_page(connection: Option<Connection<GStream>>) -> StreamPage {
         })
         .collect();
     StreamPage { items, cursor }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct GBadge {
+    #[serde(rename = "setID")]
+    set_id: String,
+    version: String,
+    #[serde(rename = "imageURL")]
+    image_url: String,
+}
+
+fn badge_map(badges: Vec<Option<GBadge>>) -> HashMap<String, String> {
+    badges.into_iter().flatten().map(|b| (format!("{}/{}", b.set_id, b.version), b.image_url)).collect()
 }

@@ -44,4 +44,5 @@ fun systemLine(text: String) = ChatMessage(
     action = false,
     system = text,
     timestampMs = System.currentTimeMillis(),
+    badges = emptyList(),
 )

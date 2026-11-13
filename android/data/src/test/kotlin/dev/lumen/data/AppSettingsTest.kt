@@ -6,7 +6,8 @@ import org.junit.Test
 class AppSettingsTest {
     @Test
     fun roundTripsThroughTheStore() {
-        val settings = AppSettings(chatByDefault = true, maxQuality = 720, accent = "green", checkUpdates = false)
+        val settings = AppSettings(chatByDefault = true, maxQuality = 720, accent = "green", checkUpdates = false,
+            thirdPartyEmotes = false, hiddenWords = "spoiler, gg", hiddenUsers = "nightbot")
         assertEquals(settings, AppSettings.fromMap(settings.toMap()))
     }
 

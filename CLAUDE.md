@@ -8,7 +8,7 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
 ## Architecture
 
 - `rust/core` (`lumen-core`) : cœur métier, exposé à Kotlin via UniFFI (proc-macros, async tokio).
-  `api.rs` est la seule surface publique. Modules : `auth`, `accounts`, `helix`, `gql`, `hls`, `catalog`, `chat` (IRC WebSocket), `store` (SQLite), `qr`, `secret`, `update` (GitHub Releases).
+  `api.rs` est la seule surface publique. Modules : `auth`, `accounts`, `helix`, `gql`, `emotes` (7TV/BTTV/FFZ), `hls`, `catalog`, `chat` (IRC WebSocket), `store` (SQLite), `qr`, `secret`, `update` (GitHub Releases).
 - `android/core-bridge` : compile le `.so` (cargo-ndk, 3 ABI) et génère les bindings à chaque build.
 - `android/data` : Hilt, `CoreHolder`, `AccountsRepository`, `KeystoreSecretStore`.
 - `android/feature/*` : un module par fonctionnalité (`auth`, `home`, `player`, `settings`).
@@ -53,7 +53,9 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
 - [x] J4 : chat (lecture puis envoi), batching côté Rust toutes les ~100 ms, buffer borné.
   Lecture validée sur l'émulateur (IRC anonyme justinfan, émotes Twitch, couleurs, modération, 150 lignes).
   Envoi Helix validé par l'utilisateur. Chat masqué par défaut dans le lecteur (Bas l'affiche).
-  Reste : badges, émotes tierces (7TV/BTTV/FFZ), filtres de chat.
+  Badges (GQL, globaux en cache), émotes tierces 7TV/BTTV/FFZ (module `emotes`, désactivables), mots et pseudos
+  masqués + utilisateurs bloqués du compte (Helix) : `chat/decor.rs`, chargés en parallèle de la connexion IRC.
+  Le replay VOD applique les filtres, sans badges (vides en anonyme) ni émotes tierces.
 - [x] J5 : VOD + reprise + replay du chat. Validé sur l'émulateur : page chaîne (appui long sur une carte de live,
   ou « Chaînes suivies » dans Suivis), grille de VOD avec barre de reprise, lecteur VOD (OK pause, ◀ ▶ ±10 s,
   ±1 min en maintenant, ▼ chat), reprise par profil (table `vod_progress`), replay du chat synchronisé.
@@ -75,8 +77,8 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
   + profileinstaller. Keystore de release : à créer par l'utilisateur (README), jamais généré ici.
 
 Schéma SQLite (migrations dans `store/mod.rs`, clé `scope` = `global` | `guest` | id de compte) :
-`vod_progress` (migration 2), `settings` (migration 3, seule la portée `global` est utilisée) ; prévus :
-`chat_filters(scope,kind,value)`, `meta_cache(key,body,fetched_at,ttl_s)`.
+`vod_progress` (migration 2), `settings` (migration 3, seule la portée `global` est utilisée ; filtres du chat dans `chat_hidden_words`/`chat_hidden_users`) ; prévus :
+`meta_cache(key,body,fetched_at,ttl_s)`.
 
 ## Commandes
 

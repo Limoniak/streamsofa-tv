@@ -63,3 +63,8 @@ pub fn video() -> String {
 pub const VOD_COMMENTS: &str = "query VodComments($id: ID!, $offset: Int) { video(id: $id) { id \
     comments(contentOffsetSeconds: $offset) { edges { node { id contentOffsetSeconds \
     commenter { id login displayName } message { userColor fragments { text emote { emoteID } } } } } } } }";
+
+pub const GLOBAL_BADGES: &str = "query GlobalBadges { badges { setID version imageURL(size: DOUBLE) } }";
+
+/// Badges propres à la chaîne (abonné, bits) ; ils remplacent les badges globaux du même nom.
+pub const CHANNEL_BADGES: &str = "query ChannelBadges($login: String!) { user(login: $login) { id     broadcastBadges { setID version imageURL(size: DOUBLE) } } }";

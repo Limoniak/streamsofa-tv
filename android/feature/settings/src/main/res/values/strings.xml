@@ -23,4 +23,14 @@
     <string name="update_install">Installer</string>
     <string name="update_later">Plus tard</string>
     <string name="update_downloading">Téléchargement…</string>
+    <string name="settings_chat">Chat</string>
+    <string name="settings_third_party_emotes">Émotes 7TV, BTTV et FFZ</string>
+    <string name="settings_third_party_emotes_hint">Chargées depuis ces services à l\'ouverture du chat.</string>
+    <string name="settings_hidden_words">Mots masqués</string>
+    <string name="settings_hidden_users">Pseudos masqués</string>
+    <string name="settings_none">Aucun</string>
+    <string name="settings_chat_hint">Les utilisateurs bloqués sur Twitch sont aussi masqués. Changements appliqués à la prochaine ouverture du chat.</string>
+    <string name="settings_list_hint">Séparés par des virgules</string>
+    <string name="settings_save">Enregistrer</string>
+    <string name="settings_cancel">Annuler</string>
 </resources>
