@@ -795,6 +795,12 @@ fn usher_reason(body: &str) -> String {
         .unwrap_or_default()
 }
 
+/// QR code d'un texte court (lien à ouvrir sur le téléphone).
+#[uniffi::export]
+pub fn qr_code(text: String) -> Result<crate::qr::QrMatrix, CoreError> {
+    crate::qr::encode(&text)
+}
+
 #[uniffi::export]
 pub fn core_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()

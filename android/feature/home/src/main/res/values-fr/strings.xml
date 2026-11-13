@@ -26,4 +26,7 @@
     <string name="search_channels">Chaînes</string>
     <string name="search_categories">Catégories</string>
     <string name="search_live">En direct</string>
+    <string name="search_recent">Recherches récentes</string>
+    <string name="search_recent_clear">Effacer</string>
+    <string name="channel_follow_qr">Scannez pour suivre cette chaîne depuis votre téléphone</string>
 </resources>

@@ -106,6 +106,7 @@ class PlayerViewModel @Inject constructor(
     private val settings: SettingsRepository,
 ) : ViewModel() {
     val chatByDefault: Boolean get() = settings.state.value.chatByDefault
+    val chatTimestamps: Boolean get() = settings.state.value.chatTimestamps
     /** Une fois une qualité choisie à la main (Auto compris), le réglage par défaut ne s'applique plus. */
     private var qualityChosen = false
 
@@ -118,6 +119,11 @@ class PlayerViewModel @Inject constructor(
     private var chatLogin: String? = null
 
     /** L'envoi exige un compte actif et valide ; en invité le chat reste en lecture. */
+    /** Login du compte actif : ses citations sont mises en valeur dans le chat. */
+    val myLogin: StateFlow<String?> = accounts.snapshot
+        .map { snap -> snap?.accounts?.firstOrNull { it.id == snap.activeId }?.login }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
     val canSend: StateFlow<Boolean> = accounts.snapshot
         .map { snap -> snap?.accounts?.any { it.id == snap.activeId && it.state == AccountState.OK } == true }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)

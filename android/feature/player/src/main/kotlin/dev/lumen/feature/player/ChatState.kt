@@ -31,6 +31,13 @@ fun ChatUiState.applyEvents(events: List<ChatEvent>, max: Int = MAX_CHAT_LINES):
     return ChatUiState(kept, state)
 }
 
+/** Le message cite [login], avec ou sans @, en mot entier ; jamais ses propres messages. */
+fun ChatMessage.mentions(login: String): Boolean {
+    if (login.isEmpty() || system != null || this.login.equals(login, ignoreCase = true)) return false
+    val text = fragments.filterIsInstance<ChatFragment.Text>().joinToString(" ") { it.text }
+    return Regex("""(?<!\w)@?${Regex.escape(login)}(?!\w)""", RegexOption.IGNORE_CASE).containsMatchIn(text)
+}
+
 private var systemCounter = 0L
 
 /** Ligne locale (notice de Twitch, refus d'envoi) : affichée comme un message système. */

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.runtime.Composable
@@ -37,6 +38,10 @@ import dev.lumen.core.ChatFragment
 import dev.lumen.core.ChatMessage
 import dev.lumen.core.ChatState
 import dev.lumen.designsystem.LumenColors
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 private val ChatTextSize = 17.sp
 private val EmoteSize = 26.sp
@@ -48,9 +53,14 @@ private val BadgeSize = 18.sp
  */
 private val emoteRatios = mutableStateMapOf<String, Float>()
 
-/** Colonne de chat à droite de la vidéo ; le plus récent en bas, sans défilement manuel. */
+private val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
+
+/**
+ * Colonne de chat à droite de la vidéo ; le plus récent en bas, sans défilement manuel.
+ * [mention] : login du compte actif, dont les citations sont mises en valeur.
+ */
 @Composable
-fun ChatPanel(chat: ChatUiState, modifier: Modifier = Modifier) {
+fun ChatPanel(chat: ChatUiState, modifier: Modifier = Modifier, mention: String? = null, timestamps: Boolean = false) {
     Box(modifier.background(LumenColors.Background)) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -62,7 +72,7 @@ fun ChatPanel(chat: ChatUiState, modifier: Modifier = Modifier) {
             // Sans clé : la position suit l'index 0, donc le bas. Avec des clés, Compose garderait
             // l'ancien message à l'écran et les nouveaux arriveraient sous le bord.
             items(chat.lines.asReversed()) { line ->
-                ChatLine(line)
+                ChatLine(line, mention, timestamps)
             }
         }
         if (chat.state != ChatState.JOINED && chat.lines.isEmpty()) {
@@ -77,9 +87,27 @@ fun ChatPanel(chat: ChatUiState, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ChatLine(line: ChatMessage) {
+private fun ChatLine(line: ChatMessage, mention: String?, timestamps: Boolean) {
     val system = line.system
-    Column(Modifier.fillMaxWidth()) {
+    val mentioned = remember(line, mention) { mention != null && line.mentions(mention) }
+    val time = if (timestamps && line.timestampMs > 0) {
+        remember(line) {
+            Instant.ofEpochMilli(line.timestampMs).atZone(ZoneId.systemDefault()).format(timeFormat)
+        }
+    } else {
+        null
+    }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .then(
+                if (mentioned) {
+                    Modifier.background(LumenColors.Accent.copy(alpha = 0.2f), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 2.dp)
+                } else {
+                    Modifier
+                },
+            ),
+    ) {
         if (system != null) {
             Text(
                 text = system,
@@ -91,16 +119,17 @@ private fun ChatLine(line: ChatMessage) {
         if (line.fragments.isNotEmpty()) {
             // Lu pendant la composition : une largeur apprise recompose les lignes qui portent l'émote.
             val ratios = line.fragments.mapNotNull { (it as? ChatFragment.Emote)?.let { e -> emoteRatios[e.url] } }
-            val (text, inline) = remember(line, ratios) { annotate(line) }
+            val (text, inline) = remember(line, ratios, time) { annotate(line, time) }
             Text(text = text, inlineContent = inline, fontSize = ChatTextSize, color = LumenColors.OnSurface)
         }
     }
 }
 
-private fun annotate(line: ChatMessage): Pair<AnnotatedString, Map<String, InlineTextContent>> {
+private fun annotate(line: ChatMessage, time: String?): Pair<AnnotatedString, Map<String, InlineTextContent>> {
     val nameColor = Color(line.color.toInt())
     val inline = HashMap<String, InlineTextContent>()
     val text = buildAnnotatedString {
+        if (time != null) withStyle(SpanStyle(color = LumenColors.OnSurfaceMuted)) { append("$time ") }
         for (url in line.badges) {
             inline.getOrPut(url) { imageContent(url, "", BadgeSize) }
             appendInlineContent(url, " ")

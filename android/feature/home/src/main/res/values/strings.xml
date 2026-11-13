@@ -26,4 +26,7 @@
     <string name="search_channels">Channels</string>
     <string name="search_categories">Categories</string>
     <string name="search_live">Live</string>
+    <string name="search_recent">Recent searches</string>
+    <string name="search_recent_clear">Clear</string>
+    <string name="channel_follow_qr">Scan to follow this channel from your phone</string>
 </resources>

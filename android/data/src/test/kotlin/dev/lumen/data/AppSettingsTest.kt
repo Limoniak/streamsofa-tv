@@ -7,8 +7,8 @@ class AppSettingsTest {
     @Test
     fun roundTripsThroughTheStore() {
         val settings = AppSettings(chatByDefault = true, maxQuality = 720, lowLatency = true, accent = "green", checkUpdates = false,
-            thirdPartyEmotes = false, hiddenWords = "spoiler, gg", hiddenUsers = "nightbot",
-            channelQuality = mapOf("zerator" to "720p60", "gotaga" to QUALITY_AUTO))
+            thirdPartyEmotes = false, chatTimestamps = true, hiddenWords = "spoiler, gg", hiddenUsers = "nightbot",
+            recentSearches = listOf("minecraft", "just chatting"), channelQuality = mapOf("zerator" to "720p60", "gotaga" to QUALITY_AUTO))
         assertEquals(settings, AppSettings.fromMap(settings.toMap()))
     }
 

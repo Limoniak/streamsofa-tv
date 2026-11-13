@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -42,12 +43,15 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import androidx.tv.material3.ExperimentalTvMaterial3Api
+import androidx.tv.material3.FilterChip
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.lumen.core.SearchChannel
 import dev.lumen.core.SearchResults
 import dev.lumen.data.CatalogRepository
+import dev.lumen.data.SettingsRepository
 import dev.lumen.data.LoadError
 import dev.lumen.data.loadCatching
 import dev.lumen.data.messageRes
@@ -63,12 +67,14 @@ import dev.lumen.designsystem.restoreFocusHere
 import javax.inject.Inject
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -82,13 +88,25 @@ data class SearchUiState(
 /** Pause de frappe avant de lancer la requête : une par mot, pas une par lettre. */
 private const val SEARCH_DEBOUNCE_MS = 400L
 
+private const val MAX_RECENT_SEARCHES = 8
+
+/** [query] en tête de [recent], sans doublon (casse ignorée), borné à [MAX_RECENT_SEARCHES]. */
+fun addRecentSearch(recent: List<String>, query: String): List<String> {
+    val q = query.trim()
+    if (q.length < 2) return recent
+    return (listOf(q) + recent.filterNot { it.equals(q, ignoreCase = true) }).take(MAX_RECENT_SEARCHES)
+}
+
 @HiltViewModel
 class SearchViewModel @Inject constructor(
     savedState: SavedStateHandle,
     private val catalog: CatalogRepository,
+    private val settings: SettingsRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(SearchUiState(query = savedState["q"] ?: ""))
     val state: StateFlow<SearchUiState> = _state.asStateFlow()
+    val recent: StateFlow<List<String>> = settings.state.map { it.recentSearches }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, settings.state.value.recentSearches)
 
     init {
         @OptIn(FlowPreview::class)
@@ -107,6 +125,11 @@ class SearchViewModel @Inject constructor(
     }
 
     fun setQuery(query: String) = _state.update { it.copy(query = query.take(100)) }
+
+    /** Un résultat a été ouvert : la recherche rejoint les récentes. */
+    fun rememberQuery() = settings.update { copy(recentSearches = addRecentSearch(recentSearches, _state.value.query)) }
+
+    fun clearRecent() = settings.update { copy(recentSearches = emptyList()) }
 }
 
 @Composable
@@ -117,14 +140,26 @@ fun SearchRoute(
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    SearchScreen(state, viewModel::setQuery, onOpenStream, onOpenChannel, onOpenCategory)
+    val recent by viewModel.recent.collectAsStateWithLifecycle()
+    SearchScreen(
+        state = state,
+        recent = recent,
+        onQuery = viewModel::setQuery,
+        onClearRecent = viewModel::clearRecent,
+        onOpenStream = { viewModel.rememberQuery(); onOpenStream(it) },
+        onOpenChannel = { viewModel.rememberQuery(); onOpenChannel(it) },
+        onOpenCategory = { id, name -> viewModel.rememberQuery(); onOpenCategory(id, name) },
+    )
 }
 
 /** Chaînes en direct : OK ouvre le live ; hors ligne : la page de la chaîne. */
+@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun SearchScreen(
     state: SearchUiState,
+    recent: List<String>,
     onQuery: (String) -> Unit,
+    onClearRecent: () -> Unit,
     onOpenStream: (String) -> Unit,
     onOpenChannel: (String) -> Unit,
     onOpenCategory: (id: String, name: String) -> Unit,
@@ -181,13 +216,36 @@ fun SearchScreen(
                     modifier = Modifier
                         .focusRequester(fieldFocus)
                         .onFocusChanged { fieldFocused = it.isFocused }
-                        // Le champ garde les flèches pour le curseur : Bas mène aux résultats.
+                        // Le champ garde les flèches pour le curseur : Bas mène aux résultats,
+                        // Gauche au menu quand il n'y a rien à parcourir.
                         .onPreviewKeyEvent {
-                            val down = it.type == KeyEventType.KeyDown && it.key == Key.DirectionDown
-                            if (down) focusManager.moveFocus(FocusDirection.Down)
-                            down
+                            if (it.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                            val direction = when {
+                                it.key == Key.DirectionDown -> FocusDirection.Down
+                                it.key == Key.DirectionLeft && state.query.isEmpty() -> FocusDirection.Left
+                                else -> return@onPreviewKeyEvent false
+                            }
+                            keyboard?.hide()
+                            focusManager.moveFocus(direction)
                         },
                 )
+            }
+        }
+        if (state.query.isBlank() && recent.isNotEmpty()) {
+            item(key = "recent") {
+                ResultRow(stringResource(R.string.search_recent)) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = LumenInsets.horizontal),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        recent.forEach { query ->
+                            FilterChip(selected = false, onClick = { onQuery(query) }) { Text(query) }
+                        }
+                        FilterChip(selected = false, onClick = onClearRecent) {
+                            Text(stringResource(R.string.search_recent_clear), color = LumenColors.OnSurfaceMuted)
+                        }
+                    }
+                }
             }
         }
         if (message != null) {

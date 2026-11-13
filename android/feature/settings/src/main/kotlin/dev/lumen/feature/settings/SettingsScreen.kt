@@ -122,6 +122,13 @@ fun SettingsRoute(viewModel: SettingsViewModel = hiltViewModel(), updates: Updat
         )
         ListItem(
             selected = false,
+            onClick = { viewModel.update { copy(chatTimestamps = !chatTimestamps) } },
+            headlineContent = { Text(stringResource(R.string.settings_chat_timestamps)) },
+            supportingContent = { Text(stringResource(R.string.settings_chat_timestamps_hint)) },
+            trailingContent = { AccentSwitch(settings.chatTimestamps) },
+        )
+        ListItem(
+            selected = false,
             onClick = { editingWords = true },
             headlineContent = { Text(stringResource(R.string.settings_hidden_words)) },
             supportingContent = { Text(settings.hiddenWords.ifBlank { stringResource(R.string.settings_none) }, maxLines = 1) },

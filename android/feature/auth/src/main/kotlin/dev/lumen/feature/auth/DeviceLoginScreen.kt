@@ -1,6 +1,5 @@
 package dev.lumen.feature.auth
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,8 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -35,7 +32,7 @@ import androidx.tv.material3.Button
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.OutlinedButton
 import androidx.tv.material3.Text
-import dev.lumen.core.QrMatrix
+import dev.lumen.designsystem.QrCode
 import dev.lumen.designsystem.LumenColors
 import dev.lumen.designsystem.LumenInsets
 import kotlinx.coroutines.delay
@@ -145,7 +142,7 @@ fun DeviceLoginScreen(state: DeviceLoginUiState, onRetry: () -> Unit, onBack: ()
         }
 
         Box(modifier = Modifier.width(300.dp), contentAlignment = Alignment.Center) {
-            if (state is DeviceLoginUiState.WaitingForUser) QrCode(state.qr)
+            if (state is DeviceLoginUiState.WaitingForUser) QrCode(state.qr.size.toInt(), state.qr.modules)
         }
     }
 }
@@ -153,30 +150,4 @@ fun DeviceLoginScreen(state: DeviceLoginUiState, onRetry: () -> Unit, onBack: ()
 @Composable
 private fun Muted(text: String) {
     Text(text = text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-}
-
-/** Fond blanc avec marge : la « zone calme » dont les lecteurs de QR ont besoin. */
-@Composable
-private fun QrCode(qr: QrMatrix) {
-    Canvas(
-        modifier = Modifier
-            .size(300.dp)
-            .background(Color.White, RoundedCornerShape(20.dp))
-            .padding(24.dp),
-    ) {
-        val n = qr.size.toInt()
-        val cell = size.minDimension / n
-        // Arrondi au pixel pour éviter les liserés clairs entre modules voisins.
-        for (y in 0 until n) {
-            val top = kotlin.math.floor(y * cell)
-            val bottom = kotlin.math.floor((y + 1) * cell)
-            for (x in 0 until n) {
-                if (qr.modules[y * n + x]) {
-                    val left = kotlin.math.floor(x * cell)
-                    val right = kotlin.math.floor((x + 1) * cell)
-                    drawRect(Color.Black, Offset(left, top), Size(right - left, bottom - top))
-                }
-            }
-        }
-    }
 }

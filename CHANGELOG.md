@@ -14,9 +14,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Stream stats in the live player's action bar: resolution, bitrate, latency to live, dropped frames.
 - Audio only mode for live streams: less data, and the sound keeps playing when the screen goes to sleep.
 - Sleep timer (15, 30, 60 or 90 minutes) in the live player.
+- Chat messages that mention you are highlighted; optional message times (Settings > Chat).
+- Recent searches, shown under the empty search field.
+- A QR code on each channel page opens the channel on your phone, to follow it there.
+- A dot on "Profiles" in the side menu when an account has to sign in again.
 
 ### Changed
 - Up / Down on a channel outside the zapping list now jumps to the first channel of the list.
+
+### Fixed
+- Left in the empty search field now leaves it, instead of being stuck there.
 
 ## [0.2.0] - 2026-11-13
 

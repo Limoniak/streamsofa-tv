@@ -5,6 +5,8 @@ import dev.lumen.core.ChatFragment
 import dev.lumen.core.ChatMessage
 import dev.lumen.core.ChatState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ChatStateTest {
@@ -27,6 +29,16 @@ class ChatStateTest {
     fun keepsOnlyTheMostRecentLines() {
         val state = ChatUiState().applyEvents((1..10).map { ChatEvent.Message(msg("$it")) }, max = 3)
         assertEquals(listOf("8", "9", "10"), state.ids())
+    }
+
+    @Test
+    fun detectsMentionsAsWholeWords() {
+        fun said(text: String, by: String = "other") = msg("1", by).copy(fragments = listOf(ChatFragment.Text(text)))
+        assertTrue(said("salut @Limo !").mentions("limo"))
+        assertTrue(said("limo t'es là ?").mentions("limo"))
+        assertFalse(said("limonade").mentions("limo"))
+        assertFalse(said("@limo moi-même", by = "limo").mentions("limo"))
+        assertFalse(said("@limo").mentions(""))
     }
 
     @Test

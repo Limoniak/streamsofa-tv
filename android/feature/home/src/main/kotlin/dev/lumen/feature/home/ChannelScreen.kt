@@ -71,6 +71,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import dev.lumen.data.R as DataR
+import dev.lumen.designsystem.QrCode
+import dev.lumen.core.qrCode
+import androidx.compose.runtime.remember
 
 data class ChannelUiState(
     val channel: Channel? = null,
@@ -334,9 +337,13 @@ private fun LazyGridScope.fullWidth(content: @Composable () -> Unit) =
 
 @Composable
 private fun ChannelHeader(channel: Channel?, modifier: Modifier = Modifier) {
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(24.dp),
+    ) {
         Avatar(channel?.avatarUrl.orEmpty(), channel?.displayName.orEmpty(), size = 80.dp)
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(channel?.displayName.orEmpty(), style = MaterialTheme.typography.headlineMedium)
             if (!channel?.description.isNullOrBlank()) {
                 Text(
@@ -348,6 +355,22 @@ private fun ChannelHeader(channel: Channel?, modifier: Modifier = Modifier) {
                 )
             }
         }
+        // Suivre depuis l'app est impossible (API Twitch fermée) : le téléphone ouvre la chaîne.
+        if (channel != null) FollowQr(channel.login)
+    }
+}
+
+@Composable
+private fun FollowQr(login: String) {
+    val qr = remember(login) { runCatching { qrCode("https://www.twitch.tv/$login") }.getOrNull() } ?: return
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text(
+            text = stringResource(R.string.channel_follow_qr),
+            style = MaterialTheme.typography.bodyMedium,
+            color = LumenColors.OnSurfaceMuted,
+            modifier = Modifier.width(180.dp),
+        )
+        QrCode(qr.size.toInt(), qr.modules, size = 120.dp)
     }
 }
 

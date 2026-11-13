@@ -20,23 +20,19 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 
 - [ ] 🟡 Chat appearance settings: text size, panel width, transparent overlay on top of the video.
 - [ ] 🟡 Emote picker for sending (the account's emotes are already readable).
-- [ ] 🟢 Highlight messages that mention you; optional timestamps.
 - [ ] 🟡 Reply to a message and show reply threads.
 - [ ] 🔴 Read-only polls and predictions. ⚠️
 
 ## Discover
 
 - [ ] 🟡 Android TV launcher row with your followed channels that are live.
-- [ ] 🟢 Recent searches.
 - [ ] 🟡 Top clips per category and per followed channel.
-- [ ] 🟢 Follow a channel by scanning a QR code that opens its page on the phone (following from the app itself is no longer allowed by the Twitch API).
 
 ## Accounts and profiles
 
 - [ ] 🟡 Settings per profile (accent color, chat, quality) instead of shared ones.
 - [ ] 🟡 Optional PIN on a profile.
 - [ ] 🟡 Kids profile that hides mature content.
-- [ ] 🟢 Clear status when an account has to sign in again, with one-click re-login.
 
 ## Quality and tooling
 

@@ -35,4 +35,6 @@
     <string name="settings_cancel">Cancel</string>
     <string name="settings_low_latency">Low latency (experimental)</string>
     <string name="settings_low_latency_hint">Up to 3 s less delay, on channels that allow it. May stutter on a slow connection.</string>
+    <string name="settings_chat_timestamps">Message times</string>
+    <string name="settings_chat_timestamps_hint">Show the time before each chat message. Messages that mention you are always highlighted.</string>
 </resources>

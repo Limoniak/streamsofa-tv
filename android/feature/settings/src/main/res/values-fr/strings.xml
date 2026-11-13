@@ -35,4 +35,6 @@
     <string name="settings_cancel">Annuler</string>
     <string name="settings_low_latency">Faible latence (expérimental)</string>
     <string name="settings_low_latency_hint">Jusqu\'à 3 s de retard en moins, sur les chaînes qui le permettent. Peut provoquer des coupures sur une connexion lente.</string>
+    <string name="settings_chat_timestamps">Heure des messages</string>
+    <string name="settings_chat_timestamps_hint">Affiche l\'heure devant chaque message du chat. Les messages qui vous citent sont toujours mis en valeur.</string>
 </resources>

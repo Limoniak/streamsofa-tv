@@ -29,11 +29,15 @@ data class AppSettings(
     val checkUpdates: Boolean = true,
     /** Émotes 7TV, BTTV et FFZ dans le chat. */
     val thirdPartyEmotes: Boolean = true,
+    /** Heure affichée devant chaque message du chat. */
+    val chatTimestamps: Boolean = false,
     /** Listes séparées par des virgules, appliquées par le cœur à l'ouverture du chat. */
     val hiddenWords: String = "",
     val hiddenUsers: String = "",
     /** Langue des lives dans une catégorie (code ISO 639-1) ; vide = toutes. */
     val streamLanguage: String = "",
+    /** Recherches qui ont mené à un résultat, la plus récente en tête. */
+    val recentSearches: List<String> = emptyList(),
     /** Dernière qualité choisie à la main, par login de chaîne ([QUALITY_AUTO] pour Auto). */
     val channelQuality: Map<String, String> = emptyMap(),
 ) {
@@ -44,9 +48,11 @@ data class AppSettings(
         "accent" to accent,
         "check_updates" to checkUpdates.toString(),
         "third_party_emotes" to thirdPartyEmotes.toString(),
+        "chat_timestamps" to chatTimestamps.toString(),
         "chat_hidden_words" to hiddenWords,
         "chat_hidden_users" to hiddenUsers,
         "stream_language" to streamLanguage,
+        "recent_searches" to recentSearches.joinToString("\n"),
     ) + channelQuality.mapKeys { QUALITY_PREFIX + it.key }
 
     internal companion object {
@@ -58,9 +64,11 @@ data class AppSettings(
                 accent = map["accent"] ?: d.accent,
                 checkUpdates = map["check_updates"]?.toBooleanStrictOrNull() ?: d.checkUpdates,
                 thirdPartyEmotes = map["third_party_emotes"]?.toBooleanStrictOrNull() ?: d.thirdPartyEmotes,
+                chatTimestamps = map["chat_timestamps"]?.toBooleanStrictOrNull() ?: d.chatTimestamps,
                 hiddenWords = map["chat_hidden_words"] ?: d.hiddenWords,
                 hiddenUsers = map["chat_hidden_users"] ?: d.hiddenUsers,
                 streamLanguage = map["stream_language"] ?: d.streamLanguage,
+                recentSearches = map["recent_searches"]?.split('\n')?.filter { it.isNotBlank() } ?: d.recentSearches,
                 channelQuality = map.filterKeys { it.startsWith(QUALITY_PREFIX) }.mapKeys { it.key.removePrefix(QUALITY_PREFIX) },
             )
         }

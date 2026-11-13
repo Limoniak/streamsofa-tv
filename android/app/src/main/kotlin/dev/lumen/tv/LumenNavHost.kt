@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -25,6 +26,7 @@ import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import androidx.tv.material3.MaterialTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.lumen.core.AccountState
 import dev.lumen.data.AccountsRepository
 import dev.lumen.feature.auth.DeviceLoginRoute
 import dev.lumen.feature.auth.ProfilesRoute
@@ -101,121 +103,124 @@ fun LumenNavHost(session: SessionViewModel = hiltViewModel()) {
         onDispose { activity?.removeOnNewIntentListener(listener) }
     }
 
-    NavHost(navController = navController, startDestination = start) {
-        composable(Routes.PROFILES) {
-            ProfilesRoute(
-                onEnter = {
-                    navController.navigate(Routes.HOME) {
-                        popUpTo(navController.graph.id) { inclusive = true }
-                    }
-                },
-                onAddAccount = { navController.navigate(Routes.LOGIN) },
-            )
-        }
-        composable(Routes.LOGIN) {
-            DeviceLoginRoute(
-                onDone = {
-                    navController.navigate(Routes.HOME) {
-                        popUpTo(navController.graph.id) { inclusive = true }
-                    }
-                },
-                onBack = { navController.popBackStack() },
-            )
-        }
-        composable(Routes.HOME) {
-            Shell(ShellTab.Home, onTab = navController::openTab) {
-                HomeRoute(
-                    onOpenStream = navController::openLive,
+    val needsReauth = current.accounts.any { it.state == AccountState.NEEDS_REAUTH }
+    CompositionLocalProvider(LocalNeedsReauth provides needsReauth) {
+        NavHost(navController = navController, startDestination = start) {
+            composable(Routes.PROFILES) {
+                ProfilesRoute(
+                    onEnter = {
+                        navController.navigate(Routes.HOME) {
+                            popUpTo(navController.graph.id) { inclusive = true }
+                        }
+                    },
+                    onAddAccount = { navController.navigate(Routes.LOGIN) },
+                )
+            }
+            composable(Routes.LOGIN) {
+                DeviceLoginRoute(
+                    onDone = {
+                        navController.navigate(Routes.HOME) {
+                            popUpTo(navController.graph.id) { inclusive = true }
+                        }
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.HOME) {
+                Shell(ShellTab.Home, onTab = navController::openTab) {
+                    HomeRoute(
+                        onOpenStream = navController::openLive,
+                        onOpenChannel = navController::openChannel,
+                        onOpenCategory = { id, name -> navController.navigate(Routes.category(id, name)) },
+                        onReconnect = { navController.navigate(Routes.LOGIN) },
+                    )
+                }
+                UpdatePrompt()
+            }
+            composable(
+                Routes.SEARCH,
+                arguments = listOf(navArgument("q") { defaultValue = "" }),
+                deepLinks = links("streamsofa://search?q={q}"),
+            ) {
+                Shell(ShellTab.Search, onTab = navController::openTab) {
+                    SearchRoute(
+                        onOpenStream = navController::openLive,
+                        onOpenChannel = navController::openChannel,
+                        onOpenCategory = { id, name -> navController.navigate(Routes.category(id, name)) },
+                    )
+                }
+            }
+            composable(Routes.SETTINGS) {
+                Shell(ShellTab.Settings, onTab = navController::openTab) { SettingsRoute() }
+            }
+            composable(Routes.FOLLOWING) {
+                Shell(ShellTab.Following, onTab = navController::openTab) {
+                    FollowingRoute(
+                        onOpenStream = navController::openLive,
+                        onOpenChannel = navController::openChannel,
+                        onSignIn = { navController.navigate(Routes.PROFILES) },
+                    )
+                }
+            }
+            composable(Routes.CATEGORY, deepLinks = links("streamsofa://category/{id}?name={name}")) {
+                Shell(selected = null, onTab = navController::openTab) {
+                    CategoryRoute(onOpenStream = navController::openLive, onOpenChannel = navController::openChannel)
+                }
+            }
+            composable(Routes.CHANNEL, deepLinks = links("streamsofa://channel/{login}")) {
+                Shell(selected = null, onTab = navController::openTab) {
+                    ChannelRoute(
+                        onOpenStream = navController::openLive,
+                        onOpenVideo = { navController.navigate(Routes.vod(it)) },
+                        onOpenClip = { slug, title -> navController.navigate(Routes.clip(slug, title)) },
+                    )
+                }
+            }
+            composable(Routes.CLIP, arguments = listOf(navArgument("title") { defaultValue = "" })) { ClipPlayerRoute() }
+            composable(Routes.LIVE, deepLinks = links("streamsofa://live/{login}", *twitch("{login}"))) {
+                PlayerRoute(
+                    onMultiView = { navController.navigate(Routes.multi(it)) },
                     onOpenChannel = navController::openChannel,
-                    onOpenCategory = { id, name -> navController.navigate(Routes.category(id, name)) },
-                    onReconnect = { navController.navigate(Routes.LOGIN) },
                 )
             }
-            UpdatePrompt()
-        }
-        composable(
-            Routes.SEARCH,
-            arguments = listOf(navArgument("q") { defaultValue = "" }),
-            deepLinks = links("streamsofa://search?q={q}"),
-        ) {
-            Shell(ShellTab.Search, onTab = navController::openTab) {
-                SearchRoute(
-                    onOpenStream = navController::openLive,
-                    onOpenChannel = navController::openChannel,
-                    onOpenCategory = { id, name -> navController.navigate(Routes.category(id, name)) },
+            composable(Routes.MULTI) {
+                MultiViewRoute(
+                    // Plein écran : la tuile remplace le multi-view et le lecteur d'où il a été lancé.
+                    onOpenSingle = { login ->
+                        navController.navigate(Routes.live(login)) {
+                            popUpTo(Routes.LIVE) { inclusive = true }
+                        }
+                    },
                 )
             }
+            composable(Routes.VOD, deepLinks = links("streamsofa://vod/{id}", *twitch("videos/{id}"))) { VodPlayerRoute() }
         }
-        composable(Routes.SETTINGS) {
-            Shell(ShellTab.Settings, onTab = navController::openTab) { SettingsRoute() }
         }
-        composable(Routes.FOLLOWING) {
-            Shell(ShellTab.Following, onTab = navController::openTab) {
-                FollowingRoute(
-                    onOpenStream = navController::openLive,
-                    onOpenChannel = navController::openChannel,
-                    onSignIn = { navController.navigate(Routes.PROFILES) },
-                )
-            }
-        }
-        composable(Routes.CATEGORY, deepLinks = links("streamsofa://category/{id}?name={name}")) {
-            Shell(selected = null, onTab = navController::openTab) {
-                CategoryRoute(onOpenStream = navController::openLive, onOpenChannel = navController::openChannel)
-            }
-        }
-        composable(Routes.CHANNEL, deepLinks = links("streamsofa://channel/{login}")) {
-            Shell(selected = null, onTab = navController::openTab) {
-                ChannelRoute(
-                    onOpenStream = navController::openLive,
-                    onOpenVideo = { navController.navigate(Routes.vod(it)) },
-                    onOpenClip = { slug, title -> navController.navigate(Routes.clip(slug, title)) },
-                )
-            }
-        }
-        composable(Routes.CLIP, arguments = listOf(navArgument("title") { defaultValue = "" })) { ClipPlayerRoute() }
-        composable(Routes.LIVE, deepLinks = links("streamsofa://live/{login}", *twitch("{login}"))) {
-            PlayerRoute(
-                onMultiView = { navController.navigate(Routes.multi(it)) },
-                onOpenChannel = navController::openChannel,
-            )
-        }
-        composable(Routes.MULTI) {
-            MultiViewRoute(
-                // Plein écran : la tuile remplace le multi-view et le lecteur d'où il a été lancé.
-                onOpenSingle = { login ->
-                    navController.navigate(Routes.live(login)) {
-                        popUpTo(Routes.LIVE) { inclusive = true }
-                    }
-                },
-            )
-        }
-        composable(Routes.VOD, deepLinks = links("streamsofa://vod/{id}", *twitch("videos/{id}"))) { VodPlayerRoute() }
     }
-}
 
-private fun NavController.openLive(login: String) = navigate(Routes.live(login))
+    private fun NavController.openLive(login: String) = navigate(Routes.live(login))
 
-private fun NavController.openChannel(login: String) = navigate(Routes.channel(login))
+    private fun NavController.openChannel(login: String) = navigate(Routes.channel(login))
 
-/** Les onglets ne s'empilent pas : Retour depuis « Suivis » ramène à l'accueil. */
-private fun NavController.openTab(tab: ShellTab) {
-    when (tab) {
-        ShellTab.Profiles -> navigate(Routes.PROFILES)
-        ShellTab.Search -> navigate("search") {
-            popUpTo(Routes.HOME)
-            launchSingleTop = true
-        }
-        ShellTab.Home -> navigate(Routes.HOME) {
-            popUpTo(Routes.HOME) { inclusive = false }
-            launchSingleTop = true
-        }
-        ShellTab.Following -> navigate(Routes.FOLLOWING) {
-            popUpTo(Routes.HOME)
-            launchSingleTop = true
-        }
-        ShellTab.Settings -> navigate(Routes.SETTINGS) {
-            popUpTo(Routes.HOME)
-            launchSingleTop = true
-        }
+    /** Les onglets ne s'empilent pas : Retour depuis « Suivis » ramène à l'accueil. */
+    private fun NavController.openTab(tab: ShellTab) {
+        when (tab) {
+            ShellTab.Profiles -> navigate(Routes.PROFILES)
+            ShellTab.Search -> navigate("search") {
+                popUpTo(Routes.HOME)
+                launchSingleTop = true
+            }
+            ShellTab.Home -> navigate(Routes.HOME) {
+                popUpTo(Routes.HOME) { inclusive = false }
+                launchSingleTop = true
+            }
+            ShellTab.Following -> navigate(Routes.FOLLOWING) {
+                popUpTo(Routes.HOME)
+                launchSingleTop = true
+            }
+            ShellTab.Settings -> navigate(Routes.SETTINGS) {
+                popUpTo(Routes.HOME)
+                launchSingleTop = true
+            }
     }
 }

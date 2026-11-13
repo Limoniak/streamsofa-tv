@@ -93,6 +93,7 @@ fun PlayerRoute(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val chat by viewModel.chat.collectAsStateWithLifecycle()
     val canSend by viewModel.canSend.collectAsStateWithLifecycle()
+    val myLogin by viewModel.myLogin.collectAsStateWithLifecycle()
     // Masqué par défaut (réglable) : la vidéo d'abord, Bas affiche le chat.
     var chatVisible by rememberSaveable { mutableStateOf(viewModel.chatByDefault) }
     var composing by remember { mutableStateOf(false) }
@@ -246,7 +247,7 @@ fun PlayerRoute(
       }
         if (chatVisible) {
             Column(Modifier.width(340.dp).fillMaxHeight().background(LumenColors.Background)) {
-                ChatPanel(chat, Modifier.weight(1f).fillMaxWidth())
+                ChatPanel(chat, Modifier.weight(1f).fillMaxWidth(), mention = myLogin, timestamps = viewModel.chatTimestamps)
                 if (canWrite) {
                     WriteButton(
                         onClick = {
