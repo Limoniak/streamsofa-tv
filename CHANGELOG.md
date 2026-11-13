@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Changed
+- Live player remote, TV style: Up / Down change channel, Left opens the list of live channels, Right shows or hides the chat, OK opens an action bar (write, chat, quality, multi-view, channel page). The available keys are always shown in the info panel.
+- Writing a chat message is now only started from the action bar, and the message box has a Cancel button.
 - New visual identity: the "stream**sofa**" wordmark with the word sitting on its own sofa, new launcher banner and icon.
 - Warmer color palette: plum backgrounds, cream text, lavender accent. The orange accent becomes peach.
 

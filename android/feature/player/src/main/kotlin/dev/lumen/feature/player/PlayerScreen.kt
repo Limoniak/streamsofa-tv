@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -46,6 +47,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
+import androidx.tv.material3.Button
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.FilterChip
 import androidx.tv.material3.MaterialTheme
@@ -62,19 +64,29 @@ import dev.lumen.designsystem.requestWhenAttached
 import kotlinx.coroutines.delay
 import dev.lumen.data.R as DataR
 
-private enum class Overlay { Hidden, Info, Controls }
+private enum class Overlay { Hidden, Info, Actions }
 
 private const val OVERLAY_TIMEOUT_MS = 5_000L
 
+/** Place laissée au bouton agrandi par le focus, que la zone défilante rognerait. */
+private val FOCUS_ROOM = 16.dp
+
+/** Rangée défilante (quand le chat réduit la largeur) dont les bords ne rognent pas le bouton focalisé. */
+@Composable
+private fun Modifier.actionRow() = offset(x = -FOCUS_ROOM)
+    .horizontalScroll(rememberScrollState())
+    .padding(horizontal = FOCUS_ROOM, vertical = 6.dp)
+
 /**
- * Télécommande : OK affiche les infos et la qualité, gauche/droite zappe entre les chaînes
- * suivies, bas affiche ou masque le chat, haut ouvre la saisie d'un message (compte connecté).
- * Retour ferme d'abord le panneau.
+ * Télécommande, comme une télé : ▲ ▼ changent de chaîne suivie, ◀ ouvre la liste des lives,
+ * ▶ affiche ou masque le chat, OK ouvre la barre d'actions (écrire, chat, qualité, multi-view,
+ * page de la chaîne). Retour ferme d'abord ce qui est ouvert.
  */
 @OptIn(UnstableApi::class)
 @Composable
 fun PlayerRoute(
     onMultiView: (logins: List<String>) -> Unit = {},
+    onOpenChannel: (login: String) -> Unit = {},
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -84,6 +96,7 @@ fun PlayerRoute(
     var chatVisible by rememberSaveable { mutableStateOf(viewModel.chatByDefault) }
     var composing by remember { mutableStateOf(false) }
     var picking by remember { mutableStateOf(false) }
+    var listing by remember { mutableStateOf(false) }
     LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onStop() }
 
@@ -96,7 +109,7 @@ fun PlayerRoute(
     LaunchedEffect(state.login) { if (overlay == Overlay.Hidden) overlay = Overlay.Info }
     // Le focus ne bouge qu'au changement de panneau : chaque touche relance le minuteur, pas le focus.
     LaunchedEffect(overlay) {
-        if (overlay == Overlay.Controls) controlsFocus.requestWhenAttached() else rootFocus.requestWhenAttached()
+        if (overlay == Overlay.Actions) controlsFocus.requestWhenAttached() else if (!listing) rootFocus.requestWhenAttached()
     }
     LaunchedEffect(overlay, interactions) {
         if (overlay != Overlay.Hidden) {
@@ -104,7 +117,8 @@ fun PlayerRoute(
             overlay = Overlay.Hidden
         }
     }
-    BackHandler(enabled = overlay == Overlay.Controls) { overlay = Overlay.Hidden }
+    BackHandler(enabled = overlay == Overlay.Actions) { overlay = Overlay.Hidden }
+    BackHandler(enabled = listing) { listing = false }
     BackHandler(enabled = state.raid != null) { viewModel.cancelRaid() }
 
     Row(
@@ -116,7 +130,7 @@ fun PlayerRoute(
                 false
             }
             .onKeyEvent { event ->
-                if (event.type != KeyEventType.KeyDown || overlay == Overlay.Controls) return@onKeyEvent false
+                if (event.type != KeyEventType.KeyDown || overlay == Overlay.Actions || listing) return@onKeyEvent false
                 val ok = event.key == Key.DirectionCenter || event.key == Key.Enter || event.key == Key.NumPadEnter
                 if (ok && state.raid != null) {
                     viewModel.followRaid()
@@ -124,30 +138,21 @@ fun PlayerRoute(
                 }
                 when (event.key) {
                     Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> {
-                        when {
-                            state.status is PlayerStatus.Failed -> viewModel.retry()
-                            state.variants.isEmpty() -> overlay = Overlay.Info
-                            else -> overlay = Overlay.Controls
-                        }
+                        if (state.status is PlayerStatus.Failed) viewModel.retry() else overlay = Overlay.Actions
+                        true
+                    }
+                    Key.DirectionUp, Key.DirectionDown -> {
+                        // Sans chaîne voisine, on montre au moins les infos et l'aide des touches.
+                        if (state.canZap) viewModel.zap(if (event.key == Key.DirectionUp) 1 else -1) else overlay = Overlay.Info
                         true
                     }
                     Key.DirectionLeft -> {
-                        viewModel.zap(-1)
+                        overlay = Overlay.Hidden
+                        listing = true
                         true
                     }
                     Key.DirectionRight -> {
-                        viewModel.zap(1)
-                        true
-                    }
-                    Key.DirectionDown -> {
                         chatVisible = !chatVisible
-                        true
-                    }
-                    Key.DirectionUp -> {
-                        if (canSend && state.stream != null) {
-                            chatVisible = true
-                            composing = true
-                        }
                         true
                     }
                     else -> false
@@ -186,8 +191,19 @@ fun PlayerRoute(
         if (overlay != Overlay.Hidden) {
             InfoPanel(
                 state = state,
-                showControls = overlay == Overlay.Controls,
+                showActions = overlay == Overlay.Actions,
                 controlsFocus = controlsFocus,
+                chatVisible = chatVisible,
+                onWrite = if (canSend && state.stream != null) {
+                    {
+                        overlay = Overlay.Hidden
+                        chatVisible = true
+                        composing = true
+                    }
+                } else {
+                    null
+                },
+                onToggleChat = { chatVisible = !chatVisible },
                 onQuality = viewModel::selectQuality,
                 onMulti = if (viewModel.maxTiles > 1) {
                     {
@@ -197,7 +213,20 @@ fun PlayerRoute(
                 } else {
                     null
                 },
+                onChannel = { onOpenChannel(state.login) },
                 modifier = Modifier.align(Alignment.BottomStart),
+            )
+        }
+        if (listing) {
+            LiveList(
+                load = viewModel::liveList,
+                current = state.login,
+                onPick = {
+                    listing = false
+                    viewModel.open(it)
+                },
+                onDismiss = { listing = false },
+                modifier = Modifier.align(Alignment.CenterStart),
             )
         }
       }
@@ -225,19 +254,26 @@ fun PlayerRoute(
         )
     }
     // Une boîte fermée, la télécommande revient au lecteur.
-    LaunchedEffect(composing, picking) { if (!composing && !picking) rootFocus.requestWhenAttached() }
+    LaunchedEffect(composing, picking, listing) { if (!composing && !picking && !listing) rootFocus.requestWhenAttached() }
 }
 
 @kotlin.OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 private fun InfoPanel(
     state: PlayerUiState,
-    showControls: Boolean,
+    showActions: Boolean,
     controlsFocus: FocusRequester,
+    chatVisible: Boolean,
+    onWrite: (() -> Unit)?,
+    onToggleChat: () -> Unit,
     onQuality: (String?) -> Unit,
     onMulti: (() -> Unit)?,
+    onChannel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var showQuality by remember(showActions) { mutableStateOf(false) }
+    val qualityFocus = remember { FocusRequester() }
+    LaunchedEffect(showQuality) { if (showQuality) qualityFocus.requestWhenAttached() }
     val stream = state.stream
     Column(
         modifier = modifier
@@ -270,33 +306,44 @@ private fun InfoPanel(
                     )
                 }
             }
-            if (state.canZap) {
-                Text(
-                    text = stringResource(R.string.player_zap_hint),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = LumenColors.OnSurfaceMuted,
-                )
-            }
         }
-        if (showControls && state.variants.isNotEmpty()) {
-            // Défile quand le chat réduit la largeur : le focus amène la puce en vue.
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                val options = listOf<String?>(null) + state.variants.map { it.name }
-                options.forEach { name ->
-                    val selected = name == state.quality
-                    FilterChip(
-                        selected = selected,
-                        onClick = { onQuality(name) },
-                        modifier = if (selected) Modifier.focusRequester(controlsFocus) else Modifier,
-                    ) {
-                        Text(name ?: stringResource(R.string.player_quality_auto))
+        if (showActions) {
+            Row(Modifier.actionRow(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                val first = Modifier.focusRequester(controlsFocus)
+                if (onWrite != null) Button(onClick = onWrite, modifier = first) { Text(stringResource(R.string.player_write)) }
+                Button(onClick = onToggleChat, modifier = if (onWrite == null) first else Modifier) {
+                    Text(stringResource(if (chatVisible) R.string.player_chat_hide else R.string.player_chat_show))
+                }
+                if (state.variants.isNotEmpty()) {
+                    Button(onClick = { showQuality = !showQuality }) {
+                        Text(stringResource(R.string.player_quality, state.quality ?: stringResource(R.string.player_quality_auto)))
                     }
                 }
-                if (onMulti != null) {
-                    FilterChip(selected = false, onClick = onMulti) { Text(stringResource(R.string.player_multi)) }
+                if (onMulti != null) Button(onClick = onMulti) { Text(stringResource(R.string.player_multi)) }
+                Button(onClick = onChannel) { Text(stringResource(R.string.player_channel)) }
+            }
+            if (showQuality) {
+                Row(Modifier.actionRow(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    val options = listOf<String?>(null) + state.variants.map { it.name }
+                    options.forEach { name ->
+                        val selected = name == state.quality
+                        FilterChip(
+                            selected = selected,
+                            onClick = { onQuality(name) },
+                            modifier = if (selected) Modifier.focusRequester(qualityFocus) else Modifier,
+                        ) {
+                            Text(name ?: stringResource(R.string.player_quality_auto))
+                        }
+                    }
                 }
             }
         }
+        // L'aide des touches reste visible : rien n'est caché derrière une touche inconnue.
+        Text(
+            text = stringResource(if (state.canZap) R.string.player_keys_zap else R.string.player_keys),
+            style = MaterialTheme.typography.labelLarge,
+            color = LumenColors.OnSurfaceMuted,
+        )
     }
 }
 

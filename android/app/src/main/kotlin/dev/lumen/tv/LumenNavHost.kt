@@ -174,7 +174,10 @@ fun LumenNavHost(session: SessionViewModel = hiltViewModel()) {
         }
         composable(Routes.CLIP, arguments = listOf(navArgument("title") { defaultValue = "" })) { ClipPlayerRoute() }
         composable(Routes.LIVE, deepLinks = links("streamsofa://live/{login}", *twitch("{login}"))) {
-            PlayerRoute(onMultiView = { navController.navigate(Routes.multi(it)) })
+            PlayerRoute(
+                onMultiView = { navController.navigate(Routes.multi(it)) },
+                onOpenChannel = navController::openChannel,
+            )
         }
         composable(Routes.MULTI) {
             MultiViewRoute(

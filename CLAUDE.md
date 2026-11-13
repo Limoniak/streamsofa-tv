@@ -48,6 +48,10 @@ Exceptions : `README.md` et `CHANGELOG.md` sont en anglais (chaque changement vi
   assis dans un canapé lavande, Fraunces SOFT 100 / 750 (OFL) converti en tracés ; icône = le canapé avec un « s ».
   Fichiers générés : `banner.xml`, `ic_launcher.xml`, `docs/logo.svg` (script hors dépôt). Palette : fonds prune
   `#130F19`/`#1B1622`, texte crème `#F4EEE8`, accent lavande `#B79CFF`, pêche `#FFB38A` (clé d'accent `orange` conservée).
+- Télécommande du lecteur live, style télé (choix de l'utilisateur) : ▲ ▼ zappent entre les suivis en live, ◀ ouvre la
+  liste des lives (`LiveList`, suivis sinon top), ▶ affiche/masque le chat, OK ouvre la barre d'actions (Écrire, Chat,
+  Qualité, Multi-view, Page de la chaîne). L'aide des touches reste affichée dans le panneau d'infos. Écrire n'est
+  jamais déclenché par une flèche.
 
 ## Jalons
 
@@ -60,7 +64,7 @@ Exceptions : `README.md` et `CHANGELOG.md` sont en anglais (chaque changement vi
   Les pubs Twitch insérées dans le flux passent normalement.
 - [x] J4 : chat (lecture puis envoi), batching côté Rust toutes les ~100 ms, buffer borné.
   Lecture validée sur l'émulateur (IRC anonyme justinfan, émotes Twitch, couleurs, modération, 150 lignes).
-  Envoi Helix validé par l'utilisateur. Chat masqué par défaut dans le lecteur (Bas l'affiche).
+  Envoi Helix validé par l'utilisateur. Chat masqué par défaut dans le lecteur.
   Badges (GQL, globaux en cache), émotes tierces 7TV/BTTV/FFZ (module `emotes`, désactivables), mots et pseudos
   masqués + utilisateurs bloqués du compte (Helix) : `chat/decor.rs`, chargés en parallèle de la connexion IRC.
   Le replay VOD applique les filtres, sans badges (vides en anonyme) ni émotes tierces.

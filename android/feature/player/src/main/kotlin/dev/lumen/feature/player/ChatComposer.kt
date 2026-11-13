@@ -73,6 +73,8 @@ fun ChatComposer(onSend: (String) -> Unit, onDismiss: () -> Unit) {
                 )
             }
             Button(onClick = send) { Text(stringResource(R.string.chat_send)) }
+            // Retour ferme d'abord le clavier : un bouton explicite pour sortir sans envoyer.
+            Button(onClick = onDismiss) { Text(stringResource(R.string.chat_cancel)) }
         }
     }
 }

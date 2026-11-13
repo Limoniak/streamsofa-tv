@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="player_quality_auto">Auto</string>
-    <string name="player_zap_hint">◀ ▶ changer de chaîne suivie</string>
+    <string name="player_keys_zap">▲ ▼ changer de chaîne  ·  ◀ lives  ·  ▶ chat  ·  OK actions</string>
+    <string name="player_keys">◀ lives  ·  ▶ chat  ·  OK actions</string>
+    <string name="player_write">Écrire</string>
+    <string name="player_chat_show">Afficher le chat</string>
+    <string name="player_chat_hide">Masquer le chat</string>
+    <string name="player_quality">Qualité : %1$s</string>
+    <string name="player_channel">Page de la chaîne</string>
+    <string name="player_lives_title">En direct</string>
+    <string name="chat_cancel">Annuler</string>
     <string name="chat_connecting">Connexion au chat…</string>
     <string name="chat_compose_hint">Votre message</string>
     <string name="chat_send">Envoyer</string>

@@ -172,6 +172,13 @@ class PlayerViewModel @Inject constructor(
         load(next)
     }
 
+    /** Chaîne choisie dans la liste des lives. */
+    fun open(login: String) {
+        if (login == _state.value.login) return
+        retried = false
+        load(login)
+    }
+
     fun retry() {
         retried = false
         load(_state.value.login)
@@ -180,13 +187,12 @@ class PlayerViewModel @Inject constructor(
     /** 1 : pas de multi-view sur cet appareil. */
     val maxTiles: Int = DecoderProbe.maxStreams(context)
 
-    /** Chaînes à ajouter au multi-view : les suivies en live, sinon les plus regardées. */
-    suspend fun multiCandidates(): List<LiveStream> {
-        val current = _state.value.login
-        val followed = catalog.followed.value
-        val pool = followed.ifEmpty { loadCatching { catalog.topStreams(null).items }.getOrDefault(emptyList()) }
-        return pool.filter { it.login != current }
-    }
+    /** Lives proposés (liste ◀, multi-view) : les suivis en live, sinon les plus regardés. */
+    suspend fun liveList(): List<LiveStream> =
+        catalog.followed.value.ifEmpty { loadCatching { catalog.topStreams(null).items }.getOrDefault(emptyList()) }
+
+    /** Chaînes à ajouter au multi-view. */
+    suspend fun multiCandidates(): List<LiveStream> = liveList().filter { it.login != _state.value.login }
 
     fun selectQuality(name: String?) {
         qualityChosen = true
