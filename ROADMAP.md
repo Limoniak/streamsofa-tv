@@ -34,7 +34,6 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 ## Discover
 
 - [ ] 🟡 Android TV launcher row with your followed channels that are live.
-- [ ] 🟢 Content classification labels on cards and before playback (mature content warning).
 - [ ] 🟢 Recent searches.
 - [ ] 🟡 Top clips per category and per followed channel.
 - [ ] 🟢 Follow a channel by scanning a QR code that opens its page on the phone (following from the app itself is no longer allowed by the Twitch API).
