@@ -51,7 +51,7 @@ adb connect <tv-ip-address>
 adb install streamsofa-<version>-universal.apk
 ```
 
-Once installed, StreamSofa checks for new versions at startup and installs them for you (*Paramètres → Mises à jour*).
+Once installed, StreamSofa checks for a new version at each launch and offers to download it; Android then asks you to confirm the install. The check can be turned off in *Paramètres → Mises à jour*.
 
 ## Build from source
 
