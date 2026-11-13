@@ -13,9 +13,10 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::catalog::{
-    box_art_template, parse_utc, thumbnail_template, video_thumbnail, Category, CategoryPage, Channel, LiveStream, ReplayComment,
-    StreamPage, Video,
+    box_art_template, parse_utc, thumbnail_template, video_thumbnail, Category, CategoryPage, Channel, ChannelAbout, Clip, ClipQuality,
+    LiveStream, Panel, ReplayComment, ScheduleSegment, SearchChannel, SearchResults, StreamPage, Video,
 };
+use crate::hls::url_query;
 use crate::chat::{emote_url, readable_color, ChatFragment, ChatMessage};
 use crate::error::CoreError;
 
@@ -260,6 +261,264 @@ impl GqlClient {
         Ok(data.user.map(|u| (u.id, badge_map(u.broadcast_badges.unwrap_or_default()))))
     }
 
+    pub async fn search(&self, query: &str) -> Result<SearchResults, CoreError> {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct GChannel {
+            id: String,
+            login: String,
+            display_name: String,
+            #[serde(default, rename = "profileImageURL")]
+            profile_image_url: Option<String>,
+            #[serde(default)]
+            broadcast_settings: Option<BroadcastSettings>,
+            #[serde(default)]
+            stream: Option<GLive>,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct GLive {
+            #[serde(default)]
+            viewers_count: u32,
+            #[serde(default)]
+            game: Option<GGame>,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct GCategory {
+            id: String,
+            display_name: String,
+            #[serde(default)]
+            viewers_count: u32,
+        }
+        #[derive(Deserialize)]
+        struct Items<T> {
+            #[serde(default = "Vec::new")]
+            items: Vec<T>,
+        }
+        #[derive(Deserialize)]
+        struct GSearch {
+            channels: Option<Items<GChannel>>,
+            games: Option<Items<GCategory>>,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Data {
+            search_for: Option<GSearch>,
+        }
+        let data: Data = self.run("Search", queries::SEARCH, json!({ "query": query })).await?;
+        let Some(search) = data.search_for else { return Ok(SearchResults { channels: Vec::new(), categories: Vec::new() }) };
+        let channels = search
+            .channels
+            .map(|c| c.items)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|c| {
+                let live = c.stream.is_some();
+                SearchChannel {
+                    title: if live { c.broadcast_settings.and_then(|b| b.title).unwrap_or_default() } else { String::new() },
+                    category_name: c.stream.as_ref().and_then(|s| s.game.as_ref()).map(|g| g.display_name.clone()).unwrap_or_default(),
+                    viewers: c.stream.map(|s| s.viewers_count).unwrap_or(0),
+                    id: c.id,
+                    login: c.login,
+                    display_name: c.display_name,
+                    avatar_url: c.profile_image_url.unwrap_or_default(),
+                    live,
+                }
+            })
+            .collect();
+        let categories = search
+            .games
+            .map(|g| g.items)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|g| Category { box_art_url: box_art_template(&g.id), id: g.id, name: g.display_name, viewers: g.viewers_count })
+            .collect();
+        Ok(SearchResults { channels, categories })
+    }
+
+    /// `all_time` : sinon, les clips des 7 derniers jours.
+    pub async fn clips(&self, login: &str, all_time: bool, first: u32) -> Result<Vec<Clip>, CoreError> {
+        #[derive(Deserialize)]
+        struct Curator {
+            #[serde(default, rename = "displayName")]
+            display_name: String,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct GClip {
+            slug: String,
+            #[serde(default)]
+            title: String,
+            #[serde(default)]
+            duration_seconds: u32,
+            #[serde(default)]
+            view_count: u32,
+            #[serde(default)]
+            created_at: Option<String>,
+            #[serde(default, rename = "thumbnailURL")]
+            thumbnail_url: Option<String>,
+            #[serde(default)]
+            curator: Option<Curator>,
+        }
+        #[derive(Deserialize)]
+        struct GUser {
+            clips: Option<Connection<GClip>>,
+        }
+        #[derive(Deserialize)]
+        struct Data {
+            user: Option<GUser>,
+        }
+        let period = if all_time { "ALL_TIME" } else { "LAST_WEEK" };
+        let data: Data = self.run("Clips", queries::CLIPS, json!({ "login": login, "first": first, "period": period })).await?;
+        Ok(data
+            .user
+            .and_then(|u| u.clips)
+            .map(|c| c.edges)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|edge| {
+                let c = edge.node;
+                Clip {
+                    created_at: c.created_at.as_deref().and_then(parse_utc).unwrap_or(0),
+                    slug: c.slug,
+                    title: c.title,
+                    duration_s: c.duration_seconds,
+                    views: c.view_count,
+                    thumbnail_url: c.thumbnail_url.unwrap_or_default(),
+                    curator: c.curator.map(|c| c.display_name).unwrap_or_default(),
+                }
+            })
+            .collect())
+    }
+
+    /// Fichiers d'un clip, de la meilleure qualité à la plus basse ; vide si le clip n'existe plus.
+    pub async fn clip_playback(&self, slug: &str) -> Result<Vec<ClipQuality>, CoreError> {
+        #[derive(Deserialize)]
+        struct GQuality {
+            #[serde(default)]
+            quality: String,
+            #[serde(rename = "sourceURL")]
+            source_url: String,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct GClip {
+            playback_access_token: Option<PlaybackToken>,
+            #[serde(default)]
+            video_qualities: Vec<GQuality>,
+        }
+        #[derive(Deserialize)]
+        struct Data {
+            clip: Option<GClip>,
+        }
+        let data: Data = self.run("ClipPlayback", queries::CLIP_PLAYBACK, json!({ "slug": slug })).await?;
+        let Some(clip) = data.clip else { return Ok(Vec::new()) };
+        let token = clip
+            .playback_access_token
+            .ok_or_else(|| CoreError::GqlChanged { operation: "ClipPlayback".into(), detail: "jeton absent".into() })?;
+        // Les fichiers refusent une requête sans le jeton anonyme qui les accompagne.
+        let signature = url_query(&[("sig", &token.signature), ("token", &token.value)]);
+        let mut qualities: Vec<ClipQuality> = clip
+            .video_qualities
+            .into_iter()
+            .map(|q| ClipQuality { height: q.quality.parse().unwrap_or(0), url: format!("{}?{signature}", q.source_url) })
+            .collect();
+        qualities.sort_by(|a, b| b.height.cmp(&a.height));
+        Ok(qualities)
+    }
+
+    /// Planning à venir (`now` en secondes Unix) et panneaux d'une chaîne ; `None` si elle n'existe pas.
+    pub async fn channel_about(&self, login: &str, now: i64) -> Result<Option<ChannelAbout>, CoreError> {
+        #[derive(Deserialize)]
+        struct GPanel {
+            #[serde(default)]
+            title: Option<String>,
+            #[serde(default)]
+            description: Option<String>,
+            #[serde(default, rename = "imageURL")]
+            image_url: Option<String>,
+            #[serde(default, rename = "linkURL")]
+            link_url: Option<String>,
+        }
+        #[derive(Deserialize)]
+        struct GName {
+            #[serde(default)]
+            name: String,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct GSegment {
+            start_at: String,
+            #[serde(default)]
+            end_at: Option<String>,
+            #[serde(default)]
+            title: Option<String>,
+            #[serde(default)]
+            is_cancelled: bool,
+            #[serde(default)]
+            categories: Option<Vec<GName>>,
+        }
+        #[derive(Deserialize)]
+        struct GSchedule {
+            #[serde(default)]
+            segments: Option<Vec<GSegment>>,
+        }
+        #[derive(Deserialize)]
+        struct GChannel {
+            #[serde(default)]
+            schedule: Option<GSchedule>,
+        }
+        #[derive(Deserialize)]
+        struct GUser {
+            // Un panneau d'extension arrive vide (`{}`) : il est écarté plus bas.
+            #[serde(default)]
+            panels: Option<Vec<Option<GPanel>>>,
+            #[serde(default)]
+            channel: Option<GChannel>,
+        }
+        #[derive(Deserialize)]
+        struct Data {
+            user: Option<GUser>,
+        }
+        let data: Data = self.run("ChannelAbout", queries::CHANNEL_ABOUT, json!({ "login": login })).await?;
+        let Some(user) = data.user else { return Ok(None) };
+        let panels = user
+            .panels
+            .unwrap_or_default()
+            .into_iter()
+            .flatten()
+            .map(|p| Panel {
+                title: p.title.unwrap_or_default(),
+                description: p.description.unwrap_or_default(),
+                image_url: p.image_url.unwrap_or_default(),
+                link_url: p.link_url.unwrap_or_default(),
+            })
+            .filter(|p| !(p.title.is_empty() && p.description.is_empty() && p.image_url.is_empty()))
+            .collect();
+        let schedule = user
+            .channel
+            .and_then(|c| c.schedule)
+            .and_then(|s| s.segments)
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|s| !s.is_cancelled)
+            .filter_map(|s| {
+                let start_at = parse_utc(&s.start_at)?;
+                let end_at = s.end_at.as_deref().and_then(parse_utc).unwrap_or(0);
+                // Créneau passé (ou commencé depuis plus de 12 h sans fin annoncée) : sans intérêt.
+                let over = if end_at > 0 { end_at <= now } else { start_at + 12 * 3600 <= now };
+                (!over).then(|| ScheduleSegment {
+                    start_at,
+                    end_at,
+                    title: s.title.unwrap_or_default(),
+                    category_name: s.categories.unwrap_or_default().into_iter().next().map(|c| c.name).unwrap_or_default(),
+                })
+            })
+            .collect();
+        Ok(Some(ChannelAbout { schedule, panels }))
+    }
+
     pub async fn top_streams(&self, after: Option<&str>, first: u32) -> Result<StreamPage, CoreError> {
         #[derive(Deserialize)]
         struct Data {
@@ -269,7 +528,14 @@ impl GqlClient {
         Ok(stream_page(data.streams))
     }
 
-    pub async fn category_streams(&self, category_id: &str, after: Option<&str>, first: u32) -> Result<StreamPage, CoreError> {
+    /// `language` : code ISO 639-1 (`fr`), sinon toutes les langues.
+    pub async fn category_streams(
+        &self,
+        category_id: &str,
+        language: Option<&str>,
+        after: Option<&str>,
+        first: u32,
+    ) -> Result<StreamPage, CoreError> {
         #[derive(Deserialize)]
         struct Game {
             streams: Option<Connection<GStream>>,
@@ -279,7 +545,7 @@ impl GqlClient {
             game: Option<Game>,
         }
         let data: Data = self
-            .run("CategoryStreams", &queries::category_streams(), json!({ "id": category_id, "first": first, "after": after }))
+            .run("CategoryStreams", &queries::category_streams(), json!({ "id": category_id, "first": first, "after": after, "languages": language.map(|l| vec![l]) }))
             .await?;
         Ok(stream_page(data.game.and_then(|g| g.streams)))
     }

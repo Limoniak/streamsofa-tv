@@ -79,6 +79,17 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
   CI GitHub Actions : tests Rust + Android à chaque push, release signée sur tag `vX.Y.Z`
   (version issue du tag ; secrets décrits dans le README). Baseline Profile : module `:baselineprofile`
   + profileinstaller. Keystore de release : à créer par l'utilisateur (README), jamais généré ici.
+- [x] J8 : parité avec l'app officielle. Validé sur l'émulateur sauf les raids (aucun raid déclenchable).
+  Recherche (onglet en tête de barre latérale ; Helix connecté, GQL `searchFor` en invité). Recommandations
+  (connecté) : top 3 des catégories des suivis en live, dans leur langue dominante, hors suivis
+  (`recommendation_seeds`). Filtre de langue des catégories (préférence `stream_language`). Page chaîne :
+  planning à venir, clips (semaine puis tout temps, lecteur MP4 `clip/{slug}`), panneaux « À propos ».
+  Raids : EventSub WebSocket `channel.raid` (compte connecté seulement), bandeau 10 s, OK = suivre, Retour = rester.
+  Intégration TV : liens `lumen://` et twitch.tv (`singleTask`, `addOnNewIntentListener`), « Continuer à regarder »
+  via `TvContract.WatchNextPrograms` (publié en quittant une VOD, retiré une fois finie, jamais remis si l'utilisateur
+  l'a retiré), recherche globale/vocale via `SearchProvider` + `searchable.xml`. Google TV peut ignorer les deux
+  pour une app hors Play Store. Suivre/ne plus suivre : impossible, Twitch a retiré l'endpoint Helix (2023) ;
+  le contourner via GQL exigerait un jeton web et une vérification d'intégrité, exclu.
 
 Schéma SQLite (migrations dans `store/mod.rs`, clé `scope` = `global` | `guest` | id de compte) :
 `vod_progress` (migration 2), `settings` (migration 3, seule la portée `global` est utilisée ; filtres du chat dans `chat_hidden_words`/`chat_hidden_users`), `meta_cache(key,body,fetched_at,ttl_s)` (migration 4 :

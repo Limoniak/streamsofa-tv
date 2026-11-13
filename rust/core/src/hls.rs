@@ -59,7 +59,7 @@ pub fn vod_master_url(base: &str, video_id: &str, token: &str, signature: &str, 
     format!("{base}/vod/{video_id}.m3u8?{query}")
 }
 
-fn url_query(pairs: &[(&str, &str)]) -> String {
+pub(crate) fn url_query(pairs: &[(&str, &str)]) -> String {
     pairs
         .iter()
         .map(|(k, v)| format!("{k}={}", percent_encode(v)))

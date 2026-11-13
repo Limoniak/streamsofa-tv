@@ -1,10 +1,16 @@
 package dev.lumen.tv
 
+import android.app.SearchManager
+import android.content.Intent
 import android.net.Uri
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
+import androidx.core.util.Consumer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -15,6 +21,8 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import androidx.tv.material3.MaterialTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.lumen.data.AccountsRepository
@@ -24,6 +32,8 @@ import dev.lumen.feature.home.CategoryRoute
 import dev.lumen.feature.home.ChannelRoute
 import dev.lumen.feature.home.FollowingRoute
 import dev.lumen.feature.home.HomeRoute
+import dev.lumen.feature.home.SearchRoute
+import dev.lumen.feature.player.ClipPlayerRoute
 import dev.lumen.feature.player.MultiViewRoute
 import dev.lumen.feature.player.PlayerRoute
 import dev.lumen.feature.player.VodPlayerRoute
@@ -42,12 +52,27 @@ private object Routes {
     const val VOD = "vod/{id}"
     const val MULTI = "multi/{logins}"
     const val SETTINGS = "settings"
+    const val SEARCH = "search?q={q}"
+    const val CLIP = "clip/{slug}?title={title}"
 
     fun category(id: String, name: String) = "category/${Uri.encode(id)}?name=${Uri.encode(name)}"
     fun live(login: String) = "live/${Uri.encode(login)}"
     fun channel(login: String) = "channel/${Uri.encode(login)}"
     fun vod(id: String) = "vod/${Uri.encode(id)}"
     fun multi(logins: List<String>) = "multi/${Uri.encode(logins.joinToString(","))}"
+    fun clip(slug: String, title: String) = "clip/${Uri.encode(slug)}?title=${Uri.encode(title)}"
+}
+
+/** Liens `lumen://…` (internes) et twitch.tv (partagés) vers un écran. */
+private fun links(vararg patterns: String) = patterns.map { p -> navDeepLink { uriPattern = p } }
+
+private fun twitch(path: String) = arrayOf("https://www.twitch.tv/$path", "https://twitch.tv/$path", "https://m.twitch.tv/$path")
+
+/** La recherche du launcher arrive en ACTION_SEARCH : on la ramène à un lien que la navigation suit. */
+fun Intent.asDeepLink(): Intent {
+    if (action != Intent.ACTION_SEARCH) return this
+    val query = getStringExtra(SearchManager.QUERY).orEmpty()
+    return Intent(Intent.ACTION_VIEW, Uri.parse("lumen://search?q=${Uri.encode(query)}"))
 }
 
 @HiltViewModel
@@ -68,6 +93,13 @@ fun LumenNavHost(session: SessionViewModel = hiltViewModel()) {
     val navController = rememberNavController()
     // Décidé une seule fois : un compte actif entre directement, sinon on choisit un profil.
     val start = remember { if (current.activeId != null) Routes.HOME else Routes.PROFILES }
+    // App déjà ouverte (singleTask) : un lien du launcher arrive ici plutôt qu'à la création.
+    val activity = LocalActivity.current as? ComponentActivity
+    DisposableEffect(activity, navController) {
+        val listener = Consumer<Intent> { navController.handleDeepLink(it.asDeepLink()) }
+        activity?.addOnNewIntentListener(listener)
+        onDispose { activity?.removeOnNewIntentListener(listener) }
+    }
 
     NavHost(navController = navController, startDestination = start) {
         composable(Routes.PROFILES) {
@@ -101,6 +133,19 @@ fun LumenNavHost(session: SessionViewModel = hiltViewModel()) {
             }
             UpdatePrompt()
         }
+        composable(
+            Routes.SEARCH,
+            arguments = listOf(navArgument("q") { defaultValue = "" }),
+            deepLinks = links("lumen://search?q={q}"),
+        ) {
+            Shell(ShellTab.Search, onTab = navController::openTab) {
+                SearchRoute(
+                    onOpenStream = navController::openLive,
+                    onOpenChannel = navController::openChannel,
+                    onOpenCategory = { id, name -> navController.navigate(Routes.category(id, name)) },
+                )
+            }
+        }
         composable(Routes.SETTINGS) {
             Shell(ShellTab.Settings, onTab = navController::openTab) { SettingsRoute() }
         }
@@ -113,20 +158,22 @@ fun LumenNavHost(session: SessionViewModel = hiltViewModel()) {
                 )
             }
         }
-        composable(Routes.CATEGORY) {
+        composable(Routes.CATEGORY, deepLinks = links("lumen://category/{id}?name={name}")) {
             Shell(selected = null, onTab = navController::openTab) {
                 CategoryRoute(onOpenStream = navController::openLive, onOpenChannel = navController::openChannel)
             }
         }
-        composable(Routes.CHANNEL) {
+        composable(Routes.CHANNEL, deepLinks = links("lumen://channel/{login}")) {
             Shell(selected = null, onTab = navController::openTab) {
                 ChannelRoute(
                     onOpenStream = navController::openLive,
                     onOpenVideo = { navController.navigate(Routes.vod(it)) },
+                    onOpenClip = { slug, title -> navController.navigate(Routes.clip(slug, title)) },
                 )
             }
         }
-        composable(Routes.LIVE) {
+        composable(Routes.CLIP, arguments = listOf(navArgument("title") { defaultValue = "" })) { ClipPlayerRoute() }
+        composable(Routes.LIVE, deepLinks = links("lumen://live/{login}", *twitch("{login}"))) {
             PlayerRoute(onMultiView = { navController.navigate(Routes.multi(it)) })
         }
         composable(Routes.MULTI) {
@@ -139,7 +186,7 @@ fun LumenNavHost(session: SessionViewModel = hiltViewModel()) {
                 },
             )
         }
-        composable(Routes.VOD) { VodPlayerRoute() }
+        composable(Routes.VOD, deepLinks = links("lumen://vod/{id}", *twitch("videos/{id}"))) { VodPlayerRoute() }
     }
 }
 
@@ -151,6 +198,10 @@ private fun NavController.openChannel(login: String) = navigate(Routes.channel(l
 private fun NavController.openTab(tab: ShellTab) {
     when (tab) {
         ShellTab.Profiles -> navigate(Routes.PROFILES)
+        ShellTab.Search -> navigate("search") {
+            popUpTo(Routes.HOME)
+            launchSingleTop = true
+        }
         ShellTab.Home -> navigate(Routes.HOME) {
             popUpTo(Routes.HOME) { inclusive = false }
             launchSingleTop = true

@@ -18,6 +18,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Lu par la navigation à sa création : la recherche du launcher y devient un lien.
+        intent = intent.asDeepLink()
         lifecycleScope.launch {
             settings.state.collect { LumenColors.accent = AccentColor.of(it.accent) }
         }

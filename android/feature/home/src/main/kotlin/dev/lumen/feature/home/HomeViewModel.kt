@@ -9,6 +9,7 @@ import dev.lumen.core.Account
 import dev.lumen.core.AccountState
 import dev.lumen.core.Category
 import dev.lumen.core.Channel
+import dev.lumen.core.Clip
 import dev.lumen.core.LiveStream
 import dev.lumen.core.Video
 import dev.lumen.data.AccountsRepository
@@ -45,6 +46,8 @@ data class HomeUiState(
     /** Compte actif ; `null` en invité. */
     val account: Account? = null,
     val followed: Section<LiveStream> = Section.Loading,
+    /** Compte connecté uniquement ; rangée masquée si vide. */
+    val recommended: Section<LiveStream> = Section.Loading,
     val popular: Section<LiveStream> = Section.Loading,
     val categories: Section<Category> = Section.Loading,
 ) {
@@ -94,6 +97,10 @@ class HomeViewModel @Inject constructor(
                     val result = loadCatching { catalog.followedStreams() }.toSection()
                     _state.update { it.copy(followed = result) }
                 }
+                launch {
+                    val result = loadCatching { catalog.recommendedStreams() }.toSection()
+                    _state.update { it.copy(recommended = result) }
+                }
             }
             launch {
                 val result = loadCatching { catalog.topStreams(null).items }.toSection()
@@ -132,6 +139,17 @@ fun Video.toCard(viewsLabel: String) = VideoCardModel(
     durationS = durationS.toLong(),
     positionS = positionS.toLong(),
     finished = finished,
+)
+
+/** « Pseudo  ·  12,3 k vues » */
+fun Clip.toCard(viewsLabel: String) = VideoCardModel(
+    key = "clip:$slug",
+    title = title,
+    subtitle = listOfNotNull(curator.takeIf { it.isNotEmpty() }, "${formatViewers(views.toInt())} $viewsLabel").joinToString("  ·  "),
+    thumbnailTemplate = thumbnailUrl,
+    durationS = durationS.toLong(),
+    positionS = 0,
+    finished = false,
 )
 
 fun Category.toCard() = CategoryCardModel(

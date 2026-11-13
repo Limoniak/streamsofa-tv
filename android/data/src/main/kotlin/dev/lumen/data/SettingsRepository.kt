@@ -29,6 +29,8 @@ data class AppSettings(
     /** Listes séparées par des virgules, appliquées par le cœur à l'ouverture du chat. */
     val hiddenWords: String = "",
     val hiddenUsers: String = "",
+    /** Langue des lives dans une catégorie (code ISO 639-1) ; vide = toutes. */
+    val streamLanguage: String = "",
 ) {
     internal fun toMap() = mapOf(
         "chat_by_default" to chatByDefault.toString(),
@@ -39,6 +41,7 @@ data class AppSettings(
         "third_party_emotes" to thirdPartyEmotes.toString(),
         "chat_hidden_words" to hiddenWords,
         "chat_hidden_users" to hiddenUsers,
+        "stream_language" to streamLanguage,
     )
 
     internal companion object {
@@ -52,6 +55,7 @@ data class AppSettings(
                 thirdPartyEmotes = map["third_party_emotes"]?.toBooleanStrictOrNull() ?: d.thirdPartyEmotes,
                 hiddenWords = map["chat_hidden_words"] ?: d.hiddenWords,
                 hiddenUsers = map["chat_hidden_users"] ?: d.hiddenUsers,
+                streamLanguage = map["stream_language"] ?: d.streamLanguage,
             )
         }
     }

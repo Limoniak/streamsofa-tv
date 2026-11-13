@@ -68,9 +68,10 @@ fun HomeScreen(
 ) {
     // Focus initial : la dernière carte ouverte, sinon la première carte de la première rangée.
     val followed = (state.followed as? Section.Ready)?.items.orEmpty().takeIf { state.showFollowed }.orEmpty()
+    val recommended = (state.recommended as? Section.Ready)?.items.orEmpty().takeIf { state.showFollowed }.orEmpty()
     val popular = (state.popular as? Section.Ready)?.items.orEmpty()
     val categories = (state.categories as? Section.Ready)?.items.orEmpty()
-    val keys = followed.map { "f:${it.login}" } + popular.map { "p:${it.login}" } + categories.map { "c:${it.id}" }
+    val keys = followed.map { "f:${it.login}" } + recommended.map { "r:${it.login}" } + popular.map { "p:${it.login}" } + categories.map { "c:${it.id}" }
     // On attend toutes les rangées : sinon le focus irait à la première arrivée, pas à la première affichée.
     val settled = listOfNotNull(state.followed.takeIf { state.showFollowed }, state.popular, state.categories)
         .none { it is Section.Loading }
@@ -102,6 +103,22 @@ fun HomeScreen(
                     section = state.followed,
                     prefix = "f",
                     emptyText = stringResource(R.string.home_no_followed),
+                    memory = memory,
+                    target = target,
+                    onOpen = openStream,
+                    onOpenChannel = openChannel,
+                    onRetry = onRetry,
+                )
+            }
+        }
+        // Secondaire : ni chargement ni erreur affichés, la rangée apparaît si elle a du contenu.
+        if (recommended.isNotEmpty()) {
+            item(key = "recommended") {
+                StreamRow(
+                    title = stringResource(R.string.home_recommended),
+                    section = state.recommended,
+                    prefix = "r",
+                    emptyText = null,
                     memory = memory,
                     target = target,
                     onOpen = openStream,
@@ -194,10 +211,11 @@ private fun RowScaffold(title: String, content: @Composable () -> Unit) {
  * et non la première.
  */
 @Composable
-internal fun <T> CardRow(items: List<T>, key: (T) -> Any, card: @Composable (T) -> Unit) {
+internal fun <T> CardRow(items: List<T>, key: (T) -> Any, padded: Boolean = true, card: @Composable (T) -> Unit) {
     LazyRow(
         modifier = Modifier.focusRestorer(),
-        contentPadding = PaddingValues(horizontal = LumenInsets.horizontal, vertical = 12.dp),
+        // [padded] = false dans une grille qui applique déjà les marges latérales.
+        contentPadding = PaddingValues(horizontal = if (padded) LumenInsets.horizontal else 0.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         items(items, key = key) { card(it) }

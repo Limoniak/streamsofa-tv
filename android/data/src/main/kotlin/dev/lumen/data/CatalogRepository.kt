@@ -6,10 +6,16 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dev.lumen.core.CategoryPage
 import dev.lumen.core.Channel
+import dev.lumen.core.ChannelAbout
+import dev.lumen.core.Clip
+import dev.lumen.core.ClipQuality
 import dev.lumen.core.CoreException
 import dev.lumen.core.LiveStream
 import dev.lumen.core.Playback
+import dev.lumen.core.Raid
+import dev.lumen.core.RaidListener
 import dev.lumen.core.ReplayComment
+import dev.lumen.core.SearchResults
 import dev.lumen.core.StreamPage
 import dev.lumen.core.Video
 import dev.lumen.core.VideoPage
@@ -17,7 +23,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -62,7 +71,11 @@ interface CatalogRepository {
 
     suspend fun followedStreams(): List<LiveStream>
     suspend fun topStreams(cursor: String?): StreamPage
-    suspend fun categoryStreams(categoryId: String, cursor: String?): StreamPage
+    /** [language] : code ISO 639-1 (`fr`), `null` pour toutes les langues. */
+    suspend fun categoryStreams(categoryId: String, cursor: String?, language: String?): StreamPage
+    /** Vide en invité. */
+    suspend fun recommendedStreams(): List<LiveStream>
+    suspend fun search(query: String): SearchResults
     suspend fun topCategories(cursor: String?): CategoryPage
     suspend fun liveStream(login: String): LiveStream?
     suspend fun livePlayback(login: String): Playback
@@ -75,8 +88,16 @@ interface CatalogRepository {
     suspend fun channelVideos(channelId: String, cursor: String?): VideoPage
     suspend fun video(id: String): Video?
     suspend fun vodPlayback(id: String): Playback
-    suspend fun saveVodProgress(id: String, positionS: UInt, durationS: UInt)
+    /** Renvoie `true` si la VOD est considérée comme terminée. */
+    suspend fun saveVodProgress(id: String, positionS: UInt, durationS: UInt): Boolean
     suspend fun vodChat(id: String, offsetS: UInt): List<ReplayComment>
+
+    suspend fun channelAbout(login: String): ChannelAbout?
+    suspend fun channelClips(login: String): List<Clip>
+    suspend fun clipPlayback(slug: String): List<ClipQuality>
+
+    /** Raids lancés par [broadcasterId] tant que le flux est collecté ; rien en invité. */
+    fun raids(broadcasterId: String): Flow<Raid>
 }
 
 /** Le cœur fait tout le réseau sur son runtime tokio : aucun appel ne bloque le thread appelant. */
@@ -96,8 +117,12 @@ internal class RustCatalogRepository @Inject constructor(
 
     override suspend fun topStreams(cursor: String?) = coreHolder.get().topStreams(cursor)
 
-    override suspend fun categoryStreams(categoryId: String, cursor: String?) =
-        coreHolder.get().categoryStreams(categoryId, cursor)
+    override suspend fun categoryStreams(categoryId: String, cursor: String?, language: String?) =
+        coreHolder.get().categoryStreams(categoryId, cursor, language)
+
+    override suspend fun recommendedStreams() = coreHolder.get().recommendedStreams()
+
+    override suspend fun search(query: String) = coreHolder.get().search(query)
 
     override suspend fun topCategories(cursor: String?) = coreHolder.get().topCategories(cursor)
 
@@ -120,12 +145,32 @@ internal class RustCatalogRepository @Inject constructor(
     override suspend fun vodPlayback(id: String) = coreHolder.get().vodPlayback(id)
 
     // Écriture SQLite synchrone côté Rust : hors du thread principal.
-    override suspend fun saveVodProgress(id: String, positionS: UInt, durationS: UInt) {
+    override suspend fun saveVodProgress(id: String, positionS: UInt, durationS: UInt): Boolean {
         val finished = withContext(Dispatchers.IO) { coreHolder.get().saveVodProgress(id, positionS, durationS) }
         _vodProgress.update { it + (id to VodProgress(positionS, finished)) }
+        return finished
     }
 
     override suspend fun vodChat(id: String, offsetS: UInt) = coreHolder.get().vodChat(id, offsetS)
+
+    override suspend fun channelAbout(login: String) = coreHolder.get().channelAbout(login)
+
+    override suspend fun channelClips(login: String) = coreHolder.get().channelClips(login)
+
+    override suspend fun clipPlayback(slug: String) = coreHolder.get().clipPlayback(slug)
+
+    override fun raids(broadcasterId: String): Flow<Raid> = callbackFlow {
+        val watch = coreHolder.get().watchRaids(
+            broadcasterId,
+            object : RaidListener {
+                override fun onRaid(raid: Raid) {
+                    trySend(raid)
+                }
+            },
+        )
+        // Libérer l'objet Rust ferme la socket EventSub.
+        awaitClose { watch.destroy() }
+    }
 }
 
 @Module

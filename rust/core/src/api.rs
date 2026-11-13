@@ -5,7 +5,11 @@ use std::time::Duration;
 
 use crate::accounts::{Account, AccountManager, AccountsListener, AccountsSnapshot, DeviceLogin};
 use crate::auth::AuthClient;
-use crate::catalog::{Category, CategoryPage, Channel, LiveStream, ReplayComment, StreamPage, Video, VideoPage};
+use crate::catalog::{
+    Category, CategoryPage, Channel, ChannelAbout, Clip, ClipQuality, LiveStream, ReplayComment, SearchChannel, SearchResults, StreamPage,
+    Video, VideoPage,
+};
+use crate::eventsub::{self, RaidListener, RaidWatch};
 use crate::chat::decor::{Decor, THIRD_PARTY_EMOTES};
 use crate::chat::{self, ChatListener, ChatSession};
 use crate::emotes::{self, EmoteMap};
@@ -44,6 +48,7 @@ pub(crate) struct Endpoints {
     pub gql: String,
     pub usher: String,
     pub chat: String,
+    pub eventsub: String,
     pub github: String,
     pub min_poll_interval: Duration,
 }
@@ -56,6 +61,7 @@ impl Default for Endpoints {
             gql: "https://gql.twitch.tv/gql".into(),
             usher: "https://usher.ttvnw.net".into(),
             chat: "wss://irc-ws.chat.twitch.tv:443".into(),
+            eventsub: "wss://eventsub.wss.twitch.tv/ws".into(),
             github: "https://api.github.com".into(),
             min_poll_interval: Duration::from_secs(1),
         }
@@ -68,6 +74,29 @@ const PAGE_SIZE: u32 = 30;
 const MAX_FOLLOWED_PAGES: usize = 5;
 /// VOD d'une chaîne en invité : une seule page, donc la plus grande que GQL accepte.
 const GUEST_VIDEOS: u32 = 100;
+/// Résultats de recherche par type : de quoi remplir une rangée.
+const SEARCH_SIZE: u32 = 20;
+/// Catégories explorées pour les recommandations (une requête chacune).
+const RECOMMENDED_CATEGORIES: usize = 3;
+
+/// Catégories les plus diffusées par les suivis en live, et leur langue la plus courante.
+fn recommendation_seeds(followed: &[HelixStream]) -> (Vec<String>, Option<String>) {
+    let mut categories: HashMap<&str, usize> = HashMap::new();
+    let mut languages: HashMap<&str, usize> = HashMap::new();
+    for stream in followed {
+        if !stream.game_id.is_empty() {
+            *categories.entry(&stream.game_id).or_default() += 1;
+        }
+        if !stream.language.is_empty() && stream.language != "other" {
+            *languages.entry(&stream.language).or_default() += 1;
+        }
+    }
+    let mut categories: Vec<(&str, usize)> = categories.into_iter().collect();
+    // À égalité, l'ordre d'identifiant garde un résultat stable.
+    categories.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(b.0)));
+    let language = languages.into_iter().max_by(|a, b| a.1.cmp(&b.1).then(b.0.cmp(a.0))).map(|(l, _)| l.to_owned());
+    (categories.into_iter().map(|(id, _)| id.to_owned()).collect(), language)
+}
 
 #[derive(uniffi::Object)]
 pub struct Core {
@@ -78,6 +107,7 @@ pub struct Core {
     http: reqwest::Client,
     usher: String,
     chat_url: String,
+    eventsub_url: String,
     github: String,
     /// Sans ALPN : une socket WebSocket reste en HTTP/1.1.
     chat_tls: Arc<rustls::ClientConfig>,
@@ -104,6 +134,7 @@ impl Core {
             gql: GqlClient::new(http.clone(), endpoints.gql, random_hex(32)),
             usher: endpoints.usher,
             chat_url: endpoints.chat,
+            eventsub_url: endpoints.eventsub,
             github: endpoints.github,
             chat_tls: Arc::new(http::tls_config()?),
             http,
@@ -182,6 +213,57 @@ impl Core {
             self.cached(&format!("emotes:{channel_id}"), HOUR_S, async { Some(emotes::channel(&self.http, &channel_id).await) }).await;
         emotes.extend(channel_emotes.unwrap_or_default());
         write(&mut |d| d.emotes = std::mem::take(&mut emotes));
+    }
+
+    async fn raid_loop(self: Arc<Self>, broadcaster_id: String, listener: Arc<dyn RaidListener>) {
+        let mut backoff = Duration::from_secs(2);
+        loop {
+            let mut url = self.eventsub_url.clone();
+            let mut subscribed = false;
+            // Une session suit les `session_reconnect` de Twitch sans se réabonner.
+            'session: loop {
+                let connector = Some(tokio_tungstenite::Connector::Rustls(self.chat_tls.clone()));
+                let Ok(Ok((mut socket, _))) = tokio::time::timeout(
+                    Duration::from_secs(10),
+                    tokio_tungstenite::connect_async_tls_with_config(url.as_str(), None, true, connector),
+                )
+                .await
+                else {
+                    break 'session;
+                };
+                while let Some(text) = eventsub::next_text(&mut socket).await {
+                    match eventsub::parse(&text) {
+                        eventsub::Frame::Welcome { session_id } if !subscribed => {
+                            let condition = serde_json::json!({ "from_broadcaster_user_id": broadcaster_id });
+                            let result = self
+                                .with_helix(|token: Secret, _| {
+                                    let (helix, condition, session_id) = (&self.helix, condition.clone(), session_id.clone());
+                                    async move { helix.subscribe_eventsub(&token, "channel.raid", condition, &session_id).await }
+                                })
+                                .await;
+                            match result {
+                                Ok(Some(())) => {
+                                    subscribed = true;
+                                    backoff = Duration::from_secs(2);
+                                }
+                                // Compte déconnecté entre-temps : plus rien à surveiller.
+                                Ok(None) => return,
+                                Err(_) => break 'session,
+                            }
+                        }
+                        eventsub::Frame::Reconnect { url: next } => {
+                            url = next;
+                            continue 'session;
+                        }
+                        eventsub::Frame::Raid(raid) => listener.on_raid(raid),
+                        _ => {}
+                    }
+                }
+                break 'session;
+            }
+            tokio::time::sleep(backoff).await;
+            backoff = (backoff * 2).min(Duration::from_secs(60));
+        }
     }
 
     /// Réponse décorative gardée `ttl_s` dans `meta_cache` ; `fetch` rend `None` pour ne rien garder.
@@ -359,7 +441,7 @@ impl Core {
         let after = cursor.as_deref();
         let helix = self
             .with_helix(|token: Secret, _| async move {
-                let page = self.helix.streams(&token, None, after, PAGE_SIZE).await?;
+                let page = self.helix.streams(&token, None, None, after, PAGE_SIZE).await?;
                 let next = page.next_cursor();
                 Ok(StreamPage { items: self.with_avatars(&token, page.data).await, cursor: next })
             })
@@ -370,18 +452,24 @@ impl Core {
         }
     }
 
-    pub async fn category_streams(&self, category_id: String, cursor: Option<String>) -> Result<StreamPage, CoreError> {
-        let (after, category) = (cursor.as_deref(), category_id.as_str());
+    /// `language` : code ISO 639-1 (`fr`) pour ne garder que cette langue, sinon toutes.
+    pub async fn category_streams(
+        &self,
+        category_id: String,
+        cursor: Option<String>,
+        language: Option<String>,
+    ) -> Result<StreamPage, CoreError> {
+        let (after, category, lang) = (cursor.as_deref(), category_id.as_str(), language.as_deref());
         let helix = self
             .with_helix(|token: Secret, _| async move {
-                let page = self.helix.streams(&token, Some(category), after, PAGE_SIZE).await?;
+                let page = self.helix.streams(&token, Some(category), lang, after, PAGE_SIZE).await?;
                 let next = page.next_cursor();
                 Ok(StreamPage { items: self.with_avatars(&token, page.data).await, cursor: next })
             })
             .await?;
         match helix {
             Some(page) => Ok(page),
-            None => self.gql.category_streams(&category_id, cursor.as_deref(), PAGE_SIZE).await,
+            None => self.gql.category_streams(&category_id, lang, cursor.as_deref(), PAGE_SIZE).await,
         }
     }
 
@@ -397,6 +485,58 @@ impl Core {
         match helix {
             Some(page) => Ok(page),
             None => self.gql.top_categories(cursor.as_deref(), PAGE_SIZE).await,
+        }
+    }
+
+    /// Lives conseillés au compte actif : les plus regardés des catégories que ses suivis
+    /// diffusent en ce moment, dans leur langue la plus courante, sans les chaînes déjà suivies.
+    /// Vide en invité (rien sur quoi s'appuyer) ; Twitch n'ouvre pas ses recommandations à l'API.
+    pub async fn recommended_streams(&self) -> Result<Vec<LiveStream>, CoreError> {
+        let result = self
+            .with_helix(|token: Secret, user_id: String| async move {
+                let followed = self.helix.followed_streams(&token, &user_id, None).await?.data;
+                let (categories, language) = recommendation_seeds(&followed);
+                let mut picked: Vec<HelixStream> = Vec::new();
+                for category in categories.iter().take(RECOMMENDED_CATEGORIES) {
+                    // Une catégorie en échec n'empêche pas les autres.
+                    if let Ok(page) = self.helix.streams(&token, Some(category), language.as_deref(), None, 20).await {
+                        picked.extend(page.data);
+                    }
+                }
+                let mut seen: std::collections::HashSet<String> = followed.into_iter().map(|s| s.user_id).collect();
+                picked.retain(|s| seen.insert(s.user_id.clone()));
+                picked.sort_by(|a, b| b.viewer_count.cmp(&a.viewer_count));
+                picked.truncate(PAGE_SIZE as usize);
+                Ok(self.with_avatars(&token, picked).await)
+            })
+            .await?;
+        Ok(result.unwrap_or_default())
+    }
+
+    /// Chaînes et catégories correspondant à `query`.
+    pub async fn search(&self, query: String) -> Result<SearchResults, CoreError> {
+        let query = query.trim().to_owned();
+        if query.is_empty() {
+            return Ok(SearchResults { channels: Vec::new(), categories: Vec::new() });
+        }
+        let q = query.as_str();
+        let helix = self
+            .with_helix(|token: Secret, _| async move {
+                let (channels, categories) =
+                    tokio::try_join!(self.helix.search_channels(&token, q, SEARCH_SIZE), self.helix.search_categories(&token, q, SEARCH_SIZE))?;
+                let mut channels: Vec<SearchChannel> = channels.into_iter().map(SearchChannel::from).collect();
+                // Les chaînes en live d'abord, l'ordre de pertinence de Twitch ensuite.
+                channels.sort_by_key(|c| !c.live);
+                Ok(SearchResults { channels, categories: categories.into_iter().map(Category::from).collect() })
+            })
+            .await?;
+        match helix {
+            Some(results) => Ok(results),
+            None => {
+                let mut results = self.gql.search(&query).await?;
+                results.channels.sort_by_key(|c| !c.live);
+                Ok(results)
+            }
         }
     }
 
@@ -466,6 +606,20 @@ impl Core {
         }
     }
 
+    /// Planning à venir et panneaux « À propos » ; `None` si la chaîne n'existe pas.
+    pub async fn channel_about(&self, login: String) -> Result<Option<ChannelAbout>, CoreError> {
+        self.gql.channel_about(&login, unix_now()).await
+    }
+
+    /// Clips les plus vus de la semaine, ou de tous les temps si la semaine n'en a pas.
+    pub async fn channel_clips(&self, login: String) -> Result<Vec<Clip>, CoreError> {
+        let week = self.gql.clips(&login, false, PAGE_SIZE).await?;
+        if !week.is_empty() {
+            return Ok(week);
+        }
+        self.gql.clips(&login, true, PAGE_SIZE).await
+    }
+
     /// VOD d'une chaîne, des plus récentes aux plus anciennes, avec la reprise du profil actif.
     pub async fn channel_videos(&self, channel_id: String, cursor: Option<String>) -> Result<VideoPage, CoreError> {
         let (after, channel) = (cursor.as_deref(), channel_id.as_str());
@@ -519,6 +673,11 @@ impl Core {
     }
 
     /// Playlist d'une VOD, en anonyme comme le live : une VOD réservée aux abonnés reste refusée.
+    /// Fichiers MP4 d'un clip, du meilleur au plus bas ; vide si le clip n'existe plus.
+    pub async fn clip_playback(&self, slug: String) -> Result<Vec<ClipQuality>, CoreError> {
+        self.gql.clip_playback(&slug).await
+    }
+
     pub async fn vod_playback(&self, video_id: String) -> Result<Playback, CoreError> {
         // L'identifiant finit dans un chemin d'URL : uniquement des chiffres.
         if video_id.is_empty() || !video_id.bytes().all(|b| b.is_ascii_digit()) {
@@ -561,6 +720,16 @@ impl Core {
         let decor = Arc::new(RwLock::new(Decor::with_filters(&settings)));
         let loader = self.clone().load_decor(channel_login.to_lowercase(), third_party, decor.clone());
         Arc::new(chat::spawn(self.chat_url.clone(), self.chat_tls.clone(), channel_login, listener, decor, loader))
+    }
+
+    /// Signale les raids lancés par la chaîne `broadcaster_id`. Sans compte connecté, ne fait rien :
+    /// EventSub exige un jeton utilisateur.
+    pub async fn watch_raids(self: Arc<Self>, broadcaster_id: String, listener: Arc<dyn RaidListener>) -> Arc<RaidWatch> {
+        if self.accounts.active_usable_account().ok().flatten().is_none() || self.client_id.is_empty() {
+            return Arc::new(RaidWatch { task: None });
+        }
+        let task = tokio::spawn(self.clone().raid_loop(broadcaster_id, listener));
+        Arc::new(RaidWatch { task: Some(task.abort_handle()) })
     }
 
     /// Envoie un message avec le compte actif, via Helix pour connaître la raison d'un refus.
@@ -629,4 +798,22 @@ fn usher_reason(body: &str) -> String {
 #[uniffi::export]
 pub fn core_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn recommendation_seeds_rank_categories_and_language() {
+        let followed: Vec<HelixStream> = serde_json::from_str(
+            r#"[{"user_id":"1","user_login":"a","user_name":"A","game_id":"20","language":"fr"},
+                {"user_id":"2","user_login":"b","user_name":"B","game_id":"10","language":"fr"},
+                {"user_id":"3","user_login":"c","user_name":"C","game_id":"20","language":"en"},
+                {"user_id":"4","user_login":"d","user_name":"D","game_id":"","language":"other"}]"#,
+        )
+        .unwrap();
+        assert_eq!(recommendation_seeds(&followed), (vec!["20".to_owned(), "10".to_owned()], Some("fr".to_owned())));
+        assert_eq!(recommendation_seeds(&[]), (Vec::new(), None));
+    }
 }

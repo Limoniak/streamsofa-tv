@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,6 +50,7 @@ import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.FilterChip
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import dev.lumen.core.Raid
 import dev.lumen.data.messageRes
 import dev.lumen.designsystem.Avatar
 import dev.lumen.designsystem.LumenColors
@@ -103,6 +105,7 @@ fun PlayerRoute(
         }
     }
     BackHandler(enabled = overlay == Overlay.Controls) { overlay = Overlay.Hidden }
+    BackHandler(enabled = state.raid != null) { viewModel.cancelRaid() }
 
     Row(
         modifier = Modifier
@@ -114,6 +117,11 @@ fun PlayerRoute(
             }
             .onKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown || overlay == Overlay.Controls) return@onKeyEvent false
+                val ok = event.key == Key.DirectionCenter || event.key == Key.Enter || event.key == Key.NumPadEnter
+                if (ok && state.raid != null) {
+                    viewModel.followRaid()
+                    return@onKeyEvent true
+                }
                 when (event.key) {
                     Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> {
                         when {
@@ -172,6 +180,8 @@ fun PlayerRoute(
             )
             else -> Unit
         }
+
+        state.raid?.let { RaidBanner(it, Modifier.align(Alignment.TopStart)) }
 
         if (overlay != Overlay.Hidden) {
             InfoPanel(
@@ -287,5 +297,35 @@ private fun InfoPanel(
                 }
             }
         }
+    }
+}
+
+/** Compte à rebours affiché ; c'est le ViewModel qui ouvre la chaîne à la fin. */
+@Composable
+private fun RaidBanner(raid: Raid, modifier: Modifier = Modifier) {
+    var remaining by remember(raid) { mutableIntStateOf(RAID_DELAY_S) }
+    LaunchedEffect(raid) {
+        while (remaining > 0) {
+            delay(1_000)
+            remaining--
+        }
+    }
+    Column(
+        modifier = modifier
+            .padding(horizontal = LumenInsets.horizontal, vertical = LumenInsets.vertical)
+            .background(Color.Black.copy(alpha = 0.8f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 20.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.raid_title, raid.toName, formatViewers(raid.viewers.toInt())),
+            style = MaterialTheme.typography.titleMedium,
+            color = LumenColors.Accent,
+        )
+        Text(
+            text = stringResource(R.string.raid_hint, remaining),
+            style = MaterialTheme.typography.bodyMedium,
+            color = LumenColors.OnSurfaceMuted,
+        )
     }
 }

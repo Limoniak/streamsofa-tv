@@ -76,6 +76,76 @@ pub struct VideoPage {
     pub cursor: Option<String>,
 }
 
+/// Chaîne trouvée par la recherche.
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct SearchChannel {
+    pub id: String,
+    pub login: String,
+    pub display_name: String,
+    pub avatar_url: String,
+    pub live: bool,
+    /// Titre du live en cours (vide hors ligne ou si la source ne le donne pas).
+    pub title: String,
+    pub category_name: String,
+    /// 0 si hors ligne ou inconnu (Helix ne le donne pas).
+    pub viewers: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct SearchResults {
+    pub channels: Vec<SearchChannel>,
+    pub categories: Vec<Category>,
+}
+
+/// Un clip ; `slug` sert à le lire.
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Clip {
+    pub slug: String,
+    pub title: String,
+    pub duration_s: u32,
+    pub views: u32,
+    /// Secondes Unix (0 si inconnu).
+    pub created_at: i64,
+    /// URL directe (taille fixe), vide si inconnue.
+    pub thumbnail_url: String,
+    pub curator: String,
+}
+
+/// Fichier MP4 d'un clip, déjà signé pour une lecture anonyme.
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct ClipQuality {
+    /// Hauteur en pixels (0 si inconnue).
+    pub height: u32,
+    pub url: String,
+}
+
+/// Créneau du planning d'une chaîne.
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct ScheduleSegment {
+    /// Secondes Unix.
+    pub start_at: i64,
+    /// 0 si la fin n'est pas annoncée.
+    pub end_at: i64,
+    pub title: String,
+    pub category_name: String,
+}
+
+/// Panneau « À propos » d'une chaîne (souvent une simple image).
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct Panel {
+    pub title: String,
+    pub description: String,
+    pub image_url: String,
+    pub link_url: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct ChannelAbout {
+    /// Créneaux à venir ou en cours, dans l'ordre.
+    pub schedule: Vec<ScheduleSegment>,
+    pub panels: Vec<Panel>,
+}
+
 /// Message du chat d'une VOD, à afficher quand la lecture atteint `offset_s`.
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
 pub struct ReplayComment {

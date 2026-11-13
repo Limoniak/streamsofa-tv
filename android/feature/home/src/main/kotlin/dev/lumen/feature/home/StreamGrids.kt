@@ -5,7 +5,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -23,13 +26,17 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import androidx.tv.material3.ExperimentalTvMaterial3Api
+import androidx.tv.material3.FilterChip
 import androidx.tv.material3.MaterialTheme
+import java.util.Locale
 import androidx.tv.material3.Text
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.lumen.core.Channel
 import dev.lumen.core.LiveStream
 import dev.lumen.data.CatalogRepository
 import dev.lumen.data.LoadError
+import dev.lumen.data.SettingsRepository
 import dev.lumen.data.loadCatching
 import dev.lumen.data.messageRes
 import dev.lumen.data.toLoadError
@@ -46,6 +53,9 @@ import dev.lumen.designsystem.restoreFocusHere
 import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -92,6 +102,7 @@ class FollowingViewModel @Inject constructor(private val catalog: CatalogReposit
 class CategoryViewModel @Inject constructor(
     savedState: SavedStateHandle,
     private val catalog: CatalogRepository,
+    private val settings: SettingsRepository,
 ) : ViewModel() {
     private val categoryId: String = checkNotNull(savedState["id"])
     val name: String = savedState["name"] ?: ""
@@ -100,9 +111,19 @@ class CategoryViewModel @Inject constructor(
     val state: StateFlow<GridUiState> = _state.asStateFlow()
     private var job: Job? = null
 
+    /** Code ISO 639-1, vide = toutes ; mémorisé pour toutes les catégories. */
+    val language: StateFlow<String> = settings.state.map { it.streamLanguage }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, settings.state.value.streamLanguage)
+
     init {
-        reload()
+        viewModelScope.launch {
+            // Préférences lues en base avant la première page : sinon elle partirait sans filtre.
+            settings.awaitLoaded()
+            language.collect { reload() }
+        }
     }
+
+    fun setLanguage(code: String) = settings.update { copy(streamLanguage = code) }
 
     fun reload() {
         job?.cancel()
@@ -120,7 +141,7 @@ class CategoryViewModel @Inject constructor(
 
     private fun load(cursor: String?) {
         job = viewModelScope.launch {
-            loadCatching { catalog.categoryStreams(categoryId, cursor) }
+            loadCatching { catalog.categoryStreams(categoryId, cursor, language.value.ifEmpty { null }) }
                 .onSuccess { page ->
                     _state.update { old ->
                         // Une chaîne peut glisser d'une page à l'autre entre deux requêtes.
@@ -162,8 +183,10 @@ fun CategoryRoute(
     viewModel: CategoryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val language by viewModel.language.collectAsStateWithLifecycle()
     StreamGridScreen(
         title = viewModel.name,
+        header = { LanguageChips(language, viewModel::setLanguage) },
         state = state,
         emptyText = stringResource(R.string.category_empty),
         onOpenStream = onOpenStream,
@@ -185,6 +208,7 @@ fun StreamGridScreen(
     onNearEnd: () -> Unit,
     onSignIn: () -> Unit,
     channels: List<Channel> = emptyList(),
+    header: @Composable () -> Unit = {},
 ) {
     val memory = rememberFocusMemory()
     val keys = state.items.map { it.login } + channels.map { "ch:${it.login}" }
@@ -197,6 +221,7 @@ fun StreamGridScreen(
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(horizontal = LumenInsets.horizontal),
         )
+        header()
         when {
             state.items.isEmpty() && state.error != null -> CenteredMessage {
                 val signIn = state.error == LoadError.NotSignedIn
@@ -267,4 +292,30 @@ fun StreamGridScreen(
 @Composable
 private fun CenteredMessage(content: @Composable () -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
+}
+
+/** Langues proposées : les plus courantes sur Twitch, « Toutes » en premier. */
+private val LANGUAGES = listOf("", "fr", "en", "es", "de", "pt", "it")
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+private fun LanguageChips(selected: String, onSelect: (String) -> Unit) {
+    Row(
+        modifier = Modifier
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = LumenInsets.horizontal, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        LANGUAGES.forEach { code ->
+            FilterChip(selected = code == selected, onClick = { onSelect(code) }) {
+                Text(if (code.isEmpty()) stringResource(R.string.language_all) else languageName(code))
+            }
+        }
+    }
+}
+
+/** Nom de la langue dans cette langue (« Deutsch ») : lisible quelle que soit celle de l'appareil. */
+private fun languageName(code: String): String {
+    val locale = Locale(code)
+    return locale.getDisplayLanguage(locale).replaceFirstChar { it.titlecase(locale) }
 }

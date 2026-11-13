@@ -1,12 +1,16 @@
 package dev.lumen.feature.home
 
+import android.text.format.DateUtils
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
@@ -18,6 +22,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -30,6 +36,10 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.lumen.core.Channel
+import dev.lumen.core.ChannelAbout
+import dev.lumen.core.Clip
+import dev.lumen.core.Panel
+import dev.lumen.core.ScheduleSegment
 import dev.lumen.core.LiveStream
 import dev.lumen.core.Video
 import dev.lumen.data.CatalogRepository
@@ -39,6 +49,8 @@ import dev.lumen.data.messageRes
 import dev.lumen.data.toLoadError
 import dev.lumen.data.withProgress
 import dev.lumen.designsystem.Avatar
+import coil3.compose.AsyncImage
+import dev.lumen.designsystem.LumenCard
 import dev.lumen.designsystem.LumenCardSize
 import dev.lumen.designsystem.LumenColors
 import dev.lumen.designsystem.LumenInsets
@@ -70,6 +82,9 @@ data class ChannelUiState(
     val loading: Boolean = true,
     val error: LoadError? = null,
     val notFound: Boolean = false,
+    val clips: List<Clip> = emptyList(),
+    /** Planning et panneaux ; `null` tant qu'ils ne sont pas arrivés (ou en cas d'échec). */
+    val about: ChannelAbout? = null,
 )
 
 /** Page d'une chaîne : son live s'il y en a un, puis ses VOD page par page. */
@@ -100,6 +115,9 @@ class ChannelViewModel @Inject constructor(
                 val live = loadCatching { catalog.liveStream(login) }.getOrNull()
                 _state.update { it.copy(live = live, liveChecked = true) }
             }
+            // Secondaires : la page reste utilisable sans eux.
+            launch { loadCatching { catalog.channelClips(login) }.onSuccess { c -> _state.update { it.copy(clips = c) } } }
+            launch { loadCatching { catalog.channelAbout(login) }.onSuccess { a -> _state.update { it.copy(about = a) } } }
             loadCatching { catalog.channel(login) }
                 .onSuccess { channel ->
                     if (channel == null) {
@@ -137,10 +155,11 @@ class ChannelViewModel @Inject constructor(
 fun ChannelRoute(
     onOpenStream: (String) -> Unit,
     onOpenVideo: (String) -> Unit,
+    onOpenClip: (slug: String, title: String) -> Unit,
     viewModel: ChannelViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    ChannelScreen(state, onOpenStream, onOpenVideo, onRetry = viewModel::reload, onNearEnd = viewModel::loadMore)
+    ChannelScreen(state, onOpenStream, onOpenVideo, onOpenClip, onRetry = viewModel::reload, onNearEnd = viewModel::loadMore)
 }
 
 @Composable
@@ -148,6 +167,7 @@ fun ChannelScreen(
     state: ChannelUiState,
     onOpenStream: (String) -> Unit,
     onOpenVideo: (String) -> Unit,
+    onOpenClip: (slug: String, title: String) -> Unit,
     onRetry: () -> Unit,
     onNearEnd: () -> Unit,
 ) {
@@ -185,6 +205,35 @@ fun ChannelScreen(
                         )
                     }
                 }
+                val schedule = state.about?.schedule.orEmpty()
+                if (schedule.isNotEmpty()) {
+                    fullWidth { SectionTitle(stringResource(R.string.channel_schedule)) }
+                    fullWidth { ScheduleList(schedule.take(SCHEDULE_SHOWN)) }
+                }
+                if (state.clips.isNotEmpty()) {
+                    fullWidth { SectionTitle(stringResource(R.string.channel_clips)) }
+                    fullWidth {
+                        val viewsLabel = stringResource(R.string.video_views)
+                        CardRow(state.clips, key = { "clip:${it.slug}" }, padded = false) { clip ->
+                            val key = "clip:${clip.slug}"
+                            VideoCard(
+                                video = clip.toCard(viewsLabel),
+                                onClick = {
+                                    memory.key = key
+                                    onOpenClip(clip.slug, clip.title)
+                                },
+                                modifier = Modifier.restoreFocusHere(memory, key == target),
+                            )
+                        }
+                    }
+                }
+                val panels = state.about?.panels.orEmpty()
+                if (panels.isNotEmpty()) {
+                    fullWidth { SectionTitle(stringResource(R.string.channel_about)) }
+                    fullWidth {
+                        CardRow(panels.withIndex().toList(), key = { "panel:${it.index}" }, padded = false) { PanelCard(it.value) }
+                    }
+                }
                 fullWidth { SectionTitle(stringResource(R.string.channel_videos)) }
                 when {
                     state.videos.isEmpty() && state.loading -> items(4) { StreamCardSkeleton() }
@@ -215,6 +264,65 @@ fun ChannelScreen(
                         },
                         modifier = Modifier.restoreFocusHere(memory, key == target),
                     )
+                }
+            }
+        }
+    }
+}
+
+private const val SCHEDULE_SHOWN = 5
+private val PANEL_WIDTH = 320.dp
+
+/** « jeu. 14 nov., 20:00   Titre · Catégorie » */
+@Composable
+private fun ScheduleList(segments: List<ScheduleSegment>) {
+    val context = LocalContext.current
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        segments.forEach { segment ->
+            val start = DateUtils.formatDateTime(
+                context,
+                segment.startAt * 1000,
+                DateUtils.FORMAT_SHOW_WEEKDAY or DateUtils.FORMAT_ABBREV_WEEKDAY or DateUtils.FORMAT_SHOW_DATE or
+                    DateUtils.FORMAT_ABBREV_MONTH or DateUtils.FORMAT_SHOW_TIME,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(start, style = MaterialTheme.typography.titleSmall, color = LumenColors.Accent)
+                Text(
+                    text = listOf(segment.title, segment.categoryName).filter { it.isNotBlank() }.joinToString("  ·  "),
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+/** Panneau « À propos » : focalisable pour que la rangée défile à la télécommande. */
+@Composable
+private fun PanelCard(panel: Panel) {
+    LumenCard(onClick = {}, modifier = Modifier.width(PANEL_WIDTH)) {
+        Column {
+            if (panel.imageUrl.isNotEmpty()) {
+                AsyncImage(
+                    model = panel.imageUrl,
+                    contentDescription = panel.title.ifEmpty { null },
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 180.dp),
+                )
+            }
+            if (panel.title.isNotEmpty() || panel.description.isNotEmpty()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (panel.title.isNotEmpty()) Text(panel.title, style = MaterialTheme.typography.titleSmall, maxLines = 1)
+                    if (panel.description.isNotEmpty()) {
+                        Text(
+                            text = panel.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = LumenColors.OnSurfaceMuted,
+                            maxLines = 6,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         }

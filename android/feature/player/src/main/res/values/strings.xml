@@ -16,4 +16,6 @@
     <string name="vod_paused">En pause</string>
     <string name="vod_seek_hint">◀ ▶ reculer ou avancer · OK pause · ▼ chat</string>
     <string name="vod_no_chat">Pas de chat pour cette vidéo.</string>
+    <string name="raid_title">Raid vers %1$s avec %2$s spectateurs</string>
+    <string name="raid_hint">Ouverture dans %1$d s · OK maintenant · Retour pour rester</string>
 </resources>

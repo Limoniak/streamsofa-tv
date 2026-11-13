@@ -227,7 +227,8 @@ fun VideoCard(video: VideoCardModel, onClick: () -> Unit, modifier: Modifier = M
     }
 }
 
-data class ChannelCardModel(val key: String, val name: String, val avatarUrl: String)
+/** [subtitle] : par exemple « En direct · Catégorie » dans la recherche. */
+data class ChannelCardModel(val key: String, val name: String, val avatarUrl: String, val subtitle: String = "")
 
 /** Chaîne suivie, en live ou non : ouvre sa page (live et VOD). */
 @Composable
@@ -239,12 +240,23 @@ fun ChannelCard(channel: ChannelCardModel, onClick: () -> Unit, modifier: Modifi
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Avatar(channel.avatarUrl, channel.name, size = 48.dp)
-            Text(
-                text = channel.name,
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Column {
+                Text(
+                    text = channel.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (channel.subtitle.isNotEmpty()) {
+                    Text(
+                        text = channel.subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LumenColors.Accent,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         }
     }
 }

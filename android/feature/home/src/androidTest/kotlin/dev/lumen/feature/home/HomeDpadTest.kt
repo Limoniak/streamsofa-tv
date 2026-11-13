@@ -45,7 +45,7 @@ class HomeDpadTest {
         var opened: String? = null
         rule.setContent {
             LumenTheme {
-                HomeScreen(state, onOpenStream = { opened = it }, onOpenCategory = { _, _ -> }, onReconnect = {}, onRetry = {})
+                HomeScreen(state, onOpenStream = { opened = it }, onOpenChannel = {}, onOpenCategory = { _, _ -> }, onReconnect = {}, onRetry = {})
             }
         }
         rule.waitForIdle()

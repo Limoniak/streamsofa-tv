@@ -14,6 +14,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.lumen.core.AccountState
 import dev.lumen.core.CoreException
 import dev.lumen.core.LiveStream
+import dev.lumen.core.Raid
 import dev.lumen.core.Variant
 import dev.lumen.data.AccountsRepository
 import dev.lumen.data.CatalogRepository
@@ -26,6 +27,9 @@ import dev.lumen.data.toLoadError
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -51,6 +55,8 @@ data class PlayerUiState(
     val quality: String? = null,
     val status: PlayerStatus = PlayerStatus.Loading,
     val canZap: Boolean = false,
+    /** Raid en cours : la chaîne cible s'ouvre à la fin du compte à rebours, sauf annulation. */
+    val raid: Raid? = null,
 )
 
 /** Chaîne voisine dans la liste, en boucle ; `null` si [current] n'y figure pas ou est seule. */
@@ -61,6 +67,7 @@ fun zapTarget(logins: List<String>, current: String, delta: Int): String? {
 }
 
 private const val LIVE_OFFSET_MS = 5_000L
+const val RAID_DELAY_S = 10
 
 /** Élément de lecture d'un live, partagé par le lecteur et le multi-view. */
 internal fun liveMediaItem(url: String, targetOffsetMs: Long = LIVE_OFFSET_MS): MediaItem = MediaItem.Builder()
@@ -104,6 +111,9 @@ class PlayerViewModel @Inject constructor(
 
     val player: ExoPlayer = ExoPlayer.Builder(context).build().apply { playWhenReady = true }
 
+    private var raidJob: Job? = null
+    private var followJob: Job? = null
+
     private var masterUrl: String? = null
     private var job: Job? = null
     /** Une relance automatique par incident (jeton expiré, coupure courte), pas de boucle. */
@@ -125,7 +135,35 @@ class PlayerViewModel @Inject constructor(
                 _state.update { s -> s.copy(canZap = zapTarget(list.map { it.login }, s.login, 1) != null) }
             }
         }
+        // EventSub ne connaît la chaîne que par son id : on suit celui du live affiché.
+        viewModelScope.launch {
+            _state.mapNotNull { it.stream?.channelId }.distinctUntilChanged().collect { id ->
+                raidJob?.cancel()
+                raidJob = launch { catalog.raids(id).catch { }.collect(::onRaid) }
+            }
+        }
         load(_state.value.login)
+    }
+
+    private fun onRaid(raid: Raid) {
+        _state.update { it.copy(raid = raid) }
+        followJob?.cancel()
+        followJob = viewModelScope.launch {
+            delay(RAID_DELAY_S * 1000L)
+            followRaid()
+        }
+    }
+
+    fun followRaid() {
+        val raid = _state.value.raid ?: return
+        followJob?.cancel()
+        retried = false
+        load(raid.toLogin)
+    }
+
+    fun cancelRaid() {
+        followJob?.cancel()
+        _state.update { it.copy(raid = null) }
     }
 
     fun zap(delta: Int) {
@@ -203,8 +241,10 @@ class PlayerViewModel @Inject constructor(
         player.stop()
         masterUrl = null
         val known = catalog.followed.value.firstOrNull { it.login == login }
+        followJob?.cancel()
         _state.update {
             it.copy(
+                raid = null,
                 login = login,
                 stream = known,
                 variants = emptyList(),

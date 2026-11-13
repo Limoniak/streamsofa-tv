@@ -17,6 +17,7 @@ import dev.lumen.core.ChatState
 import dev.lumen.core.Video
 import dev.lumen.data.CatalogRepository
 import dev.lumen.data.SettingsRepository
+import dev.lumen.data.WatchNext
 import dev.lumen.data.LoadError
 import dev.lumen.data.loadCatching
 import dev.lumen.data.toLoadError
@@ -63,6 +64,7 @@ class VodViewModel @Inject constructor(
     savedState: SavedStateHandle,
     private val catalog: CatalogRepository,
     settings: SettingsRepository,
+    private val watchNext: WatchNext,
 ) : ViewModel() {
     val chatByDefault = settings.state.value.chatByDefault
     private val id: String = checkNotNull(savedState["id"])
@@ -125,7 +127,7 @@ class VodViewModel @Inject constructor(
     }
 
     fun onStop() {
-        saveProgress()
+        saveProgress(publish = true)
         player.pause()
     }
 
@@ -182,15 +184,21 @@ class VodViewModel @Inject constructor(
 
     private fun positionS(): UInt = (player.currentPosition / 1000).coerceAtLeast(0).toUInt()
 
-    private fun saveProgress(scope: CoroutineScope = viewModelScope) {
+    /** [publish] : aussi dans « Continuer à regarder » du launcher, seulement en quittant. */
+    private fun saveProgress(scope: CoroutineScope = viewModelScope, publish: Boolean = false) {
         val duration = player.duration.takeIf { it != C.TIME_UNSET && it > 0 } ?: return
         val (position, total) = positionS() to (duration / 1000).toUInt()
-        scope.launch { loadCatching { catalog.saveVodProgress(id, position, total) } }
+        val video = _state.value.video
+        scope.launch {
+            loadCatching { catalog.saveVodProgress(id, position, total) }.onSuccess { finished ->
+                if (publish && video != null) watchNext.publish(video, position, total, finished)
+            }
+        }
     }
 
     override fun onCleared() {
         // `viewModelScope` est déjà annulé : la dernière position part sur une portée à part.
-        saveProgress(CoroutineScope(Dispatchers.IO))
+        saveProgress(CoroutineScope(Dispatchers.IO), publish = true)
         player.release()
     }
 }

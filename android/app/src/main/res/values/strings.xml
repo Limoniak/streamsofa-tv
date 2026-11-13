@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Lumen</string>
+    <string name="nav_search">Rechercher</string>
     <string name="nav_home">Accueil</string>
     <string name="nav_following">Suivis</string>
     <string name="nav_profiles">Profils</string>
     <string name="nav_settings">Paramètres</string>
+    <string name="search_global_hint">Chaînes et catégories Twitch</string>
 </resources>

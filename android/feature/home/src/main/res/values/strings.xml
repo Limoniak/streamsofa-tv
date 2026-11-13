@@ -15,4 +15,15 @@
     <string name="video_views">vues</string>
     <string name="sign_in">Connecter un compte</string>
     <string name="category_empty">Personne ne diffuse dans cette catégorie.</string>
+    <string name="channel_schedule">Prochains lives</string>
+    <string name="channel_clips">Clips</string>
+    <string name="channel_about">À propos</string>
+    <string name="home_recommended">Recommandé pour vous</string>
+    <string name="language_all">Toutes les langues</string>
+    <string name="search_hint">Chaîne ou catégorie…</string>
+    <string name="search_loading">Recherche…</string>
+    <string name="search_empty">Aucun résultat.</string>
+    <string name="search_channels">Chaînes</string>
+    <string name="search_categories">Catégories</string>
+    <string name="search_live">En direct</string>
 </resources>

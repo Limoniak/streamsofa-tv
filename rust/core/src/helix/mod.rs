@@ -7,7 +7,8 @@ use serde::Deserialize;
 
 use crate::auth::api_error;
 use crate::catalog::{
-    box_art_template, parse_duration, parse_utc, thumbnail_template, video_thumbnail, Category, Channel, LiveStream, Video,
+    box_art_template, parse_duration, parse_utc, thumbnail_template, video_thumbnail, Category, Channel, LiveStream, SearchChannel,
+    Video,
 };
 use crate::error::CoreError;
 use crate::secret::Secret;
@@ -101,6 +102,9 @@ pub struct HelixStream {
     pub viewer_count: u32,
     #[serde(default)]
     pub started_at: String,
+    /// Code ISO 639-1 (`fr`, `en`…).
+    #[serde(default)]
+    pub language: String,
 }
 
 impl HelixStream {
@@ -116,6 +120,37 @@ impl HelixStream {
             category_id: self.game_id,
             category_name: self.game_name,
             viewers: self.viewer_count,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct HelixSearchChannel {
+    pub id: String,
+    pub broadcaster_login: String,
+    pub display_name: String,
+    #[serde(default)]
+    pub thumbnail_url: String,
+    #[serde(default)]
+    pub is_live: bool,
+    #[serde(default)]
+    pub title: String,
+    #[serde(default)]
+    pub game_name: String,
+}
+
+impl From<HelixSearchChannel> for SearchChannel {
+    fn from(c: HelixSearchChannel) -> Self {
+        SearchChannel {
+            // Hors ligne, Helix renvoie le titre du dernier live : sans intérêt ici.
+            title: if c.is_live { c.title } else { String::new() },
+            category_name: if c.is_live { c.game_name } else { String::new() },
+            id: c.id,
+            login: c.broadcaster_login,
+            display_name: c.display_name,
+            avatar_url: c.thumbnail_url,
+            live: c.is_live,
+            viewers: 0,
         }
     }
 }
@@ -283,6 +318,39 @@ impl HelixClient {
         Ok(logins)
     }
 
+    pub async fn search_channels(&self, token: &Secret, query: &str, first: u32) -> Result<Vec<HelixSearchChannel>, CoreError> {
+        let first = first.clamp(1, 100).to_string();
+        let page: Page<HelixSearchChannel> = self.get("/search/channels", &[("query", query), ("first", &first)], token).await?;
+        Ok(page.data)
+    }
+
+    pub async fn search_categories(&self, token: &Secret, query: &str, first: u32) -> Result<Vec<HelixGame>, CoreError> {
+        let first = first.clamp(1, 100).to_string();
+        let page: Page<HelixGame> = self.get("/search/categories", &[("query", query), ("first", &first)], token).await?;
+        Ok(page.data)
+    }
+
+    /// Abonne une session EventSub WebSocket à un événement (aucun scope requis pour `channel.raid`).
+    pub async fn subscribe_eventsub(&self, token: &Secret, kind: &str, condition: serde_json::Value, session_id: &str) -> Result<(), CoreError> {
+        let response = self
+            .http
+            .post(format!("{}/eventsub/subscriptions", self.base))
+            .header("Client-Id", &self.client_id)
+            .bearer_auth(token.expose())
+            .json(&serde_json::json!({
+                "type": kind,
+                "version": "1",
+                "condition": condition,
+                "transport": { "method": "websocket", "session_id": session_id },
+            }))
+            .send()
+            .await?;
+        if !response.status().is_success() {
+            return Err(api_error(response).await);
+        }
+        Ok(())
+    }
+
     /// Chaînes suivies, en live ou non, de la plus récemment suivie à la plus ancienne.
     pub async fn followed_channels(&self, token: &Secret, user_id: &str, after: Option<&str>) -> Result<Page<HelixFollow>, CoreError> {
         let mut query = vec![("user_id", user_id), ("first", "100")];
@@ -330,6 +398,7 @@ impl HelixClient {
         &self,
         token: &Secret,
         category_id: Option<&str>,
+        language: Option<&str>,
         after: Option<&str>,
         first: u32,
     ) -> Result<Page<HelixStream>, CoreError> {
@@ -337,6 +406,9 @@ impl HelixClient {
         let mut query = vec![("first", first.as_str())];
         if let Some(id) = category_id {
             query.push(("game_id", id));
+        }
+        if let Some(language) = language {
+            query.push(("language", language));
         }
         if let Some(after) = after {
             query.push(("after", after));

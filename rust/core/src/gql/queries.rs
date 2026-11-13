@@ -27,8 +27,8 @@ pub fn top_streams() -> String {
 
 pub fn category_streams() -> String {
     format!(
-        "query CategoryStreams($id: ID!, $first: Int, $after: Cursor) {{ game(id: $id) {{ \
-         streams(first: $first, after: $after) {{ \
+        "query CategoryStreams($id: ID!, $first: Int, $after: Cursor, $languages: [String!]) {{ game(id: $id) {{ \
+         streams(first: $first, after: $after, options: {{ languages: $languages }}) {{ \
          edges {{ cursor node {{ {STREAM_FIELDS} }} }} pageInfo {{ hasNextPage }} }} }} }}"
     )
 }
@@ -68,3 +68,23 @@ pub const GLOBAL_BADGES: &str = "query GlobalBadges { badges { setID version ima
 
 /// Badges propres à la chaîne (abonné, bits) ; ils remplacent les badges globaux du même nom.
 pub const CHANNEL_BADGES: &str = "query ChannelBadges($login: String!) { user(login: $login) { id     broadcastBadges { setID version imageURL(size: DOUBLE) } } }";
+
+pub const SEARCH: &str = "query Search($query: String!) { \
+    searchFor(userQuery: $query, platform: \"web\", options: { targets: [{ index: CHANNEL }, { index: GAME }] }) { \
+    channels { items { id login displayName profileImageURL(width: 70) \
+    broadcastSettings { title } stream { viewersCount game { displayName } } } } \
+    games { items { id displayName viewersCount } } } }";
+
+/// `period` : `LAST_WEEK` ou `ALL_TIME`.
+pub const CLIPS: &str = "query Clips($login: String!, $first: Int, $period: ClipsPeriod) { user(login: $login) { \
+    clips(first: $first, criteria: { period: $period }) { edges { node { \
+    slug title durationSeconds viewCount createdAt thumbnailURL curator { displayName } } } } } }";
+
+/// Jeton anonyme d'un clip et ses fichiers MP4, à signer avec ce jeton.
+pub const CLIP_PLAYBACK: &str = "query ClipPlayback($slug: ID!) { clip(slug: $slug) { \
+    playbackAccessToken(params: { platform: \"web\", playerBackend: \"mediaplayer\", playerType: \"site\" }) { value signature } \
+    videoQualities { quality sourceURL } } }";
+
+pub const CHANNEL_ABOUT: &str = "query ChannelAbout($login: String!) { user(login: $login) { \
+    panels { ... on DefaultPanel { title description imageURL linkURL } } \
+    channel { schedule { segments { startAt endAt title isCancelled categories { name } } } } } }";
