@@ -45,9 +45,9 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
 - [x] J2 : auth Device Code, multi-compte, Keystore. Validé contre le vrai Twitch sur l'émulateur Google TV
   (connexion, persistance après redémarrage, jeton chiffré et absent des logs, invité, boîte de retrait).
   Pas encore testé sur une vraie box.
-- [~] J3 : accueil + suivis + lecteur live (Media3 HLS), shell avec barre latérale, test D-pad.
-  Accueil, Suivis, catégorie et focus validés sur l'émulateur (Helix). Reste à valider par l'utilisateur :
-  la lecture (jeton GQL + Usher) et le catalogue invité (GQL) : Claude ne lance pas d'appel GQL lui-même.
+- [x] J3 : accueil + suivis + lecteur live (Media3 HLS), shell avec barre latérale, test D-pad.
+  Validé sur l'émulateur : catalogue Helix et invité (GQL), lecture, qualité fixe, zapping, reprise au direct.
+  Les pubs Twitch insérées dans le flux passent normalement.
 - [ ] J4 : chat (lecture puis envoi), batching côté Rust toutes les ~100 ms, buffer borné.
 - [ ] J5 : VOD + reprise + replay du chat.
 - [ ] J6 : multi-view (2 à 4 flux, sonde `MediaCodecList` + repli à l'exécution).

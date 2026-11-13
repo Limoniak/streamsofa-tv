@@ -36,7 +36,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.Button
-import androidx.tv.material3.Card
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.OutlinedButton
 import androidx.tv.material3.Text
@@ -44,6 +43,7 @@ import coil3.compose.AsyncImage
 import dev.lumen.core.Account
 import dev.lumen.core.AccountState
 import dev.lumen.core.AccountsSnapshot
+import dev.lumen.designsystem.LumenCard
 import dev.lumen.designsystem.LumenColors
 import dev.lumen.designsystem.LumenInsets
 
@@ -183,7 +183,7 @@ private fun ProfileCard(
     warning: Boolean = false,
     onLongClick: (() -> Unit)? = null,
 ) {
-    Card(onClick = onClick, onLongClick = onLongClick, modifier = modifier.size(width = 200.dp, height = 232.dp)) {
+    LumenCard(onClick = onClick, onLongClick = onLongClick, modifier = modifier.size(width = 200.dp, height = 232.dp)) {
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,

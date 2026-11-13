@@ -77,8 +77,11 @@ fun PlayerRoute(viewModel: PlayerViewModel = hiltViewModel()) {
 
     // Chaque changement de chaîne affiche brièvement son nom : on sait où l'on a zappé.
     LaunchedEffect(state.login) { if (overlay == Overlay.Hidden) overlay = Overlay.Info }
-    LaunchedEffect(overlay, interactions) {
+    // Le focus ne bouge qu'au changement de panneau : chaque touche relance le minuteur, pas le focus.
+    LaunchedEffect(overlay) {
         if (overlay == Overlay.Controls) controlsFocus.requestWhenAttached() else rootFocus.requestWhenAttached()
+    }
+    LaunchedEffect(overlay, interactions) {
         if (overlay != Overlay.Hidden) {
             delay(OVERLAY_TIMEOUT_MS)
             overlay = Overlay.Hidden
