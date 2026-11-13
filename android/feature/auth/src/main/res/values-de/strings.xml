@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profiles_title">Wer schaut zu?</string>
+    <string name="profiles_add">Konto hinzufügen</string>
+    <string name="profiles_guest">Gast</string>
+    <string name="profiles_guest_hint">Ohne Anmeldung, Chat nur lesen</string>
+    <string name="profiles_active">Aktiv</string>
+    <string name="profiles_needs_reauth">Anmeldung erforderlich</string>
+    <string name="profiles_remove_hint">Halte OK auf einem Profil gedrückt: PIN, Kindermodus oder entfernen.</string>
+    <string name="profiles_remove_title">%1$s von diesem Gerät entfernen?</string>
+    <string name="profiles_remove_body">Das Twitch-Konto wird nicht gelöscht. Du kannst dich jederzeit wieder anmelden.</string>
+    <string name="profiles_remove_confirm">Entfernen</string>
+    <string name="profiles_remove_cancel">Abbrechen</string>
+
+    <string name="login_title">Mit einem Twitch-Konto anmelden</string>
+    <string name="login_step_scan">Scanne den QR-Code mit deinem Handy oder öffne</string>
+    <string name="login_url">twitch.tv/activate</string>
+    <string name="login_step_code">und gib diesen Code ein:</string>
+    <string name="login_waiting">Warte auf deine Bestätigung…</string>
+    <string name="login_requesting">Code wird bei Twitch angefordert…</string>
+    <string name="login_success">Willkommen, %1$s!</string>
+    <string name="login_retry">Neuen Code anfordern</string>
+    <string name="login_back">Zurück</string>
+    <string name="login_error_expired">Der Code ist abgelaufen, bevor er bestätigt wurde.</string>
+    <string name="login_error_network">Twitch ist nicht erreichbar. Prüfe deine Netzwerkverbindung.</string>
+    <string name="login_error_not_configured">Dieser Build der App hat keine Twitch-Client-ID.</string>
+    <string name="login_error_storage">Der sichere Speicher des Geräts konnte das Konto nicht speichern.</string>
+    <string name="login_error_other">Anmeldung fehlgeschlagen. Versuche es gleich noch einmal.</string>
+    <string name="login_note">Die Wiedergabe bleibt anonym: Turbo- und Abo-Vorteile gelten nicht.</string>
+    <string name="pin_enter">PIN für %1$s</string>
+    <string name="pin_new">Neue PIN für %1$s</string>
+    <string name="pin_parent">Eltern-PIN</string>
+    <string name="pin_parent_hint">Die PIN eines Profils, das kein Kinderprofil ist.</string>
+    <string name="pin_hint">▲ ▼ ändern die Ziffer, ◀ ▶ wechseln die Stelle, OK bestätigt. Zifferntasten gehen auch.</string>
+    <string name="pin_wrong">Falsche PIN. Versuche es noch einmal.</string>
+    <string name="profiles_pin_set">PIN festlegen</string>
+    <string name="profiles_pin_change">PIN ändern</string>
+    <string name="profiles_pin_remove">PIN entfernen</string>
+    <string name="profiles_kids_on">Zum Kinderprofil machen</string>
+    <string name="profiles_kids_off">Kinderprofil ausschalten</string>
+    <string name="profiles_kids_body">Kinderprofil: kein Chat und keine Kanäle, die als nicht jugendfrei markiert sind oder Inhaltswarnungen tragen.</string>
+    <string name="profiles_kids_no_parent">Lege für dein eigenes Profil eine PIN fest: Dann kann nur diese PIN den Kindermodus ausschalten.</string>
+    <string name="profiles_kids_badge">Kinder</string>
+    <string name="profiles_pin_badge">PIN</string>
+    <string name="profiles_reset_guest">Gastprofil zurücksetzen</string>
+    <string name="profiles_reset_guest_title">Gastprofil zurücksetzen?</string>
+    <string name="profiles_reset_guest_body">Einstellungen, Wiedergabepositionen, PIN und Kindermodus werden gelöscht.</string>
+</resources>

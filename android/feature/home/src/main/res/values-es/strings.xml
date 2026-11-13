@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_followed">Tus canales en directo</string>
+    <string name="home_popular">Directos populares</string>
+    <string name="home_categories">Categorías populares</string>
+    <string name="home_no_followed">Ninguno de tus canales está en directo.</string>
+    <string name="home_needs_reauth">%1$s tiene que volver a iniciar sesión: Twitch ya no acepta esta sesión.</string>
+    <string name="home_reconnect">Volver a iniciar sesión</string>
+    <string name="following_title">En directo ahora</string>
+    <string name="following_channels">Canales seguidos</string>
+    <string name="channel_live">En directo</string>
+    <string name="channel_videos">Vídeos</string>
+    <string name="channel_no_videos">No hay vídeos disponibles.</string>
+    <string name="channel_not_found">Este canal no existe.</string>
+    <string name="video_views">visualizaciones</string>
+    <string name="sign_in">Iniciar sesión con una cuenta</string>
+    <string name="category_empty">Nadie está emitiendo en esta categoría.</string>
+    <string name="channel_schedule">Próximas emisiones</string>
+    <string name="channel_clips">Clips</string>
+    <string name="channel_about">Acerca de</string>
+    <string name="home_recommended">Recomendado para ti</string>
+    <string name="language_all">Todos los idiomas</string>
+    <string name="search_hint">Canal o categoría…</string>
+    <string name="search_loading">Buscando…</string>
+    <string name="search_empty">Sin resultados.</string>
+    <string name="search_channels">Canales</string>
+    <string name="search_categories">Categorías</string>
+    <string name="search_live">En directo</string>
+    <string name="search_recent">Búsquedas recientes</string>
+    <string name="search_recent_clear">Borrar</string>
+    <string name="channel_follow_qr">Escanea para seguir este canal desde tu teléfono</string>
+    <string name="following_clips">Clips de los canales que sigues</string>
+    <string name="category_clips">Mejores clips de la semana</string>
+</resources>

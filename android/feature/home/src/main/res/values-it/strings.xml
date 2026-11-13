@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_followed">I tuoi canali in diretta</string>
+    <string name="home_popular">Dirette popolari</string>
+    <string name="home_categories">Categorie popolari</string>
+    <string name="home_no_followed">Nessuno dei tuoi canali è in diretta.</string>
+    <string name="home_needs_reauth">%1$s deve accedere di nuovo: Twitch non accetta più questa sessione.</string>
+    <string name="home_reconnect">Accedi di nuovo</string>
+    <string name="following_title">In diretta ora</string>
+    <string name="following_channels">Canali seguiti</string>
+    <string name="channel_live">In diretta</string>
+    <string name="channel_videos">Video</string>
+    <string name="channel_no_videos">Nessun video disponibile.</string>
+    <string name="channel_not_found">Questo canale non esiste.</string>
+    <string name="video_views">visualizzazioni</string>
+    <string name="sign_in">Accedi con un account</string>
+    <string name="category_empty">Nessuno sta trasmettendo in questa categoria.</string>
+    <string name="channel_schedule">Prossime dirette</string>
+    <string name="channel_clips">Clip</string>
+    <string name="channel_about">Informazioni</string>
+    <string name="home_recommended">Consigliati per te</string>
+    <string name="language_all">Tutte le lingue</string>
+    <string name="search_hint">Canale o categoria…</string>
+    <string name="search_loading">Ricerca…</string>
+    <string name="search_empty">Nessun risultato.</string>
+    <string name="search_channels">Canali</string>
+    <string name="search_categories">Categorie</string>
+    <string name="search_live">In diretta</string>
+    <string name="search_recent">Ricerche recenti</string>
+    <string name="search_recent_clear">Cancella</string>
+    <string name="channel_follow_qr">Scansiona per seguire questo canale dal telefono</string>
+    <string name="following_clips">Clip dei canali che segui</string>
+    <string name="category_clips">Migliori clip della settimana</string>
+</resources>

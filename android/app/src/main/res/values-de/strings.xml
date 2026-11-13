@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">StreamSofa</string>
+    <string name="nav_search">Suche</string>
+    <string name="nav_home">Start</string>
+    <string name="nav_following">Gefolgt</string>
+    <string name="nav_profiles">Profile</string>
+    <string name="nav_settings">Einstellungen</string>
+    <string name="search_global_hint">Twitch-Kanäle und -Kategorien</string>
+</resources>

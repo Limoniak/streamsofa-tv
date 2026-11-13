@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profiles_title">Chi sta guardando?</string>
+    <string name="profiles_add">Aggiungi un account</string>
+    <string name="profiles_guest">Ospite</string>
+    <string name="profiles_guest_hint">Senza accesso, chat in sola lettura</string>
+    <string name="profiles_active">Attivo</string>
+    <string name="profiles_needs_reauth">Accesso richiesto</string>
+    <string name="profiles_remove_hint">Tieni premuto su un profilo per il PIN, la modalità bambini o per rimuoverlo.</string>
+    <string name="profiles_remove_title">Rimuovere %1$s da questo dispositivo?</string>
+    <string name="profiles_remove_body">L\'account Twitch non viene eliminato. Puoi accedere di nuovo quando vuoi.</string>
+    <string name="profiles_remove_confirm">Rimuovi</string>
+    <string name="profiles_remove_cancel">Annulla</string>
+
+    <string name="login_title">Accedi con un account Twitch</string>
+    <string name="login_step_scan">Scansiona il codice QR con il telefono, oppure apri</string>
+    <string name="login_url">twitch.tv/activate</string>
+    <string name="login_step_code">e inserisci questo codice:</string>
+    <string name="login_waiting">In attesa della tua approvazione…</string>
+    <string name="login_requesting">Richiesta di un codice a Twitch…</string>
+    <string name="login_success">Ciao, %1$s!</string>
+    <string name="login_retry">Ottieni un nuovo codice</string>
+    <string name="login_back">Indietro</string>
+    <string name="login_error_expired">Il codice è scaduto prima di essere approvato.</string>
+    <string name="login_error_network">Impossibile raggiungere Twitch. Controlla la connessione di rete.</string>
+    <string name="login_error_not_configured">Questa build dell\'app non ha un Client ID Twitch.</string>
+    <string name="login_error_storage">L\'archivio sicuro del dispositivo non ha potuto salvare l\'account.</string>
+    <string name="login_error_other">Accesso non riuscito. Riprova tra un momento.</string>
+    <string name="login_note">La riproduzione resta anonima: i vantaggi di Turbo e degli abbonamenti non si applicano.</string>
+    <string name="pin_enter">PIN di %1$s</string>
+    <string name="pin_new">Nuovo PIN di %1$s</string>
+    <string name="pin_parent">PIN dei genitori</string>
+    <string name="pin_parent_hint">Il PIN di un profilo che non è un profilo bambini.</string>
+    <string name="pin_hint">▲ ▼ cambiano la cifra, ◀ ▶ spostano, OK conferma. Funzionano anche i tasti numerici.</string>
+    <string name="pin_wrong">PIN errato. Riprova.</string>
+    <string name="profiles_pin_set">Imposta un PIN</string>
+    <string name="profiles_pin_change">Cambia il PIN</string>
+    <string name="profiles_pin_remove">Rimuovi il PIN</string>
+    <string name="profiles_kids_on">Rendilo un profilo bambini</string>
+    <string name="profiles_kids_off">Disattiva il profilo bambini</string>
+    <string name="profiles_kids_body">Profilo bambini: niente chat e nessun canale per adulti o con avvisi sui contenuti.</string>
+    <string name="profiles_kids_no_parent">Imposta un PIN sul tuo profilo: solo quel PIN potrà disattivare la modalità bambini.</string>
+    <string name="profiles_kids_badge">Bambini</string>
+    <string name="profiles_pin_badge">PIN</string>
+    <string name="profiles_reset_guest">Reimposta il profilo ospite</string>
+    <string name="profiles_reset_guest_title">Reimpostare il profilo ospite?</string>
+    <string name="profiles_reset_guest_body">Impostazioni, punti di ripresa, PIN e modalità bambini vengono cancellati.</string>
+</resources>

@@ -45,7 +45,7 @@
     "f.perf": "Léger sur les vieilles box", "f.perf2": "Cœur natif en Rust, Baseline Profile pour un démarrage rapide, effets lourds coupés sur les appareils à faible mémoire.",
     "f.priv": "Respect de la vie privée", "f.priv2": "Jetons chiffrés par le Keystore Android et jamais journalisés. Aucun traceur ; le journal de crash, optionnel, reste sur l’appareil.",
     "f.upd": "Mises à jour intégrées", "f.upd2": "Les nouvelles versions arrivent des GitHub Releases et sont proposées au lancement. Les bêtas sont en option.",
-    "f.lang": "Anglais et français", "f.lang2": "L’interface suit la langue du système, ou le réglage propre à l’app sur Android 13+.",
+    "f.lang": "Six langues", "f.lang2": "Anglais, français, espagnol, allemand, italien et portugais du Brésil. L’interface suit la langue du système, ou le réglage propre à l’app sur Android 13+.",
     "feat.note": "Les pubs insérées par Twitch passent normalement : StreamSofa ne les bloque jamais et ne cherche pas à obtenir les avantages abonné ou Turbo. Suivre une chaîne se fait sur le téléphone (un QR code sur chaque page de chaîne), car Twitch a fermé cette API aux apps tierces.",
     "prev.kicker": "Aperçu", "prev.title": "Conçu pour un écran à trois mètres.",
     "prev.lead": "Captures de l’émulateur Google TV en 1080p.",

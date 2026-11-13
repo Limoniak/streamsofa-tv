@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_followed">Deine Kanäle live</string>
+    <string name="home_popular">Beliebte Livestreams</string>
+    <string name="home_categories">Beliebte Kategorien</string>
+    <string name="home_no_followed">Keiner deiner Kanäle ist live.</string>
+    <string name="home_needs_reauth">%1$s muss sich erneut anmelden: Twitch akzeptiert diese Sitzung nicht mehr.</string>
+    <string name="home_reconnect">Erneut anmelden</string>
+    <string name="following_title">Jetzt live</string>
+    <string name="following_channels">Gefolgte Kanäle</string>
+    <string name="channel_live">Live</string>
+    <string name="channel_videos">Videos</string>
+    <string name="channel_no_videos">Keine Videos verfügbar.</string>
+    <string name="channel_not_found">Diesen Kanal gibt es nicht.</string>
+    <string name="video_views">Aufrufe</string>
+    <string name="sign_in">Mit einem Konto anmelden</string>
+    <string name="category_empty">In dieser Kategorie streamt gerade niemand.</string>
+    <string name="channel_schedule">Kommende Streams</string>
+    <string name="channel_clips">Clips</string>
+    <string name="channel_about">Info</string>
+    <string name="home_recommended">Für dich empfohlen</string>
+    <string name="language_all">Alle Sprachen</string>
+    <string name="search_hint">Kanal oder Kategorie…</string>
+    <string name="search_loading">Suche…</string>
+    <string name="search_empty">Keine Ergebnisse.</string>
+    <string name="search_channels">Kanäle</string>
+    <string name="search_categories">Kategorien</string>
+    <string name="search_live">Live</string>
+    <string name="search_recent">Letzte Suchen</string>
+    <string name="search_recent_clear">Löschen</string>
+    <string name="channel_follow_qr">Scannen, um diesem Kanal auf dem Handy zu folgen</string>
+    <string name="following_clips">Clips deiner gefolgten Kanäle</string>
+    <string name="category_clips">Top-Clips der Woche</string>
+</resources>

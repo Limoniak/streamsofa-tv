@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="error_network">No se puede conectar con Twitch. Comprueba tu red.</string>
+    <string name="error_not_configured">Esta compilación no tiene Client ID de Twitch.</string>
+    <string name="error_not_signed_in">Inicia sesión con una cuenta para ver a quién sigues.</string>
+    <string name="error_offline">Este canal no está en directo.</string>
+    <string name="error_unavailable">Twitch rechaza la reproducción (región o suscripción).</string>
+    <string name="error_twitch_changed">Twitch ha cambiado su servicio: StreamSofa necesita una actualización.</string>
+    <string name="error_other">Ha ocurrido un error inesperado.</string>
+    <string name="error_subscribers_only">Este vídeo es solo para suscriptores del canal.</string>
+    <string name="retry">Reintentar</string>
+    <string name="launcher_channel_name">Canales que sigues en directo</string>
+    <string name="error_kids_profile">No disponible en un perfil infantil.</string>
+</resources>

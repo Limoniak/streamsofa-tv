@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="error_network">Impossibile raggiungere Twitch. Controlla la rete.</string>
+    <string name="error_not_configured">Questa build non ha un Client ID Twitch.</string>
+    <string name="error_not_signed_in">Accedi con un account per vedere chi segui.</string>
+    <string name="error_offline">Questo canale è offline.</string>
+    <string name="error_unavailable">Twitch rifiuta la riproduzione (regione o abbonamento).</string>
+    <string name="error_twitch_changed">Twitch ha cambiato il suo servizio: StreamSofa va aggiornata.</string>
+    <string name="error_other">Si è verificato un errore imprevisto.</string>
+    <string name="error_subscribers_only">Questo video è riservato agli abbonati del canale.</string>
+    <string name="retry">Riprova</string>
+    <string name="launcher_channel_name">Canali seguiti in diretta</string>
+    <string name="error_kids_profile">Non disponibile in un profilo bambini.</string>
+</resources>
