@@ -17,6 +17,7 @@ import dev.lumen.core.CoreException
 import dev.lumen.core.LiveStream
 import dev.lumen.core.Raid
 import dev.lumen.core.Variant
+import dev.lumen.core.Video
 import dev.lumen.data.AccountsRepository
 import dev.lumen.data.CatalogRepository
 import dev.lumen.data.ChatRepository
@@ -29,6 +30,8 @@ import dev.lumen.data.toLoadError
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.mapNotNull
@@ -66,6 +69,18 @@ data class PlayerUiState(
     val sleepMinutes: Int = 0,
     /** Lecture arrêtée par la minuterie. */
     val sleeping: Boolean = false,
+    /** Chaîne hors ligne (live terminé) : suites proposées à la place d'une simple erreur. */
+    val ended: Ended? = null,
+)
+
+/** Suites proposées quand le live s'arrête ; chacune est absente si elle n'existe pas. */
+data class Ended(
+    /** Raid lancé avant la fin, que l'utilisateur avait choisi de ne pas suivre. */
+    val raid: Raid? = null,
+    /** Prochain live de la liste de zapping. */
+    val next: LiveStream? = null,
+    /** Dernière rediffusion de la chaîne. */
+    val lastVideo: Video? = null,
 )
 
 /** Durées proposées par la minuterie, dans l'ordre où OK les fait défiler. */
@@ -134,6 +149,8 @@ class PlayerViewModel @Inject constructor(
     private var popular: List<String> = emptyList()
 
     private var raidJob: Job? = null
+    /** Dernier raid de la chaîne affichée, gardé même annulé : il est reproposé si le live s'arrête. */
+    private var lastRaid: Raid? = null
     private var followJob: Job? = null
 
     private var masterUrl: String? = null
@@ -172,6 +189,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     private fun onRaid(raid: Raid) {
+        lastRaid = raid
         _state.update { it.copy(raid = raid) }
         followJob?.cancel()
         followJob = viewModelScope.launch {
@@ -304,6 +322,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     private fun load(login: String) {
+        if (login != _state.value.login) lastRaid = null
         joinChat(login)
         job?.cancel()
         player.stop()
@@ -315,6 +334,7 @@ class PlayerViewModel @Inject constructor(
             it.copy(
                 raid = null,
                 sleeping = false,
+                ended = null,
                 login = login,
                 stream = known,
                 variants = emptyList(),
@@ -349,8 +369,24 @@ class PlayerViewModel @Inject constructor(
                     }
                     play()
                 }
-                .onFailure { e -> _state.update { it.copy(status = PlayerStatus.Failed(e.toLoadError())) } }
+                .onFailure { e ->
+                    val error = e.toLoadError()
+                    _state.update { it.copy(status = PlayerStatus.Failed(error)) }
+                    if (error == LoadError.Offline) _state.update { it.copy(ended = endedChoices(login)) }
+                }
         }
+    }
+
+    /** Les trois suites sont cherchées en parallèle ; une qui échoue est simplement absente. */
+    private suspend fun endedChoices(login: String): Ended = coroutineScope {
+        val next = async { liveList().firstOrNull { it.login != login } }
+        val lastVideo = async {
+            loadCatching {
+                val channelId = _state.value.stream?.channelId ?: catalog.channel(login)?.id ?: return@loadCatching null
+                catalog.channelVideos(channelId, null).items.firstOrNull()
+            }.getOrNull()
+        }
+        Ended(raid = lastRaid, next = next.await(), lastVideo = lastVideo.await())
     }
 
     private fun play() {

@@ -8,10 +8,12 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.lumen.core.Chapter
 import dev.lumen.core.ChatEvent
 import dev.lumen.core.ChatState
 import dev.lumen.core.Video
@@ -41,7 +43,18 @@ data class VodUiState(
     val status: PlayerStatus = PlayerStatus.Loading,
     /** Raison donnée par Twitch quand elle refuse la lecture (VOD réservée aux abonnés…). */
     val detail: String? = null,
+    /** Changements de jeu, dans l'ordre ; vide si Twitch n'en a pas. */
+    val chapters: List<Chapter> = emptyList(),
+    val speed: Float = 1f,
 )
+
+/** Vitesses proposées par ▲, dans l'ordre du cycle. */
+internal val VOD_SPEEDS = listOf(1f, 1.25f, 1.5f, 2f, 0.75f)
+
+internal fun nextSpeed(current: Float) = VOD_SPEEDS[(VOD_SPEEDS.indexOf(current) + 1) % VOD_SPEEDS.size]
+
+/** Chapitre en cours à [positionMs] (le dernier commencé). */
+internal fun List<Chapter>.at(positionMs: Long): Chapter? = lastOrNull { it.positionMs.toLong() <= positionMs }
 
 /** Position de lecture pour la barre de progression. */
 data class VodClock(
@@ -115,6 +128,12 @@ class VodViewModel @Inject constructor(
         if (player.playWhenReady) player.pause() else player.play()
     }
 
+    fun cycleSpeed() {
+        val speed = nextSpeed(_state.value.speed)
+        player.playbackParameters = PlaybackParameters(speed)
+        _state.update { it.copy(speed = speed) }
+    }
+
     fun seekBy(deltaMs: Long) {
         val duration = player.duration.takeIf { it != C.TIME_UNSET } ?: Long.MAX_VALUE
         player.seekTo((player.currentPosition + deltaMs).coerceIn(0, duration))
@@ -137,6 +156,8 @@ class VodViewModel @Inject constructor(
         _state.update { it.copy(status = PlayerStatus.Loading, detail = null) }
         loadJob = viewModelScope.launch {
             val video = async { loadCatching { catalog.video(id) }.getOrNull() }
+            // Facultatifs : sans chapitres, la VOD se lit normalement.
+            launch { loadCatching { catalog.vodChapters(id) }.onSuccess { c -> _state.update { it.copy(chapters = c) } } }
             loadCatching { catalog.vodPlayback(id) }
                 .onSuccess { playback ->
                     val info = video.await()

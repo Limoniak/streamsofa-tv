@@ -51,7 +51,7 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
   `#130F19`/`#1B1622`, texte crème `#F4EEE8`, accent lavande `#B79CFF`, pêche `#FFB38A` (clé d'accent `orange` conservée).
 - Télécommande du lecteur live, style télé (choix de l'utilisateur) : ▲ ▼ zappent entre les suivis en live (sinon les lives populaires), ◀ ouvre la
   liste des lives (`LiveList`, suivis sinon top), ▶ affiche le chat puis va sur son bouton « Écrire »
-  (compte connecté ; ◀ revient à la vidéo, ▶ masque le chat), OK ouvre la barre d'actions (Chat, Qualité, Son seul, Mise en veille, Multi-view,
+  (compte connecté ; ◀ revient à la vidéo, ▶ masque le chat), OK ouvre la barre d'actions (Chat, Qualité, Son seul, Mise en veille, Multi-view, Incrustation si `FEATURE_PICTURE_IN_PICTURE`,
   Page de la chaîne, Statistiques). Qualité choisie retenue par chaîne (`quality:<login>` dans `settings`). L'aide des touches reste affichée dans le panneau d'infos. La saisie ne s'ouvre que par OK sur « Écrire ».
 
 ## Jalons
@@ -103,6 +103,10 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
   l'a retiré), recherche globale/vocale via `SearchProvider` + `searchable.xml`. Google TV peut ignorer les deux
   pour une app hors Play Store. Suivre/ne plus suivre : impossible, Twitch a retiré les endpoints de l'API (27 juillet 2021) ;
   le contourner via GQL exigerait un jeton web et une vérification d'intégrité, exclu.
+
+- Lecteur VOD : ▲ fait défiler la vitesse, chapitres GQL `moments(VIDEO_CHAPTER_MARKERS)` marqués sur la barre.
+  Live terminé ou chaîne hors ligne (`LoadError.Offline`) : écran de fin (raid ignoré, live suivant, dernière VOD).
+  Multi-view : appui long OK = menu Remplacer / Retirer.
 
 Schéma SQLite (migrations dans `store/mod.rs`, clé `scope` = `global` | `guest` | id de compte) :
 `vod_progress` (migration 2), `settings` (migration 3, seule la portée `global` est utilisée ; filtres du chat dans `chat_hidden_words`/`chat_hidden_users`), `meta_cache(key,body,fetched_at,ttl_s)` (migration 4 :

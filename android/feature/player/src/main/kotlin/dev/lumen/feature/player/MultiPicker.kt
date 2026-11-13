@@ -57,6 +57,8 @@ fun MultiPicker(
         Column(
             modifier = Modifier
                 .width(900.dp)
+                // Écran TV = 540 dp de haut : les boutons doivent rester visibles sous une longue grille.
+                .heightIn(max = 500.dp)
                 .background(LumenColors.Surface, RoundedCornerShape(16.dp))
                 .padding(28.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -68,7 +70,7 @@ fun MultiPicker(
                 list.isEmpty() -> Text(stringResource(R.string.multi_pick_empty), color = LumenColors.OnSurfaceMuted)
                 else -> LazyVerticalGrid(
                     columns = GridCells.Fixed(3),
-                    modifier = Modifier.heightIn(max = 420.dp),
+                    modifier = Modifier.weight(1f, fill = false),
                     contentPadding = PaddingValues(4.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),

@@ -19,10 +19,10 @@
     <string name="multi_pick_empty">No other channel is live.</string>
     <string name="multi_launch">Start (%1$d)</string>
     <string name="multi_cancel">Cancel</string>
-    <string name="multi_hint">◀ ▶ ▲ ▼ tile sound · OK full screen · long press OK remove</string>
+    <string name="multi_hint">◀ ▶ ▲ ▼ tile sound · OK full screen · long press OK replace or remove</string>
     <string name="multi_decoder_busy">This device can\'t decode one more stream.</string>
     <string name="vod_paused">Paused</string>
-    <string name="vod_seek_hint">◀ ▶ rewind or forward · OK pause · ▼ chat</string>
+    <string name="vod_seek_hint">◀ ▶ rewind or forward · ▲ speed · OK pause · ▼ chat</string>
     <string name="vod_no_chat">No chat for this video.</string>
     <string name="raid_title">Raid to %1$s with %2$s viewers</string>
     <string name="raid_hint">Opening in %1$d s · OK now · Back to stay</string>
@@ -41,4 +41,13 @@
     <string name="stats_bitrate">Bitrate</string>
     <string name="stats_latency">Latency to live</string>
     <string name="stats_dropped">Dropped frames</string>
+    <string name="vod_speed">%1$s×</string>
+    <string name="player_ended">%1$s is offline</string>
+    <string name="player_ended_raid">Go to %1$s (raid)</string>
+    <string name="player_ended_next">Watch %1$s</string>
+    <string name="player_ended_video">Last broadcast</string>
+    <string name="player_ended_hint">▲ ▼ change channel</string>
+    <string name="multi_replace">Replace with another channel</string>
+    <string name="multi_remove">Remove</string>
+    <string name="player_pip">Picture-in-picture</string>
 </resources>

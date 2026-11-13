@@ -97,6 +97,13 @@ pub struct SearchResults {
     pub categories: Vec<Category>,
 }
 
+/// Chapitre d'une VOD : le jeu ou la catégorie à partir de `position_ms`.
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct Chapter {
+    pub position_ms: u64,
+    pub title: String,
+}
+
 /// Un clip ; `slug` sert à le lire.
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
 pub struct Clip {

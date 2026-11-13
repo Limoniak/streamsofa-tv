@@ -699,6 +699,11 @@ impl Core {
 
     /// Chat d'une VOD à partir de `offset_s`, en ordre chronologique. Une liste vide
     /// signifie la fin du chat, ou une VOD sans chat.
+    /// Chapitres (changements de jeu) d'une VOD ; vide si elle n'en a pas.
+    pub async fn vod_chapters(&self, video_id: String) -> Result<Vec<crate::catalog::Chapter>, CoreError> {
+        self.gql.video_chapters(&video_id).await
+    }
+
     pub async fn vod_chat(&self, video_id: String, offset_s: u32) -> Result<Vec<ReplayComment>, CoreError> {
         let mut comments = self.gql.vod_comments(&video_id, offset_s).await?;
         let filters = Decor::with_filters(&self.settings()?);

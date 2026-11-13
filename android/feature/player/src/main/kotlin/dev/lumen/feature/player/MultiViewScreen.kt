@@ -1,5 +1,6 @@
 package dev.lumen.feature.player
 
+import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
@@ -33,6 +34,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -40,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import androidx.tv.material3.Button
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import dev.lumen.data.messageRes
@@ -51,7 +54,7 @@ private const val HINT_MS = 5_000L
 
 /**
  * Multi-view : les flèches déplacent le son d'une tuile à l'autre, OK passe la tuile en plein
- * écran, un appui long sur OK la retire. Retour quitte le multi-view.
+ * écran, un appui long sur OK propose de la remplacer ou de la retirer. Retour quitte le multi-view.
  */
 @Composable
 fun MultiViewRoute(onOpenSingle: (login: String) -> Unit, viewModel: MultiViewModel = hiltViewModel()) {
@@ -67,8 +70,16 @@ fun MultiViewRoute(onOpenSingle: (login: String) -> Unit, viewModel: MultiViewMo
     // Suivi de l'appui sur OK à l'échelle de l'écran : après un retrait, le relâchement
     // arrive sur la tuile voisine, qui ne doit pas s'ouvrir pour autant.
     val press = remember { OkPress() }
-    val firstFocus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { firstFocus.requestWhenAttached() }
+    val tileFocus = remember { List(4) { FocusRequester() } }
+    /** Tuile dont le menu (remplacer, retirer) est ouvert. */
+    var menu by remember { mutableStateOf<String?>(null) }
+    /** Tuile en cours de remplacement : la liste des lives est affichée. */
+    var replacing by remember { mutableStateOf<String?>(null) }
+    BackHandler(enabled = replacing != null) { replacing = null }
+    // Menu ou liste fermés : la télécommande revient sur la tuile qui a le son.
+    LaunchedEffect(menu, replacing) {
+        if (menu == null && replacing == null) tileFocus[state.focused.coerceIn(0, 3)].requestWhenAttached()
+    }
 
     Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
         // 2 tuiles côte à côte, 3 ou 4 en grille 2 × 2 : des cellules 16:9 qui remplissent l'écran.
@@ -85,17 +96,29 @@ fun MultiViewRoute(onOpenSingle: (login: String) -> Unit, viewModel: MultiViewMo
                             onFocus = { viewModel.focus(index) },
                             onOpen = { onOpenSingle(tile.login) },
                             onRetry = { viewModel.retry(tile.login) },
-                            onRemove = { if (!viewModel.remove(tile.login)) onOpenSingle(tile.login) },
+                            onMenu = { menu = tile.login },
                             modifier = Modifier
                                 .weight(1f)
                                 .aspectRatio(16f / 9f)
-                                .then(if (index == 0) Modifier.focusRequester(firstFocus) else Modifier),
+                                .focusRequester(tileFocus[index]),
                         )
                     }
                     // Grille de 3 : la dernière cellule reste noire, à la même taille.
                     if (tiles.size == 1 && state.tiles.size > 2) Box(Modifier.weight(1f).aspectRatio(16f / 9f))
                 }
             }
+        }
+        replacing?.let { old ->
+            LiveList(
+                load = viewModel::replacements,
+                current = "",
+                onPick = { new ->
+                    viewModel.replace(old, new)
+                    replacing = null
+                },
+                onDismiss = { replacing = null },
+                modifier = Modifier.align(Alignment.CenterStart),
+            )
         }
         if (hint) {
             Text(
@@ -109,6 +132,21 @@ fun MultiViewRoute(onOpenSingle: (login: String) -> Unit, viewModel: MultiViewMo
             )
         }
     }
+    menu?.let { login ->
+        val name = state.tiles.firstOrNull { it.login == login }?.stream?.displayName ?: login
+        TileMenu(
+            name = name,
+            onReplace = {
+                menu = null
+                replacing = login
+            },
+            onRemove = {
+                menu = null
+                if (!viewModel.remove(login)) onOpenSingle(login)
+            },
+            onDismiss = { menu = null },
+        )
+    }
 }
 
 @OptIn(UnstableApi::class)
@@ -121,7 +159,7 @@ private fun Tile(
     onFocus: () -> Unit,
     onOpen: () -> Unit,
     onRetry: () -> Unit,
-    onRemove: () -> Unit,
+    onMenu: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -137,7 +175,7 @@ private fun Tile(
                         event.nativeKeyEvent.repeatCount == 0 -> press.state = OkPress.DOWN
                         press.state == OkPress.DOWN -> {
                             press.state = OkPress.CONSUMED
-                            onRemove()
+                            onMenu()
                         }
                     }
                     KeyEventType.KeyUp -> {
@@ -197,7 +235,28 @@ private fun Tile(
     }
 }
 
-/** Appui court = plein écran, appui long = retirer : on tranche au relâchement. */
+/** Menu d'une tuile (appui long sur OK) : la remplacer par une autre chaîne, ou la retirer. */
+@Composable
+private fun TileMenu(name: String, onReplace: () -> Unit, onRemove: () -> Unit, onDismiss: () -> Unit) {
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestWhenAttached() }
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .background(LumenColors.Surface, RoundedCornerShape(16.dp))
+                .padding(28.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            Text(name, style = MaterialTheme.typography.headlineSmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Button(onClick = onReplace, modifier = Modifier.focusRequester(focus)) { Text(stringResource(R.string.multi_replace)) }
+                Button(onClick = onRemove) { Text(stringResource(R.string.multi_remove)) }
+            }
+        }
+    }
+}
+
+/** Appui court = plein écran, appui long = menu de la tuile : on tranche au relâchement. */
 private class OkPress {
     var state = IDLE
 

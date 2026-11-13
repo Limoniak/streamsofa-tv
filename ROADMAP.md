@@ -9,13 +9,6 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 
 - [ ] 🟡 More interface languages (English and French today); translations welcome.
 
-## Watching
-
-- [ ] 🟡 "Stream ended" screen: offer the raid target, the next followed live, or the last broadcast.
-- [ ] 🟡 Playback speed and chapters (game changes) for past broadcasts. ⚠️
-- [ ] 🟡 Picture-in-picture on devices that support it, to browse while watching.
-- [ ] 🟡 Multi-view: swap a tile for another channel without leaving the layout.
-
 ## Chat
 
 - [ ] 🟡 Chat appearance settings: text size, panel width, transparent overlay on top of the video.

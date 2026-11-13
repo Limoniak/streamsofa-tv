@@ -88,6 +88,7 @@ private fun Modifier.actionRow() = offset(x = -FOCUS_ROOM)
 fun PlayerRoute(
     onMultiView: (logins: List<String>) -> Unit = {},
     onOpenChannel: (login: String) -> Unit = {},
+    onOpenVod: (id: String) -> Unit = {},
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -108,6 +109,11 @@ fun PlayerRoute(
     val rootFocus = remember { FocusRequester() }
     val controlsFocus = remember { FocusRequester() }
     val writeFocus = remember { FocusRequester() }
+    val endedFocus = remember { FocusRequester() }
+    val activity = currentActivity()
+    val canPip = remember(activity) { activity?.supportsPip() == true }
+    val inPip = rememberInPip()
+    val ended = state.ended.takeIf { state.status is PlayerStatus.Failed }
     var writeFocused by remember { mutableStateOf(false) }
     val canWrite = canSend && state.stream != null
 
@@ -115,8 +121,9 @@ fun PlayerRoute(
     LaunchedEffect(state.login) { if (overlay == Overlay.Hidden) overlay = Overlay.Info }
     // Le focus ne bouge qu'au changement de panneau : chaque touche relance le minuteur, pas le focus.
     LaunchedEffect(overlay) {
-        if (overlay == Overlay.Actions) controlsFocus.requestWhenAttached() else if (!listing) rootFocus.requestWhenAttached()
+        if (overlay == Overlay.Actions) controlsFocus.requestWhenAttached() else if (!listing && ended == null) rootFocus.requestWhenAttached()
     }
+    LaunchedEffect(ended) { if (ended != null) endedFocus.requestWhenAttached() }
     LaunchedEffect(overlay, interactions) {
         if (overlay != Overlay.Hidden) {
             delay(OVERLAY_TIMEOUT_MS)
@@ -143,6 +150,8 @@ fun PlayerRoute(
                     viewModel.followRaid()
                     return@onKeyEvent true
                 }
+                // Écran de fin : ◀ ▶ passent d'une suite à l'autre, ▲ ▼ zappent toujours.
+                if (ended != null && (event.key == Key.DirectionLeft || event.key == Key.DirectionRight)) return@onKeyEvent false
                 when (event.key) {
                     Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> {
                         if (state.status is PlayerStatus.Failed || state.sleeping) viewModel.retry() else overlay = Overlay.Actions
@@ -197,6 +206,16 @@ fun PlayerRoute(
                 onAction = viewModel::retry,
                 modifier = Modifier.align(Alignment.Center),
             )
+            ended != null -> EndedPanel(
+                name = state.stream?.displayName ?: state.login,
+                ended = ended,
+                focus = endedFocus,
+                onRaid = { viewModel.open(it) },
+                onNext = { viewModel.open(it) },
+                onVideo = onOpenVod,
+                onRetry = viewModel::retry,
+                modifier = Modifier.align(Alignment.Center),
+            )
             status is PlayerStatus.Failed -> MessageState(
                 text = stringResource(status.error.messageRes),
                 actionLabel = stringResource(DataR.string.retry),
@@ -208,7 +227,7 @@ fun PlayerRoute(
 
         state.raid?.let { RaidBanner(it, Modifier.align(Alignment.TopStart)) }
 
-        if (overlay != Overlay.Hidden) {
+        if (overlay != Overlay.Hidden && !inPip) {
             InfoPanel(
                 state = state,
                 showActions = overlay == Overlay.Actions,
@@ -229,6 +248,14 @@ fun PlayerRoute(
                 onStats = { showStats = !showStats },
                 onAudioOnly = viewModel::toggleAudioOnly,
                 onSleep = viewModel::cycleSleepTimer,
+                onPip = if (canPip) {
+                    {
+                        overlay = Overlay.Hidden
+                        activity?.enterPip()
+                    }
+                } else {
+                    null
+                },
                 modifier = Modifier.align(Alignment.BottomStart),
             )
         }
@@ -245,7 +272,7 @@ fun PlayerRoute(
             )
         }
       }
-        if (chatVisible) {
+        if (chatVisible && !inPip) {
             Column(Modifier.width(340.dp).fillMaxHeight().background(LumenColors.Background)) {
                 ChatPanel(chat, Modifier.weight(1f).fillMaxWidth(), mention = myLogin, timestamps = viewModel.chatTimestamps)
                 if (canWrite) {
@@ -307,6 +334,7 @@ private fun InfoPanel(
     onStats: () -> Unit,
     onAudioOnly: () -> Unit,
     onSleep: () -> Unit,
+    onPip: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     var showQuality by remember(showActions) { mutableStateOf(false) }
@@ -367,6 +395,7 @@ private fun InfoPanel(
                     )
                 }
                 if (onMulti != null) Button(onClick = onMulti) { Text(stringResource(R.string.player_multi)) }
+                if (onPip != null && !state.audioOnly) Button(onClick = onPip) { Text(stringResource(R.string.player_pip)) }
                 Button(onClick = onChannel) { Text(stringResource(R.string.player_channel)) }
                 if (!state.audioOnly) {
                     Button(onClick = onStats) {
@@ -460,5 +489,55 @@ private fun RaidBanner(raid: Raid, modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.bodyMedium,
             color = LumenColors.OnSurfaceMuted,
         )
+    }
+}
+
+/** Live terminé : le raid, le live suivant et la dernière rediffusion, plutôt qu'un cul-de-sac. */
+@Composable
+private fun EndedPanel(
+    name: String,
+    ended: Ended,
+    focus: FocusRequester,
+    onRaid: (String) -> Unit,
+    onNext: (String) -> Unit,
+    onVideo: (String) -> Unit,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .background(LumenColors.Background.copy(alpha = 0.92f), RoundedCornerShape(24.dp))
+            .padding(40.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        Text(stringResource(R.string.player_ended, name), style = MaterialTheme.typography.headlineSmall)
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            // Le premier bouton affiché prend le focus.
+            val first = when {
+                ended.raid != null -> 0
+                ended.next != null -> 1
+                ended.lastVideo != null -> 2
+                else -> 3
+            }
+            fun focusIf(index: Int) = if (index == first) Modifier.focusRequester(focus) else Modifier
+            ended.raid?.let { raid ->
+                Button(onClick = { onRaid(raid.toLogin) }, modifier = focusIf(0)) {
+                    Text(stringResource(R.string.player_ended_raid, raid.toName))
+                }
+            }
+            ended.next?.let { next ->
+                Button(onClick = { onNext(next.login) }, modifier = focusIf(1)) {
+                    Text(stringResource(R.string.player_ended_next, next.displayName))
+                }
+            }
+            ended.lastVideo?.let { video ->
+                Button(onClick = { onVideo(video.id) }, modifier = focusIf(2)) {
+                    Text(stringResource(R.string.player_ended_video), maxLines = 1)
+                }
+            }
+            Button(onClick = onRetry, modifier = focusIf(3)) { Text(stringResource(DataR.string.retry)) }
+        }
+        Text(stringResource(R.string.player_ended_hint), style = MaterialTheme.typography.bodySmall, color = LumenColors.OnSurfaceMuted)
     }
 }

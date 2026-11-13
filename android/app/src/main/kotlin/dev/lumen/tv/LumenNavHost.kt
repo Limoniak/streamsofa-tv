@@ -181,6 +181,7 @@ fun LumenNavHost(session: SessionViewModel = hiltViewModel()) {
                 PlayerRoute(
                     onMultiView = { navController.navigate(Routes.multi(it)) },
                     onOpenChannel = navController::openChannel,
+                    onOpenVod = { navController.navigate(Routes.vod(it)) },
                 )
             }
             composable(Routes.MULTI) {

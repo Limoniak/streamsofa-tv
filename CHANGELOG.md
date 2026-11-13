@@ -22,12 +22,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Beta versions: an option to also be offered pre-releases (Settings > Updates).
 - Project website, with a short install link to type in Downloader on the TV: `limoniak.github.io/streamsofa-tv/get`.
 - Each release also ships `streamsofa.apk` (universal), always reachable at `releases/latest/download/streamsofa.apk`.
+- Past broadcasts: Up changes the playback speed (1×, 1.25×, 1.5×, 2×, 0.75×); chapters (game changes) are marked on the progress bar and the current one is named.
+- When a live stream ends, or a channel is offline, the player offers the raid target, the next live channel and the channel's last broadcast.
+- Multi-view: a long press on OK lets you replace a tile with another channel, without stopping the other tiles.
+- Picture-in-picture in the live player's action bar, on devices that support it.
 
 ### Changed
 - Up / Down on a channel outside the zapping list now jumps to the first channel of the list.
+- Multi-view: a long press on OK opens a menu (replace or remove) instead of removing the tile at once.
 
 ### Fixed
 - Left in the empty search field now leaves it, instead of being stuck there.
+- Multi-view channel picker: the Start and Cancel buttons could be pushed off screen by a long list.
 
 ## [0.2.0] - 2026-11-13
 

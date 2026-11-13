@@ -60,6 +60,11 @@ pub fn video() -> String {
 }
 
 /// Commentaires autour d'un instant de la VOD (une fenêtre de quelques minutes).
+/// Chapitres (changements de jeu) d'une VOD, comme le bouton « Chapitres » du lecteur web.
+pub const VIDEO_CHAPTERS: &str = "query VideoChapters($id: ID!) { video(id: $id) { \
+    moments(momentRequestType: VIDEO_CHAPTER_MARKERS, types: [GAME_CHANGE]) { edges { node { \
+    positionMilliseconds description details { ... on GameChangeMomentDetails { game { displayName } } } } } } } }";
+
 pub const VOD_COMMENTS: &str = "query VodComments($id: ID!, $offset: Int) { video(id: $id) { id \
     comments(contentOffsetSeconds: $offset) { edges { node { id contentOffsetSeconds \
     commenter { id login displayName } message { userColor fragments { text emote { emoteID } } } } } } } }";

@@ -106,6 +106,28 @@ class MultiViewModel @Inject constructor(
         return true
     }
 
+    /** Chaînes proposées pour remplacer une tuile : les suivis en live (sinon les plus regardés), hors celles affichées. */
+    suspend fun replacements(): List<LiveStream> {
+        val shown = slots.map { it.login }.toSet()
+        val lives = catalog.followed.value.ifEmpty { loadCatching { catalog.topStreams(null).items }.getOrDefault(emptyList()) }
+        return lives.filter { it.login !in shown }
+    }
+
+    /** Remplace la tuile [old] par [new], à la même place : les autres tuiles continuent sans coupure. */
+    fun replace(old: String, new: String) {
+        val index = slots.indexOfFirst { it.login == old }.takeIf { it >= 0 } ?: return
+        if (slots.any { it.login == new }) return
+        slots[index].run {
+            job?.cancel()
+            player.release()
+        }
+        val slot = newSlot(new)
+        slots[index] = slot
+        _state.update { s -> s.copy(tiles = s.tiles.mapIndexed { i, tile -> if (i == index) TileUiState(new) else tile }) }
+        load(slot)
+        applyVolumes()
+    }
+
     fun retry(login: String) {
         slots.firstOrNull { it.login == login }?.let {
             it.retried = false

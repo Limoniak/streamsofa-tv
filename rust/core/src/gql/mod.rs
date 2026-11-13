@@ -13,7 +13,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::catalog::{
-    box_art_template, parse_utc, thumbnail_template, video_thumbnail, Category, CategoryPage, Channel, ChannelAbout, Clip, ClipQuality,
+    box_art_template, parse_utc, thumbnail_template, video_thumbnail, Category, CategoryPage, Channel, ChannelAbout, Chapter, Clip, ClipQuality,
     LiveStream, Panel, ReplayComment, ScheduleSegment, SearchChannel, SearchResults, StreamPage, Video,
 };
 use crate::hls::url_query;
@@ -158,6 +158,51 @@ impl GqlClient {
         }
         let data: Data = self.run("Video", &queries::video(), json!({ "id": id })).await?;
         Ok(data.video.map(Video::from))
+    }
+
+    /// Chapitres d'une VOD, dans l'ordre ; vide si Twitch n'en a pas.
+    pub async fn video_chapters(&self, id: &str) -> Result<Vec<Chapter>, CoreError> {
+        #[derive(Deserialize)]
+        struct GGame {
+            #[serde(default, rename = "displayName")]
+            display_name: String,
+        }
+        #[derive(Deserialize)]
+        struct GDetails {
+            game: Option<GGame>,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct GMoment {
+            #[serde(default)]
+            position_milliseconds: u64,
+            #[serde(default)]
+            description: String,
+            details: Option<GDetails>,
+        }
+        #[derive(Deserialize)]
+        struct GVideo {
+            moments: Option<Connection<GMoment>>,
+        }
+        #[derive(Deserialize)]
+        struct Data {
+            video: Option<GVideo>,
+        }
+        let data: Data = self.run("VideoChapters", queries::VIDEO_CHAPTERS, json!({ "id": id })).await?;
+        let mut chapters: Vec<Chapter> = data
+            .video
+            .and_then(|v| v.moments)
+            .map(|m| m.edges)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|e| {
+                let m = e.node;
+                let game = m.details.and_then(|d| d.game).map(|g| g.display_name).filter(|n| !n.is_empty());
+                Chapter { position_ms: m.position_milliseconds, title: game.unwrap_or(m.description) }
+            })
+            .collect();
+        chapters.sort_by_key(|c| c.position_ms);
+        Ok(chapters)
     }
 
     /// Chat d'une VOD à partir de `offset_s` ; vide si la VOD n'a pas (ou plus) de chat.

@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -61,7 +63,8 @@ private const val VOD_OVERLAY_TIMEOUT_MS = 4_000L
 
 /**
  * Lecteur de VOD. OK met en pause ou reprend, gauche/droite recule ou avance de 10 s
- * (1 min en maintenant), bas affiche le replay du chat. La reprise est enregistrée en continu.
+ * (1 min en maintenant), haut change la vitesse, bas affiche le replay du chat.
+ * Les chapitres (changements de jeu) sont marqués sur la barre. La reprise est enregistrée en continu.
  */
 @OptIn(UnstableApi::class)
 @Composable
@@ -109,7 +112,10 @@ fun VodPlayerRoute(viewModel: VodViewModel = hiltViewModel()) {
                         chatVisible = !chatVisible
                         true
                     }
-                    Key.DirectionUp -> true
+                    Key.DirectionUp -> {
+                        viewModel.cycleSpeed()
+                        true
+                    }
                     else -> false
                 }
                 if (handled) {
@@ -168,22 +174,42 @@ private fun VodInfo(state: VodUiState, clock: VodClock, modifier: Modifier = Mod
     ) {
         if (video != null) {
             Text(video.title, style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(video.channelName, style = MaterialTheme.typography.titleSmall, color = LumenColors.Accent)
+            val chapter = state.chapters.takeIf { it.size > 1 }?.at(clock.positionMs)
+            Text(
+                text = listOfNotNull(video.channelName, chapter?.title).joinToString(" · "),
+                style = MaterialTheme.typography.titleSmall,
+                color = LumenColors.Accent,
+            )
         }
         val progress = if (durationMs > 0) (clock.positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
-        Box(
+        BoxWithConstraints(
             Modifier
                 .fillMaxWidth()
                 .height(6.dp)
                 .background(LumenColors.Skeleton, RoundedCornerShape(3.dp)),
         ) {
             Box(Modifier.fillMaxWidth(progress).fillMaxHeight().background(LumenColors.Accent, RoundedCornerShape(3.dp)))
+            // Début de chaque chapitre (sauf le premier, à 0).
+            if (durationMs > 0) {
+                state.chapters.filter { it.positionMs > 0u }.forEach { chapter ->
+                    val x = maxWidth * (chapter.positionMs.toFloat() / durationMs).coerceIn(0f, 1f)
+                    Box(Modifier.offset(x = x - 1.5.dp).width(3.dp).fillMaxHeight().background(LumenColors.OnSurface))
+                }
+            }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = "${formatDuration(clock.positionMs / 1000)} / ${formatDuration(durationMs / 1000)}",
                 style = MaterialTheme.typography.titleMedium,
             )
+            if (state.speed != 1f) {
+                Text(
+                    text = stringResource(R.string.vod_speed, state.speed.toString().removeSuffix(".0")),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = LumenColors.Accent,
+                    modifier = Modifier.padding(start = 24.dp),
+                )
+            }
             if (clock.paused) {
                 Text(
                     text = stringResource(R.string.vod_paused),
