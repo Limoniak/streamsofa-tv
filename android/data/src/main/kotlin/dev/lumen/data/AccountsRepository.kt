@@ -35,6 +35,15 @@ interface AccountsRepository {
     suspend fun setActive(accountId: String?)
 
     suspend fun remove(accountId: String)
+
+    // Profils (`null` = l'invité) : PIN à 4 chiffres et mode enfants.
+    suspend fun setPin(profileId: String?, pin: String?)
+
+    suspend fun checkPin(profileId: String?, pin: String): Boolean
+
+    suspend fun setKids(profileId: String?, kids: Boolean)
+
+    suspend fun resetGuest()
 }
 
 @Singleton
@@ -53,7 +62,7 @@ internal class RustAccountsRepository @Inject constructor(
                 throw e
             } catch (e: Throwable) {
                 // Cœur indisponible (.so absent, base illisible) : l'app reste utilisable en invité.
-                _snapshot.value = AccountsSnapshot(emptyList(), null)
+                _snapshot.value = AccountsSnapshot(emptyList(), null, emptyList())
                 return@launch
             }
             core.setAccountsListener(object : AccountsListener {
@@ -80,6 +89,21 @@ internal class RustAccountsRepository @Inject constructor(
     }
 
     override suspend fun remove(accountId: String) = coreHolder.get().removeAccount(accountId)
+
+    // PBKDF2 et SQLite : hors du thread principal.
+    override suspend fun setPin(profileId: String?, pin: String?) = withContext(Dispatchers.IO) {
+        coreHolder.get().setProfilePin(profileId, pin)
+    }
+
+    override suspend fun checkPin(profileId: String?, pin: String) = withContext(Dispatchers.IO) {
+        coreHolder.get().checkProfilePin(profileId, pin)
+    }
+
+    override suspend fun setKids(profileId: String?, kids: Boolean) = withContext(Dispatchers.IO) {
+        coreHolder.get().setKidsProfile(profileId, kids)
+    }
+
+    override suspend fun resetGuest() = withContext(Dispatchers.IO) { coreHolder.get().resetGuestProfile() }
 }
 
 @Module

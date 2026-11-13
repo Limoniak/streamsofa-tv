@@ -51,6 +51,7 @@ fun Throwable.toLoadError(): LoadError = when (this) {
 /** Raison donnée par Twitch quand elle refuse la lecture, traduite quand on la connaît. */
 fun Throwable.unavailableDetail(context: Context): String? = when (val detail = (this as? CoreException.Unavailable)?.detail) {
     "Manifest is restricted" -> context.getString(R.string.error_subscribers_only)
+    "kids_profile" -> context.getString(R.string.error_kids_profile)
     else -> detail?.ifEmpty { null }
 }
 

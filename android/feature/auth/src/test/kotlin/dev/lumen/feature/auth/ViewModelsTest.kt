@@ -6,6 +6,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -13,6 +14,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -26,6 +28,20 @@ class ViewModelsTest {
     @After fun tearDown() = Dispatchers.resetMain()
 
     // --- Profils ---------------------------------------------------------------------------
+
+    @Test
+    fun `only a parent pin lifts kids mode`() = runTest(dispatcher) {
+        val repo = FakeAccountsRepository(listOf(account("1"), account("2")))
+        val vm = ProfilesViewModel(repo)
+        backgroundScope.launch { vm.snapshot.collect {} }
+        vm.setPin("1", "1234")
+        vm.setPin("2", "5555")
+        vm.setKids("2", true)
+        advanceUntilIdle()
+        assertTrue(vm.checkParentPin("1234"))
+        assertFalse("le PIN du profil enfant ne compte pas", vm.checkParentPin("5555"))
+        assertTrue(vm.checkPin("2", "5555") && !vm.checkPin("2", "1234"))
+    }
 
     @Test
     fun `select healthy account enters`() = runTest(dispatcher) {

@@ -122,7 +122,9 @@ class PlayerViewModel @Inject constructor(
     accounts: AccountsRepository,
     private val settings: SettingsRepository,
 ) : ViewModel() {
-    val chatByDefault: Boolean get() = settings.state.value.chatByDefault
+    /** Profil enfants : ni chat, ni connexion IRC. */
+    val chatAllowed: Boolean get() = !settings.state.value.kids
+    val chatByDefault: Boolean get() = settings.state.value.chatByDefault && chatAllowed
     val chatTimestamps: Boolean get() = settings.state.value.chatTimestamps
     val chatLook: ChatLook get() = settings.state.value.chatLook()
     /** Une fois une qualité choisie à la main (Auto compris), le réglage par défaut ne s'applique plus. */
@@ -318,7 +320,7 @@ class PlayerViewModel @Inject constructor(
 
     /** Une relance du flux (jeton expiré) ne doit pas couper le chat : on ne rejoint qu'au changement de chaîne. */
     private fun joinChat(login: String) {
-        if (login == chatLogin) return
+        if (login == chatLogin || !chatAllowed) return
         chatLogin = login
         chatJob?.cancel()
         _chat.value = ChatUiState()

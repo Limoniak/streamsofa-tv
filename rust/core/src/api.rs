@@ -19,6 +19,7 @@ use crate::helix::{HelixClient, HelixStream};
 use crate::hls::{self, Playback};
 use crate::http;
 use crate::secret::Secret;
+use crate::store::{GLOBAL_SETTINGS, KIDS_PROFILE, PIN_HASH};
 use crate::store::Db;
 use crate::update::{self, AppUpdate};
 
@@ -308,7 +309,36 @@ impl Core {
 impl Core {
     /// Les reprises de VOD sont propres à chaque profil, invité compris.
     fn progress_scope(&self) -> Result<String, CoreError> {
-        Ok(self.accounts.db.active_account_id()?.unwrap_or_else(|| "guest".into()))
+        Ok(self.accounts.db.active_account_id()?.unwrap_or_else(|| crate::accounts::GUEST.into()))
+    }
+
+    fn kids(&self) -> Result<bool, CoreError> {
+        Ok(self.accounts.db.settings(&self.progress_scope()?)?.contains_key(KIDS_PROFILE))
+    }
+
+    /// Mode enfants : ne garde que les éléments des chaînes tout public ; sinon `items` tel quel.
+    async fn kids_filter<T>(&self, mut items: Vec<T>, login: impl Fn(&T) -> &str) -> Result<Vec<T>, CoreError> {
+        if items.is_empty() || !self.kids()? {
+            return Ok(items);
+        }
+        let logins: Vec<String> = items.iter().map(|i| login(i).to_lowercase()).collect();
+        // Échec réseau : rien n'est montré plutôt que tout.
+        let safe = self.gql.safe_channels(&logins, false).await.unwrap_or_default();
+        items.retain(|i| safe.contains(&login(i).to_lowercase()));
+        Ok(items)
+    }
+
+    /// Refuse la lecture d'une chaîne non tout public en mode enfants.
+    async fn kids_guard(&self, key: &str, by_id: bool) -> Result<(), CoreError> {
+        if self.kids()? && !self.gql.safe_channels(&[key.to_owned()], by_id).await.unwrap_or_default().contains(key) {
+            return Err(CoreError::Unavailable { detail: KIDS_REFUSAL.into() });
+        }
+        Ok(())
+    }
+
+    async fn kids_page(&self, mut page: StreamPage) -> Result<StreamPage, CoreError> {
+        page.items = self.kids_filter(page.items, |s| &s.login).await?;
+        Ok(page)
     }
 
     fn with_progress(&self, videos: &mut [Video]) -> Result<(), CoreError> {
@@ -436,7 +466,7 @@ impl Core {
                 Ok(live)
             })
             .await?;
-        result.ok_or(CoreError::NotSignedIn)
+        self.kids_filter(result.ok_or(CoreError::NotSignedIn)?, |s| &s.login).await
     }
 
     pub async fn top_streams(&self, cursor: Option<String>) -> Result<StreamPage, CoreError> {
@@ -448,10 +478,11 @@ impl Core {
                 Ok(StreamPage { items: self.with_avatars(&token, page.data).await, cursor: next })
             })
             .await?;
-        match helix {
-            Some(page) => Ok(page),
-            None => self.gql.top_streams(cursor.as_deref(), PAGE_SIZE).await,
-        }
+        let page = match helix {
+            Some(page) => page,
+            None => self.gql.top_streams(cursor.as_deref(), PAGE_SIZE).await?,
+        };
+        self.kids_page(page).await
     }
 
     /// `language` : code ISO 639-1 (`fr`) pour ne garder que cette langue, sinon toutes.
@@ -469,10 +500,11 @@ impl Core {
                 Ok(StreamPage { items: self.with_avatars(&token, page.data).await, cursor: next })
             })
             .await?;
-        match helix {
-            Some(page) => Ok(page),
-            None => self.gql.category_streams(&category_id, lang, cursor.as_deref(), PAGE_SIZE).await,
-        }
+        let page = match helix {
+            Some(page) => page,
+            None => self.gql.category_streams(&category_id, lang, cursor.as_deref(), PAGE_SIZE).await?,
+        };
+        self.kids_page(page).await
     }
 
     pub async fn top_categories(&self, cursor: Option<String>) -> Result<CategoryPage, CoreError> {
@@ -512,7 +544,7 @@ impl Core {
                 Ok(self.with_avatars(&token, picked).await)
             })
             .await?;
-        Ok(result.unwrap_or_default())
+        self.kids_filter(result.unwrap_or_default(), |s| &s.login).await
     }
 
     /// Chaînes et catégories correspondant à `query`.
@@ -532,14 +564,16 @@ impl Core {
                 Ok(SearchResults { channels, categories: categories.into_iter().map(Category::from).collect() })
             })
             .await?;
-        match helix {
-            Some(results) => Ok(results),
+        let mut results = match helix {
+            Some(results) => results,
             None => {
                 let mut results = self.gql.search(&query).await?;
                 results.channels.sort_by_key(|c| !c.live);
-                Ok(results)
+                results
             }
-        }
+        };
+        results.channels = self.kids_filter(results.channels, |c| &c.login).await?;
+        Ok(results)
     }
 
     /// Infos du live d'une chaîne (titre, catégorie, spectateurs) ; `None` si hors ligne.
@@ -551,10 +585,11 @@ impl Core {
                 Ok(self.with_avatars(&token, vec![stream]).await.into_iter().next())
             })
             .await?;
-        match helix {
-            Some(stream) => Ok(stream),
-            None => self.gql.channel_stream(&login).await,
-        }
+        let stream = match helix {
+            Some(stream) => stream,
+            None => self.gql.channel_stream(&login).await?,
+        };
+        Ok(self.kids_filter(stream.into_iter().collect(), |s| &s.login).await?.pop())
     }
 
     // --- Chaînes et VOD -------------------------------------------------------------------
@@ -615,16 +650,17 @@ impl Core {
 
     /// Clips les plus vus de la semaine, ou de tous les temps si la semaine n'en a pas.
     pub async fn channel_clips(&self, login: String) -> Result<Vec<Clip>, CoreError> {
-        let week = self.gql.clips(&login, false, PAGE_SIZE).await?;
-        if !week.is_empty() {
-            return Ok(week);
+        let mut clips = self.gql.clips(&login, false, PAGE_SIZE).await?;
+        if clips.is_empty() {
+            clips = self.gql.clips(&login, true, PAGE_SIZE).await?;
         }
-        self.gql.clips(&login, true, PAGE_SIZE).await
+        self.kids_filter(clips, |c| &c.channel_login).await
     }
 
     /// Clips les plus vus de la semaine dans une catégorie.
     pub async fn category_clips(&self, category_id: String, language: Option<String>) -> Result<Vec<Clip>, CoreError> {
-        self.gql.category_clips(&category_id, language.as_deref().filter(|l| !l.is_empty()), PAGE_SIZE).await
+        let clips = self.gql.category_clips(&category_id, language.as_deref().filter(|l| !l.is_empty()), PAGE_SIZE).await?;
+        self.kids_filter(clips, |c| &c.channel_login).await
     }
 
     /// Clips de la semaine des chaînes suivies : celles en live d'abord, puis les derniers suivis,
@@ -645,11 +681,14 @@ impl Core {
         let mut clips: Vec<Clip> = lists.into_iter().flatten().flatten().collect();
         clips.sort_by(|a, b| b.views.cmp(&a.views));
         clips.truncate(PAGE_SIZE as usize);
-        Ok(clips)
+        self.kids_filter(clips, |c| &c.channel_login).await
     }
 
     /// VOD d'une chaîne, des plus récentes aux plus anciennes, avec la reprise du profil actif.
     pub async fn channel_videos(&self, channel_id: String, cursor: Option<String>) -> Result<VideoPage, CoreError> {
+        if self.kids_guard(&channel_id, true).await.is_err() {
+            return Ok(VideoPage { items: Vec::new(), cursor: None });
+        }
         let (after, channel) = (cursor.as_deref(), channel_id.as_str());
         let helix = self
             .with_helix(|token: Secret, _| async move {
@@ -688,6 +727,7 @@ impl Core {
     /// Playlist d'un live et ses qualités. Lecture toujours anonyme (jeton GQL du site web) :
     /// les pubs de Twitch sont diffusées telles quelles et Turbo ne s'applique pas.
     pub async fn live_playback(&self, login: String) -> Result<Playback, CoreError> {
+        self.kids_guard(&login.to_lowercase(), false).await?;
         let token = self.gql.live_playback_token(&login).await?.ok_or(CoreError::Offline)?;
         if let Some(auth) = &token.authorization {
             if auth.is_forbidden {
@@ -702,6 +742,8 @@ impl Core {
 
     /// Playlist d'une VOD, en anonyme comme le live : une VOD réservée aux abonnés reste refusée.
     /// Fichiers MP4 d'un clip, du meilleur au plus bas ; vide si le clip n'existe plus.
+    // shortcut: pas de contrôle enfants ici, les clips n'arrivent que par des listes déjà filtrées ;
+    // à revoir si un lien externe vers un clip est un jour accepté.
     pub async fn clip_playback(&self, slug: String) -> Result<Vec<ClipQuality>, CoreError> {
         self.gql.clip_playback(&slug).await
     }
@@ -712,6 +754,10 @@ impl Core {
             return Err(CoreError::Unavailable { detail: "identifiant de VOD invalide".into() });
         }
         let missing = || CoreError::Unavailable { detail: "VOD introuvable".into() };
+        if self.kids()? {
+            let video = self.video(video_id.clone()).await?.ok_or_else(missing)?;
+            self.kids_guard(&video.channel_id, true).await?;
+        }
         let token = self.gql.vod_playback_token(&video_id).await?.ok_or_else(missing)?;
         let nonce = u32::from_str_radix(&random_hex(6), 16).unwrap_or(0);
         let master_url = hls::vod_master_url(&self.usher, &video_id, &token.value, &token.signature, nonce);
@@ -812,13 +858,42 @@ impl Core {
 /// Préférences (portée `global`) et mise à jour de l'app.
 #[uniffi::export(async_runtime = "tokio")]
 impl Core {
-    /// Toutes les préférences enregistrées ; une clé absente prend la valeur par défaut de l'app.
+    /// Préférences de l'appareil et du profil actif (`kids_profile` compris, jamais l'empreinte du PIN) ;
+    /// une clé absente prend la valeur par défaut de l'app.
     pub fn settings(&self) -> Result<HashMap<String, String>, CoreError> {
-        self.accounts.db.settings(SETTINGS_SCOPE)
+        let mut all = self.accounts.db.settings(SETTINGS_SCOPE)?;
+        all.retain(|k, _| GLOBAL_SETTINGS.contains(&k.as_str()));
+        all.extend(self.accounts.db.settings(&self.progress_scope()?)?);
+        all.remove(PIN_HASH);
+        Ok(all)
     }
 
+    /// Les préférences de l'appareil sont communes, les autres propres au profil actif.
     pub fn set_setting(&self, key: String, value: String) -> Result<(), CoreError> {
-        self.accounts.db.set_setting(SETTINGS_SCOPE, &key, &value)
+        if key == PIN_HASH || key == KIDS_PROFILE {
+            return Err(CoreError::Internal { reason: format!("{key} passe par les fonctions de profil") });
+        }
+        let scope = if GLOBAL_SETTINGS.contains(&key.as_str()) { SETTINGS_SCOPE.to_owned() } else { self.progress_scope()? };
+        self.accounts.db.set_setting(&scope, &key, &value)
+    }
+
+    // --- PIN et mode enfants (`profile_id` `None` = l'invité) ---------------------------
+
+    /// `pin` : 4 chiffres, `None` pour retirer le PIN.
+    pub fn set_profile_pin(&self, profile_id: Option<String>, pin: Option<String>) -> Result<(), CoreError> {
+        self.accounts.set_profile_pin(profile_id.as_deref(), pin.as_deref())
+    }
+
+    pub fn check_profile_pin(&self, profile_id: Option<String>, pin: String) -> Result<bool, CoreError> {
+        self.accounts.check_profile_pin(profile_id.as_deref(), &pin)
+    }
+
+    pub fn set_kids_profile(&self, profile_id: Option<String>, kids: bool) -> Result<(), CoreError> {
+        self.accounts.set_kids_profile(profile_id.as_deref(), kids)
+    }
+
+    pub fn reset_guest_profile(&self) -> Result<(), CoreError> {
+        self.accounts.reset_guest_profile()
     }
 
     /// Release GitHub plus récente que `current_version`, avec l'APK de la première ABI de `abis`.
@@ -833,6 +908,8 @@ impl Core {
 }
 
 const SETTINGS_SCOPE: &str = "global";
+/// `detail` de `Unavailable` quand le mode enfants refuse une lecture : Kotlin le traduit.
+const KIDS_REFUSAL: &str = "kids_profile";
 /// Durées de `meta_cache` : les badges et émotes globaux bougent rarement, ceux d'une chaîne un peu plus.
 const DAY_S: i64 = 24 * 3600;
 const HOUR_S: i64 = 3600;

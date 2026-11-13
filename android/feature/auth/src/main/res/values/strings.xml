@@ -6,7 +6,7 @@
     <string name="profiles_guest_hint">No sign-in, read-only chat</string>
     <string name="profiles_active">Active</string>
     <string name="profiles_needs_reauth">Sign-in required</string>
-    <string name="profiles_remove_hint">Long press a profile to remove it from this device.</string>
+    <string name="profiles_remove_hint">Long press a profile for its PIN, kids mode or to remove it.</string>
     <string name="profiles_remove_title">Remove %1$s from this device?</string>
     <string name="profiles_remove_body">The Twitch account is not deleted. You can sign in again at any time.</string>
     <string name="profiles_remove_confirm">Remove</string>
@@ -27,4 +27,22 @@
     <string name="login_error_storage">The device\'s secure storage refused to save the account.</string>
     <string name="login_error_other">Sign-in failed. Try again in a moment.</string>
     <string name="login_note">Playback stays anonymous: Turbo and subscription perks don\'t apply.</string>
+    <string name="pin_enter">PIN for %1$s</string>
+    <string name="pin_new">New PIN for %1$s</string>
+    <string name="pin_parent">Parent PIN</string>
+    <string name="pin_parent_hint">The PIN of a profile that is not a kids profile.</string>
+    <string name="pin_hint">▲ ▼ change the digit, ◀ ▶ move, OK confirms. Number keys work too.</string>
+    <string name="pin_wrong">Wrong PIN. Try again.</string>
+    <string name="profiles_pin_set">Set a PIN</string>
+    <string name="profiles_pin_change">Change the PIN</string>
+    <string name="profiles_pin_remove">Remove the PIN</string>
+    <string name="profiles_kids_on">Make it a kids profile</string>
+    <string name="profiles_kids_off">Turn off kids profile</string>
+    <string name="profiles_kids_body">Kids profile: no chat, and no channels marked mature or carrying content warnings.</string>
+    <string name="profiles_kids_no_parent">Set a PIN on your own profile: then only that PIN can turn kids mode off.</string>
+    <string name="profiles_kids_badge">Kids</string>
+    <string name="profiles_pin_badge">PIN</string>
+    <string name="profiles_reset_guest">Reset the guest profile</string>
+    <string name="profiles_reset_guest_title">Reset the guest profile?</string>
+    <string name="profiles_reset_guest_body">Its settings, resume points, PIN and kids mode are erased.</string>
 </resources>

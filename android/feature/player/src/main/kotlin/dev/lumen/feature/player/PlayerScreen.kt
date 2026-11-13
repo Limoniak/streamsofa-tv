@@ -206,7 +206,7 @@ fun PlayerRoute(
                     }
                     Key.DirectionRight -> {
                         // Chat affiché et compte connecté : ▶ va sur « Écrire » ; un second ▶ masque le chat.
-                        if (chatVisible && canWrite) writeFocus.requestFocus() else chatVisible = !chatVisible
+                        if (chatVisible && canWrite) writeFocus.requestFocus() else if (viewModel.chatAllowed) chatVisible = !chatVisible
                         true
                     }
                     else -> false
@@ -272,7 +272,7 @@ fun PlayerRoute(
                 showActions = overlay == Overlay.Actions,
                 controlsFocus = controlsFocus,
                 chatVisible = chatVisible,
-                onToggleChat = { chatVisible = !chatVisible },
+                onToggleChat = { chatVisible = !chatVisible }.takeIf { viewModel.chatAllowed },
                 onQuality = viewModel::selectQuality,
                 onMulti = if (viewModel.maxTiles > 1) {
                     {
@@ -347,7 +347,8 @@ private fun InfoPanel(
     showActions: Boolean,
     controlsFocus: FocusRequester,
     chatVisible: Boolean,
-    onToggleChat: () -> Unit,
+    /** `null` : pas de chat (profil enfants). */
+    onToggleChat: (() -> Unit)?,
     onQuality: (String?) -> Unit,
     onMulti: (() -> Unit)?,
     onChannel: () -> Unit,
@@ -395,9 +396,12 @@ private fun InfoPanel(
             }
         }
         if (showActions) {
-            Row(Modifier.actionRow(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = onToggleChat, modifier = Modifier.focusRequester(controlsFocus)) {
-                    Text(stringResource(if (chatVisible) R.string.player_chat_hide else R.string.player_chat_show))
+            // Le focus va au premier bouton de la rangée, quel qu'il soit.
+            Row(Modifier.actionRow().focusRequester(controlsFocus), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (onToggleChat != null) {
+                    Button(onClick = onToggleChat) {
+                        Text(stringResource(if (chatVisible) R.string.player_chat_hide else R.string.player_chat_show))
+                    }
                 }
                 if (state.variants.isNotEmpty() && !state.audioOnly) {
                     Button(onClick = { showQuality = !showQuality }) {

@@ -475,3 +475,60 @@ async fn guest_followed_clips_need_an_account() {
     let h = Harness::new().await;
     assert!(matches!(h.core.followed_clips().await, Err(CoreError::NotSignedIn)));
 }
+
+// --- Profils : préférences, PIN, mode enfants -------------------------------------------------
+
+#[tokio::test]
+async fn settings_are_per_profile_except_device_ones() {
+    let h = Harness::new().await;
+    h.core.set_setting("accent".into(), "blue".into()).unwrap();
+    h.core.set_setting("check_updates".into(), "false".into()).unwrap();
+    h.sign_in("42", "me").await;
+    let signed_in = h.core.settings().unwrap();
+    assert_eq!((signed_in.get("accent"), signed_in.get("check_updates").map(String::as_str)), (None, Some("false")));
+    h.core.set_active_account(None).unwrap();
+    assert_eq!(h.core.settings().unwrap().get("accent").map(String::as_str), Some("blue"));
+    assert!(h.core.set_setting("kids_profile".into(), "true".into()).is_err());
+}
+
+#[tokio::test]
+async fn profile_pins_and_kids_mode_show_in_the_snapshot() {
+    let h = Harness::new().await;
+    assert!(h.core.set_profile_pin(None, Some("12a4".into())).is_err());
+    h.core.set_profile_pin(None, Some("1234".into())).unwrap();
+    h.core.set_kids_profile(None, true).unwrap();
+    let locks = h.core.accounts().unwrap().locks;
+    assert_eq!((locks.len(), locks[0].profile_id.clone(), locks[0].has_pin, locks[0].kids), (1, None, true, true));
+    assert!(h.core.check_profile_pin(None, "1234".into()).unwrap() && !h.core.check_profile_pin(None, "4321".into()).unwrap());
+    assert!(!h.core.settings().unwrap().contains_key("pin_hash"));
+    h.core.reset_guest_profile().unwrap();
+    assert!(h.core.accounts().unwrap().locks.is_empty());
+}
+
+#[tokio::test]
+async fn kids_mode_keeps_only_family_friendly_channels() {
+    let h = Harness::new().await;
+    Mock::given(method("POST"))
+        .and(path("/gql"))
+        .and(body_string_contains("\"operationName\":\"TopStreams\""))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": { "streams": {
+            "edges": [gql_stream("alpha", 900), gql_stream("beta", 800), gql_stream("gamma", 700)],
+            "pageInfo": { "hasNextPage": false } } } })))
+        .mount(&h.server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/gql"))
+        .and(body_string_contains("\"operationName\":\"SafeByLogin\""))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": { "users": [
+            { "id": "u-alpha", "login": "alpha", "broadcastSettings": { "isMature": false }, "channel": { "contentClassificationLabels": [] } },
+            { "id": "u-beta", "login": "beta", "broadcastSettings": { "isMature": false }, "channel": { "contentClassificationLabels": [{ "id": "Gambling" }] } },
+            { "id": "u-gamma", "login": "gamma", "broadcastSettings": { "isMature": true }, "channel": null },
+        ] } })))
+        .mount(&h.server)
+        .await;
+    assert_eq!(h.core.top_streams(None).await.unwrap().items.len(), 3);
+    h.core.set_kids_profile(None, true).unwrap();
+    let logins: Vec<String> = h.core.top_streams(None).await.unwrap().items.into_iter().map(|s| s.login).collect();
+    assert_eq!(logins, ["alpha"]);
+    assert!(matches!(h.core.live_playback("beta".into()).await, Err(CoreError::Unavailable { detail }) if detail == "kids_profile"));
+}

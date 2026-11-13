@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -28,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,6 +45,8 @@ import coil3.compose.AsyncImage
 import dev.lumen.core.Account
 import dev.lumen.core.AccountState
 import dev.lumen.core.AccountsSnapshot
+import dev.lumen.core.ProfileLock
+import java.util.Optional
 import dev.lumen.designsystem.LumenCard
 import dev.lumen.designsystem.LumenColors
 import dev.lumen.designsystem.LumenInsets
@@ -68,8 +72,29 @@ fun ProfilesRoute(
         onGuest = viewModel::continueAsGuest,
         onAddAccount = onAddAccount,
         onRemove = viewModel::remove,
+        locks = ProfileLocks(
+            checkPin = viewModel::checkPin,
+            checkParentPin = viewModel::checkParentPin,
+            setPin = viewModel::setPin,
+            setKids = viewModel::setKids,
+            resetGuest = viewModel::resetGuest,
+        ),
     )
 }
+
+/** Actions de l'écran des profils sur les PIN et le mode enfants (`null` = l'invité). */
+class ProfileLocks(
+    val checkPin: suspend (String?, String) -> Boolean,
+    val checkParentPin: suspend (String) -> Boolean,
+    val setPin: (String?, String?) -> Unit,
+    val setKids: (String?, Boolean) -> Unit,
+    val resetGuest: () -> Unit,
+)
+
+/** Une saisie de PIN en attente : [check] la valide, puis [then] reçoit le PIN tapé. */
+private class PinPrompt(val title: String, val check: suspend (String) -> Boolean, val hint: String? = null, val then: (String) -> Unit)
+
+private class Confirm(val title: String, val body: String, val action: () -> Unit)
 
 @Composable
 fun ProfilesScreen(
@@ -78,8 +103,31 @@ fun ProfilesScreen(
     onGuest: () -> Unit,
     onAddAccount: () -> Unit,
     onRemove: (Account) -> Unit,
+    locks: ProfileLocks,
 ) {
-    var pendingRemoval by remember { mutableStateOf<Account?>(null) }
+    val context = LocalContext.current
+    var prompt by remember { mutableStateOf<PinPrompt?>(null) }
+    var confirm by remember { mutableStateOf<Confirm?>(null) }
+    // Profil dont on affiche les options : `Some(null)` = l'invité.
+    var options by remember { mutableStateOf<Optional<String>?>(null) }
+    val lockOf = { id: String? -> snapshot?.locks?.firstOrNull { it.profileId == id } }
+    val hasParentPin = snapshot?.locks.orEmpty().any { it.hasPin && !it.kids }
+
+    fun nameOf(id: String?) = snapshot?.accounts?.firstOrNull { it.id == id }?.displayName ?: context.getString(R.string.profiles_guest)
+
+    /** Profil protégé : son PIN d'abord. */
+    fun ownGate(id: String?, then: () -> Unit) {
+        if (lockOf(id)?.hasPin != true) return then()
+        prompt = PinPrompt(context.getString(R.string.pin_enter, nameOf(id)), { locks.checkPin(id, it) }) { then() }
+    }
+
+    /** Profil enfants : un PIN parent, s'il en existe un, pour le lever ou le retirer. */
+    fun parentGate(id: String?, then: () -> Unit) {
+        if (lockOf(id)?.kids != true || !hasParentPin) return then()
+        prompt = PinPrompt(context.getString(R.string.pin_parent), locks.checkParentPin, context.getString(R.string.pin_parent_hint)) { then() }
+    }
+
+    fun open(id: String?, enter: () -> Unit) = ownGate(id, enter)
 
     Column(
         modifier = Modifier
@@ -122,8 +170,9 @@ fun ProfilesScreen(
                         warning = account.state == AccountState.NEEDS_REAUTH,
                         avatarUrl = account.avatarUrl,
                         glyph = account.displayName.take(1).uppercase(),
-                        onClick = { onSelect(account) },
-                        onLongClick = { pendingRemoval = account },
+                        badges = lockOf(account.id).badges(),
+                        onClick = { open(account.id) { onSelect(account) } },
+                        onLongClick = { options = Optional.of(account.id) },
                         modifier = if (account.id == initialKey) Modifier.focusRequester(initialFocus) else Modifier,
                     )
                 }
@@ -141,33 +190,92 @@ fun ProfilesScreen(
                         title = stringResource(R.string.profiles_guest),
                         subtitle = stringResource(R.string.profiles_guest_hint),
                         glyph = "?",
-                        onClick = onGuest,
+                        badges = lockOf(null).badges(),
+                        onClick = { open(null, onGuest) },
+                        onLongClick = { options = Optional.empty() },
                     )
                 }
             }
 
             Spacer(Modifier.height(24.dp))
-            if (snapshot.accounts.isNotEmpty()) {
-                Text(
-                    text = stringResource(R.string.profiles_remove_hint),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(
+                text = stringResource(R.string.profiles_remove_hint),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 
-    pendingRemoval?.let { account ->
-        RemoveAccountDialog(
-            account = account,
-            onConfirm = {
-                pendingRemoval = null
-                onRemove(account)
+    options?.let { selected ->
+        val id = selected.orElse(null)
+        val lock = lockOf(id)
+        val account = snapshot?.accounts?.firstOrNull { it.id == id }
+        ProfileOptionsDialog(
+            name = nameOf(id),
+            hasPin = lock?.hasPin == true,
+            kids = lock?.kids == true,
+            guest = id == null,
+            needsParentPin = lock?.kids == true && !hasParentPin,
+            onSetPin = {
+                options = null
+                ownGate(id) {
+                    prompt = PinPrompt(context.getString(R.string.pin_new, nameOf(id)), { true }) { locks.setPin(id, it) }
+                }
             },
-            onDismiss = { pendingRemoval = null },
+            onRemovePin = {
+                options = null
+                ownGate(id) { locks.setPin(id, null) }
+            },
+            onToggleKids = {
+                options = null
+                if (lock?.kids == true) parentGate(id) { locks.setKids(id, false) } else locks.setKids(id, true)
+            },
+            onRemove = {
+                options = null
+                // PIN oublié : le profil se retire toujours, sauf un profil enfants protégé par un parent.
+                parentGate(id) {
+                    confirm = if (account != null) {
+                        Confirm(context.getString(R.string.profiles_remove_title, account.displayName), context.getString(R.string.profiles_remove_body)) { onRemove(account) }
+                    } else {
+                        Confirm(context.getString(R.string.profiles_reset_guest_title), context.getString(R.string.profiles_reset_guest_body), locks.resetGuest)
+                    }
+                }
+            },
+            onDismiss = { options = null },
+        )
+    }
+
+    prompt?.let { current ->
+        PinDialog(
+            title = current.title,
+            hint = current.hint,
+            check = current.check,
+            onSuccess = { pin ->
+                prompt = null
+                current.then(pin)
+            },
+            onDismiss = { prompt = null },
+        )
+    }
+
+    confirm?.let { current ->
+        ConfirmDialog(
+            title = current.title,
+            body = current.body,
+            onConfirm = {
+                confirm = null
+                current.action()
+            },
+            onDismiss = { confirm = null },
         )
     }
 }
+
+@Composable
+private fun ProfileLock?.badges(): String = listOfNotNull(
+    stringResource(R.string.profiles_kids_badge).takeIf { this?.kids == true },
+    stringResource(R.string.profiles_pin_badge).takeIf { this?.hasPin == true },
+).joinToString("  ·  ")
 
 private const val ADD_KEY = "lumen:add"
 private const val GUEST_KEY = "lumen:guest"
@@ -181,6 +289,7 @@ private fun ProfileCard(
     modifier: Modifier = Modifier,
     avatarUrl: String = "",
     warning: Boolean = false,
+    badges: String = "",
     onLongClick: (() -> Unit)? = null,
 ) {
     LumenCard(onClick = onClick, onLongClick = onLongClick, modifier = modifier.size(width = 200.dp, height = 232.dp)) {
@@ -219,12 +328,63 @@ private fun ProfileCard(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
+            if (badges.isNotEmpty()) {
+                Text(text = badges, style = MaterialTheme.typography.labelMedium, color = LumenColors.Accent, maxLines = 1)
+            }
         }
     }
 }
 
 @Composable
-private fun RemoveAccountDialog(account: Account, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+private fun ProfileOptionsDialog(
+    name: String,
+    hasPin: Boolean,
+    kids: Boolean,
+    guest: Boolean,
+    needsParentPin: Boolean,
+    onSetPin: () -> Unit,
+    onRemovePin: () -> Unit,
+    onToggleKids: () -> Unit,
+    onRemove: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        val first = remember { FocusRequester() }
+        LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
+        Column(
+            modifier = Modifier
+                .width(520.dp)
+                .background(LumenColors.SurfaceRaised, RoundedCornerShape(24.dp))
+                .padding(32.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(name, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
+            Spacer(Modifier.height(4.dp))
+            OutlinedButton(onClick = onSetPin, modifier = Modifier.fillMaxWidth().focusRequester(first)) {
+                Text(stringResource(if (hasPin) R.string.profiles_pin_change else R.string.profiles_pin_set))
+            }
+            if (hasPin) {
+                OutlinedButton(onClick = onRemovePin, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.profiles_pin_remove))
+                }
+            }
+            OutlinedButton(onClick = onToggleKids, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(if (kids) R.string.profiles_kids_off else R.string.profiles_kids_on))
+            }
+            Text(
+                text = stringResource(if (needsParentPin) R.string.profiles_kids_no_parent else R.string.profiles_kids_body),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedButton(onClick = onRemove, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(if (guest) R.string.profiles_reset_guest else R.string.profiles_remove_confirm))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConfirmDialog(title: String, body: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         // Le choix sans conséquence reçoit le focus : un appui réflexe ne retire rien.
         val cancelFocus = remember { FocusRequester() }
@@ -236,13 +396,13 @@ private fun RemoveAccountDialog(account: Account, onConfirm: () -> Unit, onDismi
                 .padding(32.dp),
         ) {
             Text(
-                text = stringResource(R.string.profiles_remove_title, account.displayName),
+                text = title,
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(Modifier.height(12.dp))
             Text(
-                text = stringResource(R.string.profiles_remove_body),
+                text = body,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

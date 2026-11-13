@@ -32,6 +32,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Polls and predictions of the channel, read-only, at the top of the chat.
 - "Live channels you follow" row on the Android TV home screen, refreshed every 30 minutes (Google TV may not show it).
 - Top clips of the week in each category (following the language filter), and clips from the channels you follow in Following.
+- Each profile, guest included, now has its own settings (accent color, chat, quality, language filter, recent searches). Update and crash log options stay shared. Your current settings are copied into every profile.
+- Optional 4-digit PIN on a profile (long press on it in the profile picker). A forgotten PIN: remove the profile and sign in again.
+- Kids profile: no chat, and channels marked mature or carrying content warnings are hidden and cannot be played. Only the PIN of a non-kids profile can turn it off.
 
 ### Changed
 - Up / Down on a channel outside the zapping list now jumps to the first channel of the list.

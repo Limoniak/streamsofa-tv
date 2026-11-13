@@ -9,13 +9,16 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.launch
 
 private const val QUALITY_PREFIX = "quality:"
 const val QUALITY_AUTO = "auto"
 
-/** Préférences de l'app, communes à tous les profils. */
+/** Préférences du profil actif, et celles de l'appareil (mises à jour, journal de crash). */
 data class AppSettings(
     /** Chat ouvert dès le lancement d'un live ou d'une VOD. */
     val chatByDefault: Boolean = false,
@@ -50,6 +53,8 @@ data class AppSettings(
     val recentSearches: List<String> = emptyList(),
     /** Dernière qualité choisie à la main, par login de chaîne ([QUALITY_AUTO] pour Auto). */
     val channelQuality: Map<String, String> = emptyMap(),
+    /** Profil enfants : lu seulement, il se change depuis l'écran des profils (avec PIN parent). */
+    val kids: Boolean = false,
 ) {
     internal fun toMap() = mapOf(
         "chat_by_default" to chatByDefault.toString(),
@@ -90,14 +95,18 @@ data class AppSettings(
                 streamLanguage = map["stream_language"] ?: d.streamLanguage,
                 recentSearches = map["recent_searches"]?.split('\n')?.filter { it.isNotBlank() } ?: d.recentSearches,
                 channelQuality = map.filterKeys { it.startsWith(QUALITY_PREFIX) }.mapKeys { it.key.removePrefix(QUALITY_PREFIX) },
+                kids = map["kids_profile"] == "true",
             )
         }
     }
 }
 
-/** Préférences lues une fois au démarrage, puis écrites au fil des changements (SQLite côté Rust). */
+/** Préférences relues à chaque changement de profil, puis écrites au fil des changements (SQLite côté Rust). */
 @Singleton
-class SettingsRepository @Inject constructor(private val coreHolder: CoreHolder) {
+class SettingsRepository @Inject constructor(
+    private val coreHolder: CoreHolder,
+    accounts: AccountsRepository,
+) {
     // Un seul thread : les écritures arrivent en base dans l'ordre des changements.
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1))
     private val _state = MutableStateFlow(AppSettings())
@@ -106,8 +115,14 @@ class SettingsRepository @Inject constructor(private val coreHolder: CoreHolder)
 
     init {
         scope.launch {
-            runCatching { coreHolder.get().settings() }.onSuccess { _state.value = AppSettings.fromMap(it) }
-            loaded.complete(Unit)
+            // Chaque profil a ses préférences : relues à la bascule, et quand son mode enfants change.
+            accounts.snapshot.filterNotNull()
+                .map { s -> s.activeId to s.locks.any { it.profileId == s.activeId && it.kids } }
+                .distinctUntilChanged()
+                .collect {
+                    runCatching { coreHolder.get().settings() }.onSuccess { _state.value = AppSettings.fromMap(it) }
+                    loaded.complete(Unit)
+                }
         }
     }
 

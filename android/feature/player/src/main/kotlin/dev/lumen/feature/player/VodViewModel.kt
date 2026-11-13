@@ -79,7 +79,8 @@ class VodViewModel @Inject constructor(
     settings: SettingsRepository,
     private val watchNext: WatchNext,
 ) : ViewModel() {
-    val chatByDefault = settings.state.value.chatByDefault
+    val chatAllowed = !settings.state.value.kids
+    val chatByDefault = settings.state.value.chatByDefault && chatAllowed
     val chatLook = settings.state.value.chatLook()
     private val id: String = checkNotNull(savedState["id"])
     private val _state = MutableStateFlow(VodUiState(id))

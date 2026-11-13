@@ -94,7 +94,11 @@ fun LumenNavHost(session: SessionViewModel = hiltViewModel()) {
 
     val navController = rememberNavController()
     // Décidé une seule fois : un compte actif entre directement, sinon on choisit un profil.
-    val start = remember { if (current.activeId != null) Routes.HOME else Routes.PROFILES }
+    // Un profil protégé par un PIN repasse toujours par l'écran des profils.
+    val start = remember {
+        val locked = current.locks.any { it.profileId == current.activeId && it.hasPin }
+        if (current.activeId != null && !locked) Routes.HOME else Routes.PROFILES
+    }
     // App déjà ouverte (singleTask) : un lien du launcher arrive ici plutôt qu'à la création.
     val activity = LocalActivity.current as? ComponentActivity
     DisposableEffect(activity, navController) {

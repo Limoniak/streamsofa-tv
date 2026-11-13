@@ -9,12 +9,6 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 
 - [ ] 🟡 More interface languages (English and French today); translations welcome.
 
-## Accounts and profiles
-
-- [ ] 🟡 Settings per profile (accent color, chat, quality) instead of shared ones.
-- [ ] 🟡 Optional PIN on a profile.
-- [ ] 🟡 Kids profile that hides mature content.
-
 ## Quality and tooling
 
 - [ ] 🟡 UI tests for the player remote (zapping, live list, chat, action bar).

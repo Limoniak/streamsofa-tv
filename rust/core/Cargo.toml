@@ -19,6 +19,8 @@ zeroize = "1"
 reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "http2", "json", "form", "query"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 webpki-roots = "1"
+# Déjà tiré par rustls : PBKDF2 et aléa système pour les codes PIN des profils.
+ring = "0.17"
 rusqlite = { version = "0.42", features = ["bundled"] }
 qrcode = { version = "0.14", default-features = false }
 tokio-tungstenite = { version = "0.30.0", default-features = false, features = ["connect", "__rustls-tls"] }

@@ -517,6 +517,50 @@ impl GqlClient {
     }
 
     /// `language` : code ISO 639-1 (`fr`), `None` pour toutes les langues.
+    /// Parmi `keys` (logins, ou ids si `by_id`), celles des chaînes tout public. Une chaîne
+    /// inconnue ou sans réglages lisibles est exclue : le mode enfants échoue fermé.
+    pub async fn safe_channels(&self, keys: &[String], by_id: bool) -> Result<std::collections::HashSet<String>, CoreError> {
+        #[derive(Deserialize)]
+        struct GSettings {
+            #[serde(default, rename = "isMature")]
+            is_mature: Option<bool>,
+        }
+        #[derive(Deserialize)]
+        struct GLabel {}
+        #[derive(Deserialize)]
+        struct GChannel {
+            #[serde(default, rename = "contentClassificationLabels")]
+            labels: Option<Vec<GLabel>>,
+        }
+        #[derive(Deserialize)]
+        struct GUser {
+            id: String,
+            login: String,
+            #[serde(default, rename = "broadcastSettings")]
+            settings: Option<GSettings>,
+            #[serde(default)]
+            channel: Option<GChannel>,
+        }
+        #[derive(Deserialize)]
+        struct Data {
+            #[serde(default)]
+            users: Vec<Option<GUser>>,
+        }
+        let (operation, query) = if by_id { ("SafeById", queries::SAFE_BY_ID) } else { ("SafeByLogin", queries::SAFE_BY_LOGIN) };
+        let mut safe = std::collections::HashSet::new();
+        for chunk in keys.chunks(SAFE_CHUNK) {
+            let data: Data = self.run(operation, query, json!({ "keys": chunk })).await?;
+            for user in data.users.into_iter().flatten() {
+                let mature = user.settings.and_then(|s| s.is_mature).unwrap_or(true);
+                let labelled = user.channel.and_then(|c| c.labels).is_some_and(|l| !l.is_empty());
+                if !mature && !labelled {
+                    safe.insert(if by_id { user.id } else { user.login.to_lowercase() });
+                }
+            }
+        }
+        Ok(safe)
+    }
+
     pub async fn category_clips(&self, category_id: &str, language: Option<&str>, first: u32) -> Result<Vec<Clip>, CoreError> {
         #[derive(Deserialize)]
         struct GGame {
@@ -892,8 +936,13 @@ impl From<GVideo> for Video {
     }
 }
 
+/// Clés par requête `users` du mode enfants.
+const SAFE_CHUNK: usize = 50;
+
 #[derive(Deserialize)]
 struct GName {
+    #[serde(default)]
+    login: String,
     #[serde(default, rename = "displayName")]
     display_name: String,
 }
@@ -933,6 +982,7 @@ fn clip_list(connection: Option<Connection<GClip>>) -> Vec<Clip> {
                 views: c.view_count,
                 thumbnail_url: c.thumbnail_url.unwrap_or_default(),
                 curator: c.curator.map(|c| c.display_name).unwrap_or_default(),
+                channel_login: c.broadcaster.as_ref().map(|b| b.login.clone()).unwrap_or_default(),
                 channel_name: c.broadcaster.map(|b| b.display_name).unwrap_or_default(),
             }
         })

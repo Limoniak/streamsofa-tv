@@ -47,6 +47,22 @@ class ProfilesViewModel @Inject constructor(
 
     fun remove(account: Account) = launchSafely { accounts.remove(account.id) }
 
+    // --- PIN et mode enfants (`profileId` `null` = l'invité) ------------------------------
+
+    /** Un échec de lecture vaut un PIN refusé. */
+    suspend fun checkPin(profileId: String?, pin: String): Boolean =
+        runCatching { accounts.checkPin(profileId, pin) }.getOrDefault(false)
+
+    /** PIN d'un profil adulte (protégé et hors mode enfants) : lui seul lève le mode enfants. */
+    suspend fun checkParentPin(pin: String): Boolean =
+        snapshot.value?.locks.orEmpty().filter { it.hasPin && !it.kids }.any { checkPin(it.profileId, pin) }
+
+    fun setPin(profileId: String?, pin: String?) = launchSafely { accounts.setPin(profileId, pin) }
+
+    fun setKids(profileId: String?, kids: Boolean) = launchSafely { accounts.setKids(profileId, kids) }
+
+    fun resetGuest() = launchSafely { accounts.resetGuest() }
+
     // Un échec ici (compte retiré entre-temps, base occupée) laisse simplement l'écran tel quel :
     // la liste affichée vient du dépôt et reste la vérité.
     private fun launchSafely(block: suspend () -> Unit) {

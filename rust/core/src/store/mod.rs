@@ -52,7 +52,19 @@ const MIGRATIONS: &[&str] = &["
         fetched_at INTEGER NOT NULL,
         ttl_s      INTEGER NOT NULL
     );
+", "
+    -- Préférences par profil : chaque compte et l'invité repartent des réglages globaux actuels,
+    -- seuls ceux de l'appareil (mises à jour, journal de crash) restent globaux.
+    INSERT OR IGNORE INTO settings (scope, key, value)
+        SELECT p.id, s.key, s.value FROM settings s, (SELECT id FROM accounts UNION SELECT 'guest' AS id) p
+        WHERE s.scope = 'global' AND s.key NOT IN ('check_updates', 'beta_updates', 'crash_log');
+    DELETE FROM settings WHERE scope = 'global' AND key NOT IN ('check_updates', 'beta_updates', 'crash_log');
 "];
+
+/// Préférences de l'appareil, communes à tous les profils (les autres sont propres à chacun).
+pub const GLOBAL_SETTINGS: &[&str] = &["check_updates", "beta_updates", "crash_log"];
+pub const PIN_HASH: &str = "pin_hash";
+pub const KIDS_PROFILE: &str = "kids_profile";
 
 const ACTIVE_ACCOUNT: &str = "active_account_id";
 
@@ -176,6 +188,39 @@ impl Db {
              ON CONFLICT(scope, key) DO UPDATE SET value = excluded.value",
             params![scope, key, value],
         )?;
+        Ok(())
+    }
+
+    pub fn delete_setting(&self, scope: &str, key: &str) -> Result<(), CoreError> {
+        self.conn().execute("DELETE FROM settings WHERE scope = ?1 AND key = ?2", params![scope, key])?;
+        Ok(())
+    }
+
+    /// Profils ayant un PIN ou l'option enfants : `scope -> (pin, enfants)`.
+    pub fn profile_flags(&self) -> Result<HashMap<String, (bool, bool)>, CoreError> {
+        let conn = self.conn();
+        let mut stmt = conn.prepare_cached("SELECT scope, key FROM settings WHERE key IN (?1, ?2)")?;
+        let rows = stmt.query_map([PIN_HASH, KIDS_PROFILE], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))?;
+        let mut out: HashMap<String, (bool, bool)> = HashMap::new();
+        for row in rows {
+            let (scope, key) = row?;
+            let flags = out.entry(scope).or_default();
+            if key == PIN_HASH {
+                flags.0 = true;
+            } else {
+                flags.1 = true;
+            }
+        }
+        Ok(out)
+    }
+
+    /// Efface préférences et reprises d'un profil (l'invité oublié avec son PIN).
+    pub fn reset_profile(&self, scope: &str) -> Result<(), CoreError> {
+        let mut conn = self.conn();
+        let tx = conn.transaction()?;
+        tx.execute("DELETE FROM vod_progress WHERE scope = ?1", [scope])?;
+        tx.execute("DELETE FROM settings WHERE scope = ?1", [scope])?;
+        tx.commit()?;
         Ok(())
     }
 
@@ -315,6 +360,28 @@ mod tests {
         assert_eq!(db.meta_get("badges:global", 160).unwrap(), None);
         db.meta_put("other", "x", 200, 60).unwrap();
         assert_eq!(db.meta_get("badges:global", 0).unwrap(), None, "purgée au passage");
+    }
+
+    #[test]
+    fn migration_5_copies_global_settings_into_each_profile() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        let tx = conn.transaction().unwrap();
+        for sql in &MIGRATIONS[..4] {
+            tx.execute_batch(sql).unwrap();
+        }
+        tx.pragma_update(None, "user_version", 4u32).unwrap();
+        tx.execute_batch("
+            INSERT INTO accounts VALUES ('42', 'me', 'Me', '', '', 'active', 1, 1);
+            INSERT INTO settings VALUES ('global', 'accent', 'blue'), ('global', 'check_updates', 'false');
+        ").unwrap();
+        tx.commit().unwrap();
+        let db = Db::init(conn).unwrap();
+        for scope in ["42", "guest"] {
+            assert_eq!(db.settings(scope).unwrap().get("accent").map(String::as_str), Some("blue"));
+            assert!(!db.settings(scope).unwrap().contains_key("check_updates"));
+        }
+        let global = db.settings("global").unwrap();
+        assert_eq!((global.len(), global.get("check_updates").map(String::as_str)), (1, Some("false")));
     }
 
     #[test]

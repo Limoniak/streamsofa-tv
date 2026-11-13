@@ -952,6 +952,7 @@ dependencies = [
  "futures-util",
  "qrcode",
  "reqwest",
+ "ring",
  "rusqlite",
  "rustls",
  "serde",

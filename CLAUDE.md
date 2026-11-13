@@ -41,6 +41,12 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
 - Sondages et prédictions : GQL anonyme (`user.viewablePoll`, `channel.activePredictionEvents`), relus toutes les 15 s
   seulement quand le chat est affiché (PubSub n'existe plus, EventSub exige les scopes du diffuseur). Lecture seule.
 - Apparence du chat (`chat_text_size`, `chat_width`, `chat_overlay`) : `ChatLook`, lu à l'ouverture du lecteur.
+- Profils : préférences par profil (portée = id du compte ou `guest`), sauf `check_updates`, `beta_updates`,
+  `crash_log` (portée `global`) ; `set_setting` aiguille selon la clé. PIN : 4 chiffres, PBKDF2-SHA256 (ring) dans
+  `pin_hash`, jamais renvoyé par `settings()` ; PIN oublié = retirer le profil (ou réinitialiser l'invité).
+  Mode enfants (`kids_profile`) : GQL `users { broadcastSettings.isMature, channel.contentClassificationLabels }`,
+  on ne garde que les chaînes non matures et sans étiquette, en échouant fermé ; lecture refusée (`Unavailable`
+  `kids_profile`), pas de chat. Seul le PIN d'un profil non enfant lève le mode (libre si aucun n'existe).
 - Rangée launcher « Chaînes suivies en live » : chaîne d'aperçu `TvContract` (`LauncherChannel`), réécrite à chaque
   `followedStreams()` et par `LauncherRefreshJob` (JobScheduler, 30 min, sans dépendance). Vide en invité.
 - Clips : catégorie = GQL `game.clips` (semaine, filtre de langue) en tête de la grille ; suivis = clips de la semaine
@@ -118,8 +124,8 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
   Multi-view : appui long OK = menu Remplacer / Retirer.
 
 Schéma SQLite (migrations dans `store/mod.rs`, clé `scope` = `global` | `guest` | id de compte) :
-`vod_progress` (migration 2), `settings` (migration 3, seule la portée `global` est utilisée ; filtres du chat dans `chat_hidden_words`/`chat_hidden_users`), `meta_cache(key,body,fetched_at,ttl_s)` (migration 4 :
-badges et émotes, 24 h pour les globaux, 1 h par chaîne).
+`vod_progress` (migration 2), `settings` (migration 3, portée `global` pour les réglages de l'appareil, sinon le profil ; filtres du chat dans `chat_hidden_words`/`chat_hidden_users`), `meta_cache(key,body,fetched_at,ttl_s)` (migration 4 :
+badges et émotes, 24 h pour les globaux, 1 h par chaîne). Migration 5 : réglages copiés de `global` vers chaque profil.
 
 ## Commandes
 

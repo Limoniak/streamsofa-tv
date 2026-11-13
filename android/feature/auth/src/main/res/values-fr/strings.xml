@@ -6,7 +6,7 @@
     <string name="profiles_guest_hint">Sans connexion, chat en lecture seule</string>
     <string name="profiles_active">Actif</string>
     <string name="profiles_needs_reauth">Reconnexion requise</string>
-    <string name="profiles_remove_hint">Appui long sur un profil pour le retirer de cet appareil.</string>
+    <string name="profiles_remove_hint">Appui long sur un profil : PIN, mode enfant ou retrait.</string>
     <string name="profiles_remove_title">Retirer %1$s de cet appareil ?</string>
     <string name="profiles_remove_body">Le compte Twitch n\'est pas supprimé. Vous pourrez le reconnecter à tout moment.</string>
     <string name="profiles_remove_confirm">Retirer</string>
@@ -27,4 +27,22 @@
     <string name="login_error_storage">Le stockage sécurisé de l\'appareil a refusé d\'enregistrer le compte.</string>
     <string name="login_error_other">La connexion a échoué. Réessayez dans un instant.</string>
     <string name="login_note">La lecture reste anonyme : les avantages Turbo ou d\'abonnement ne s\'y appliquent pas.</string>
+    <string name="pin_enter">PIN de %1$s</string>
+    <string name="pin_new">Nouveau PIN de %1$s</string>
+    <string name="pin_parent">PIN parent</string>
+    <string name="pin_parent_hint">Le PIN d\'un profil qui n\'est pas un profil enfant.</string>
+    <string name="pin_hint">▲ ▼ changent le chiffre, ◀ ▶ déplacent, OK valide. Les touches numériques marchent aussi.</string>
+    <string name="pin_wrong">PIN incorrect. Réessayez.</string>
+    <string name="profiles_pin_set">Définir un PIN</string>
+    <string name="profiles_pin_change">Changer le PIN</string>
+    <string name="profiles_pin_remove">Retirer le PIN</string>
+    <string name="profiles_kids_on">En faire un profil enfant</string>
+    <string name="profiles_kids_off">Désactiver le profil enfant</string>
+    <string name="profiles_kids_body">Profil enfant : pas de chat, ni de chaînes « contenu mature » ou avec un avertissement.</string>
+    <string name="profiles_kids_no_parent">Définissez un PIN sur votre propre profil : lui seul pourra alors lever le mode enfant.</string>
+    <string name="profiles_kids_badge">Enfant</string>
+    <string name="profiles_pin_badge">PIN</string>
+    <string name="profiles_reset_guest">Réinitialiser le profil invité</string>
+    <string name="profiles_reset_guest_title">Réinitialiser le profil invité ?</string>
+    <string name="profiles_reset_guest_body">Ses réglages, reprises, PIN et mode enfant sont effacés.</string>
 </resources>

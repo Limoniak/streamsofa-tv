@@ -109,7 +109,7 @@ fun VodPlayerRoute(viewModel: VodViewModel = hiltViewModel()) {
                         true
                     }
                     Key.DirectionDown -> {
-                        chatVisible = !chatVisible
+                        if (viewModel.chatAllowed) chatVisible = !chatVisible
                         true
                     }
                     Key.DirectionUp -> {

@@ -1,6 +1,6 @@
 //! Comptes Twitch : connexion par code d'appareil, jetons, compte actif.
 //!
-//! Les jetons ne vivent qu'en mÃ©moire et, chiffrÃ©s par l'hÃ´te, dans le `SecretStore`.
+//! Les jetons ne vivent qu'en mémoire et, chiffrés par l'hôte, dans le `SecretStore`.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -14,15 +14,20 @@ use crate::error::CoreError;
 use crate::helix::HelixClient;
 use crate::qr::{self, QrMatrix};
 use crate::secret::Secret;
-use crate::store::Db;
+use crate::store::{Db, KIDS_PROFILE, PIN_HASH};
 
-/// Un jeton d'accÃ¨s qui expire dans moins de 5 minutes est renouvelÃ© avant usage.
+mod pin;
+
+/// Portée des préférences et reprises du mode invité.
+pub const GUEST: &str = "guest";
+
+/// Un jeton d'accès qui expire dans moins de 5 minutes est renouvelé avant usage.
 const REFRESH_MARGIN_S: i64 = 300;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
 pub enum AccountState {
     Ok,
-    /// Jeton rÃ©voquÃ©, expirÃ© ou perdu : le compte reste listÃ© mais doit se reconnecter.
+    /// Jeton révoqué, expiré ou perdu : le compte reste listé mais doit se reconnecter.
     NeedsReauth,
 }
 
@@ -55,17 +60,27 @@ pub struct Account {
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
 pub struct AccountsSnapshot {
     pub accounts: Vec<Account>,
-    /// `None` = mode invitÃ©.
+    /// `None` = mode invité.
     pub active_id: Option<String>,
+    /// Profils protégés par un PIN ou en mode enfants ; les autres sont absents.
+    pub locks: Vec<ProfileLock>,
 }
 
-/// ImplÃ©mentÃ© cÃ´tÃ© Kotlin pour suivre les changements (ajout, retrait, expiration, bascule).
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct ProfileLock {
+    /// `None` = l'invité.
+    pub profile_id: Option<String>,
+    pub has_pin: bool,
+    pub kids: bool,
+}
+
+/// Implémenté côté Kotlin pour suivre les changements (ajout, retrait, expiration, bascule).
 #[uniffi::export(with_foreign)]
 pub trait AccountsListener: Send + Sync {
     fn on_accounts_changed(&self, snapshot: AccountsSnapshot);
 }
 
-/// Ce qu'il faut afficher Ã  l'Ã©cran pendant une connexion par code.
+/// Ce qu'il faut afficher à l'écran pendant une connexion par code.
 #[derive(Debug, Clone, uniffi::Record)]
 pub struct DeviceLogin {
     pub user_code: String,
@@ -98,7 +113,7 @@ pub struct AccountManager {
     auth: AuthClient,
     helix: HelixClient,
     cache: Mutex<HashMap<String, StoredTokens>>,
-    /// Un verrou par compte : deux refresh simultanÃ©s grilleraient le jeton Ã  usage unique.
+    /// Un verrou par compte : deux refresh simultanés grilleraient le jeton à usage unique.
     locks: Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>,
     /// Connexion en cours. Le code d'appareil ne franchit jamais la FFI.
     pending: Mutex<Option<DeviceCodeResponse>>,
@@ -132,10 +147,65 @@ impl AccountManager {
     }
 
     pub fn snapshot(&self) -> Result<AccountsSnapshot, CoreError> {
-        Ok(AccountsSnapshot {
-            accounts: self.db.accounts()?,
-            active_id: self.db.active_account_id()?,
+        let mut locks: Vec<ProfileLock> = self
+            .db
+            .profile_flags()?
+            .into_iter()
+            .map(|(scope, (has_pin, kids))| ProfileLock { profile_id: (scope != GUEST).then_some(scope), has_pin, kids })
+            .collect();
+        locks.sort_by(|a, b| a.profile_id.cmp(&b.profile_id));
+        Ok(AccountsSnapshot { accounts: self.db.accounts()?, active_id: self.db.active_account_id()?, locks })
+    }
+
+    // --- PIN et mode enfants (`None` = l'invité) ----------------------------------------
+
+    /// `None` retire le PIN.
+    pub fn set_profile_pin(&self, profile: Option<&str>, pin: Option<&str>) -> Result<(), CoreError> {
+        let scope = self.profile_scope(profile)?;
+        match pin {
+            Some(pin) if !pin::valid_pin(pin) => return Err(CoreError::Unavailable { detail: "PIN invalide".into() }),
+            Some(pin) => self.db.set_setting(scope, PIN_HASH, &pin::hash(pin))?,
+            None => self.db.delete_setting(scope, PIN_HASH)?,
+        }
+        self.notify();
+        Ok(())
+    }
+
+    /// `true` si le profil n'a pas de PIN ou si `pin` est le bon.
+    pub fn check_profile_pin(&self, profile: Option<&str>, pin: &str) -> Result<bool, CoreError> {
+        let scope = self.profile_scope(profile)?;
+        Ok(match self.db.settings(scope)?.get(PIN_HASH) {
+            Some(stored) => pin::verify(pin, stored),
+            None => true,
         })
+    }
+
+    pub fn set_kids_profile(&self, profile: Option<&str>, kids: bool) -> Result<(), CoreError> {
+        let scope = self.profile_scope(profile)?;
+        if kids {
+            self.db.set_setting(scope, KIDS_PROFILE, "true")?;
+        } else {
+            self.db.delete_setting(scope, KIDS_PROFILE)?;
+        }
+        self.notify();
+        Ok(())
+    }
+
+    /// PIN de l'invité oublié : il repart de zéro (préférences, reprises, PIN, mode enfants).
+    pub fn reset_guest_profile(&self) -> Result<(), CoreError> {
+        self.db.reset_profile(GUEST)?;
+        self.notify();
+        Ok(())
+    }
+
+    fn profile_scope<'a>(&self, profile: Option<&'a str>) -> Result<&'a str, CoreError> {
+        match profile {
+            Some(id) => {
+                self.ensure_exists(id)?;
+                Ok(id)
+            }
+            None => Ok(GUEST),
+        }
     }
 
     pub fn set_active(&self, id: Option<String>) -> Result<(), CoreError> {
@@ -178,7 +248,7 @@ impl AccountManager {
         let tokens = loop {
             tokio::time::sleep(interval).await;
             if Instant::now() >= deadline {
-                // Si le rÃ©seau Ã©tait coupÃ©, c'est Ã§a qu'il faut dire, pas Â« code expirÃ© Â».
+                // Si le réseau était coupé, c'est ça qu'il faut dire, pas « code expiré ».
                 return Err(last_error.unwrap_or(CoreError::DeviceCodeExpired));
             }
             match self.auth.poll_device_token(&pending.device_code).await {
@@ -196,11 +266,11 @@ impl AccountManager {
         let identity = match self.auth.validate(&tokens.access_token).await {
             Ok(identity) => identity,
             Err(AuthError::Rejected) => {
-                return Err(CoreError::Api { status: 401, detail: "jeton refusÃ© dÃ¨s son Ã©mission".into() })
+                return Err(CoreError::Api { status: 401, detail: "jeton refusé dès son émission".into() })
             }
             Err(AuthError::Transient(e)) => return Err(e),
         };
-        // Le profil n'est que cosmÃ©tique : son Ã©chec ne doit pas faire Ã©chouer la connexion.
+        // Le profil n'est que cosmétique : son échec ne doit pas faire échouer la connexion.
         let (display_name, avatar_url) = match self.helix.current_user(&tokens.access_token).await {
             Ok(user) => (user.display_name, user.profile_image_url),
             Err(_) => (identity.login.clone(), String::new()),
@@ -215,7 +285,7 @@ impl AccountManager {
 
         let guard = self.lock_for(&account.id);
         let _guard = guard.lock().await;
-        // Le secret d'abord : un compte listÃ© sans jeton serait inutilisable.
+        // Le secret d'abord : un compte listé sans jeton serait inutilisable.
         self.save_tokens(&account.id, &tokens).await?;
         self.db.upsert_account(&account, &identity.scopes.join(" "), now())?;
         self.db.set_active_account(Some(&account.id), now())?;
@@ -225,14 +295,14 @@ impl AccountManager {
 
     // --- Jetons --------------------------------------------------------------------------
 
-    /// Compte actif s'il est utilisable ; `None` en invitÃ© ou s'il doit se reconnecter.
+    /// Compte actif s'il est utilisable ; `None` en invité ou s'il doit se reconnecter.
     pub fn active_usable_account(&self) -> Result<Option<Account>, CoreError> {
         let Some(id) = self.db.active_account_id()? else { return Ok(None) };
         Ok(self.db.accounts()?.into_iter().find(|a| a.id == id && a.state == AccountState::Ok))
     }
 
-    /// Twitch a refusÃ© `rejected` (401) avant son expiration prÃ©vue : renouvelle-le, sauf si
-    /// un autre appel l'a dÃ©jÃ  fait entre-temps.
+    /// Twitch a refusé `rejected` (401) avant son expiration prévue : renouvelle-le, sauf si
+    /// un autre appel l'a déjà fait entre-temps.
     pub async fn token_rejected(&self, account_id: &str, rejected: &Secret) -> Result<Secret, CoreError> {
         self.ensure_exists(account_id)?;
         let guard = self.lock_for(account_id);
@@ -246,7 +316,7 @@ impl AccountManager {
         Ok(self.refresh_locked(account_id, &tokens).await?.access_token)
     }
 
-    /// Jeton d'accÃ¨s valide pour ce compte, renouvelÃ© au besoin.
+    /// Jeton d'accès valide pour ce compte, renouvelé au besoin.
     pub async fn access_token(&self, account_id: &str) -> Result<Secret, CoreError> {
         self.ensure_exists(account_id)?;
         let guard = self.lock_for(account_id);
@@ -267,8 +337,8 @@ impl AccountManager {
         }
     }
 
-    /// VÃ©rifie chaque compte auprÃ¨s de Twitch (au dÃ©marrage, puis toutes les heures).
-    /// Une panne rÃ©seau ne change l'Ã©tat d'aucun compte.
+    /// Vérifie chaque compte auprès de Twitch (au démarrage, puis toutes les heures).
+    /// Une panne réseau ne change l'état d'aucun compte.
     pub async fn validate_all(&self) -> Result<(), CoreError> {
         for account in self.db.accounts()? {
             if account.state == AccountState::NeedsReauth {
@@ -286,7 +356,7 @@ impl AccountManager {
                     lock(&self.cache).insert(account.id.clone(), tokens);
                 }
                 Ok(_) | Err(AuthError::Rejected) => {
-                    // Les erreurs passagÃ¨res sont ignorÃ©es ; un refus marque dÃ©jÃ  le compte.
+                    // Les erreurs passagères sont ignorées ; un refus marque déjà le compte.
                     let _ = self.refresh_locked(&account.id, &tokens).await;
                 }
                 Err(AuthError::Transient(_)) => {}
@@ -295,14 +365,14 @@ impl AccountManager {
         Ok(())
     }
 
-    /// Ã€ appeler en tenant le verrou du compte.
+    /// À appeler en tenant le verrou du compte.
     async fn refresh_locked(&self, account_id: &str, tokens: &StoredTokens) -> Result<StoredTokens, CoreError> {
         match self.auth.refresh(&tokens.refresh_token).await {
             Ok(response) => {
                 let fresh = StoredTokens::from_response(response);
-                // L'ancien jeton de rafraÃ®chissement est dÃ©jÃ  consommÃ©. Si l'Ã©criture Ã©choue,
-                // la session continue en mÃ©moire et le compte se reconnectera au prochain
-                // dÃ©marrage : c'est moins grave que d'Ã©chouer maintenant.
+                // L'ancien jeton de rafraîchissement est déjà consommé. Si l'écriture échoue,
+                // la session continue en mémoire et le compte se reconnectera au prochain
+                // démarrage : c'est moins grave que d'échouer maintenant.
                 let _ = self.save_tokens(account_id, &fresh).await;
                 lock(&self.cache).insert(account_id.to_owned(), fresh.clone());
                 Ok(fresh)
@@ -335,7 +405,7 @@ impl AccountManager {
         lock(&self.locks).remove(account_id);
         self.notify();
 
-        // RÃ©vocation au mieux : hors ligne, le compte est quand mÃªme retirÃ© de l'appareil.
+        // Révocation au mieux : hors ligne, le compte est quand même retiré de l'appareil.
         if let Some(tokens) = tokens {
             let _ = self.auth.revoke(&tokens.access_token).await;
         }

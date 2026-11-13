@@ -89,12 +89,12 @@ pub const SEARCH: &str = "query Search($query: String!) { \
 /// `period` : `LAST_WEEK` ou `ALL_TIME`.
 pub const CLIPS: &str = "query Clips($login: String!, $first: Int, $period: ClipsPeriod) { user(login: $login) { \
     clips(first: $first, criteria: { period: $period }) { edges { node { \
-    slug title durationSeconds viewCount createdAt thumbnailURL curator { displayName } broadcaster { displayName } } } } } }";
+    slug title durationSeconds viewCount createdAt thumbnailURL curator { displayName } broadcaster { login displayName } } } } } }";
 
 /// Clips les plus vus de la semaine dans une catégorie, filtrables par langue (codes en majuscules).
 pub const CATEGORY_CLIPS: &str = "query CategoryClips($id: ID!, $first: Int, $languages: [Language!]) { game(id: $id) { \
     clips(first: $first, criteria: { period: LAST_WEEK, languages: $languages }) { edges { node { \
-    slug title durationSeconds viewCount createdAt thumbnailURL curator { displayName } broadcaster { displayName } } } } } }";
+    slug title durationSeconds viewCount createdAt thumbnailURL curator { displayName } broadcaster { login displayName } } } } } }";
 
 /// Jeton anonyme d'un clip et ses fichiers MP4, à signer avec ce jeton.
 pub const CLIP_PLAYBACK: &str = "query ClipPlayback($slug: ID!) { clip(slug: $slug) { \
@@ -104,3 +104,9 @@ pub const CLIP_PLAYBACK: &str = "query ClipPlayback($slug: ID!) { clip(slug: $sl
 pub const CHANNEL_ABOUT: &str = "query ChannelAbout($login: String!) { user(login: $login) { \
     panels { ... on DefaultPanel { title description imageURL linkURL } } \
     channel { schedule { segments { startAt endAt title isCancelled categories { name } } } } } }";
+
+/// Chaînes tout public (mode enfants) : ni « contenu mature », ni étiquette de classification.
+pub const SAFE_BY_LOGIN: &str = "query SafeByLogin($keys: [String!]) { users(logins: $keys) { \
+    id login broadcastSettings { isMature } channel { contentClassificationLabels { id } } } }";
+pub const SAFE_BY_ID: &str = "query SafeById($keys: [ID!]) { users(ids: $keys) { \
+    id login broadcastSettings { isMature } channel { contentClassificationLabels { id } } } }";

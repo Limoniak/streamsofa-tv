@@ -168,6 +168,7 @@ pub struct Clip {
     pub curator: String,
     /// Chaîne du clip (nom affiché).
     pub channel_name: String,
+    pub channel_login: String,
 }
 
 /// Fichier MP4 d'un clip, déjà signé pour une lecture anonyme.
