@@ -32,6 +32,8 @@ The interface is currently in French.
 
 Ads inserted by Twitch play as usual: StreamSofa never blocks them and never tries to unlock subscriber or Turbo perks.
 
+What could come next is listed in the [roadmap](ROADMAP.md).
+
 ## Install
 
 StreamSofa is distributed as an APK on [GitHub Releases](https://github.com/Limoniak/streamsofa-tv/releases/latest), outside the Play Store.
