@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StreamSofa · Twitch for Android TV</title>
+  <meta name="description" content="StreamSofa is a free, open-source Twitch client for Android TV and Google TV: remote-first, fast on low-end boxes, with chat, multi-view and multiple accounts.">
+  <meta name="theme-color" content="#130F19">
+  <meta property="og:title" content="StreamSofa · Twitch for Android TV">
+  <meta property="og:description" content="A fast, modern Twitch client built for the couch. Free and open source.">
+  <meta property="og:image" content="https://limoniak.github.io/streamsofa-tv/screenshots/player.jpg">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%231B1622'/%3E%3Cpath d='M12 30a6 6 0 0 1 12 0v4h16v-4a6 6 0 0 1 12 0v14H12z' fill='%23B79CFF'/%3E%3Crect x='18' y='18' width='28' height='18' rx='6' fill='%2354447A'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,600..750,100&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="site/site.css">
+</head>
+<body>
+  <div class="glow" aria-hidden="true"></div>
+
+  <header class="nav">
+    <div class="wrap">
+      <a class="brand" href="#top" aria-label="StreamSofa"><img src="logo.svg" alt="StreamSofa" width="128" height="40"></a>
+      <nav class="nav-links" aria-label="Sections">
+        <a href="#features" data-i18n="nav.features">Features</a>
+        <a href="#install" data-i18n="nav.install">Install</a>
+        <a href="#preview" data-i18n="nav.preview">Preview</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="lang" type="button" id="lang" aria-label="Changer de langue / Change language"><b>EN</b> / FR</button>
+        <a class="btn btn-ghost btn-sm" href="https://github.com/Limoniak/streamsofa-tv">
+          <i data-lucide="github" class="icon"></i><span class="nav-gh-label">GitHub</span>
+          <span class="stars" id="stars" aria-label="GitHub stars"></span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="wrap">
+        <div>
+          <a class="eyebrow" id="version" href="https://github.com/Limoniak/streamsofa-tv/releases/latest">
+            <i data-lucide="sparkles" class="icon"></i><span id="tag"></span><span data-i18n="hero.eyebrow">Free and open source</span>
+          </a>
+          <h1 data-i18n="hero.title">Twitch, made for <em>the couch</em>.</h1>
+          <p class="lead" data-i18n="hero.lead">A fast, modern Twitch client for Android TV and Google TV. Every screen works with the remote, text stays readable from three meters away, and it stays quick on low-end boxes.</p>
+          <div class="cta">
+            <a class="btn btn-primary" href="#install"><i data-lucide="download" class="icon"></i><span data-i18n="hero.install">Install on your TV</span></a>
+            <a class="btn btn-ghost" href="https://github.com/Limoniak/streamsofa-tv"><i data-lucide="github" class="icon"></i><span data-i18n="hero.github">View on GitHub</span></a>
+          </div>
+          <ul class="facts">
+            <li><i data-lucide="tv" class="icon"></i><span data-i18n="hero.f1">Android TV 8.0+</span></li>
+            <li><i data-lucide="user-round-x" class="icon"></i><span data-i18n="hero.f2">Works without an account</span></li>
+            <li><i data-lucide="eye-off" class="icon"></i><span data-i18n="hero.f3">No analytics</span></li>
+          </ul>
+        </div>
+        <div class="tv reveal">
+          <div class="tv-screen">
+            <video id="demo" src="site/demo.mp4" poster="screenshots/home.jpg" muted loop playsinline preload="metadata"
+              aria-label="Browsing popular streams, opening a live, showing the chat and changing channel with the remote"></video>
+          </div>
+          <div class="tv-stand" aria-hidden="true"></div>
+          <p class="tv-caption" data-i18n="hero.caption">Real footage, driven with the remote only.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="remote">
+      <div class="wrap remote-grid">
+        <div class="remote reveal" aria-label="Remote control">
+          <div class="dpad">
+            <button class="key k-up" type="button" data-key="up" aria-label="Up"><i data-lucide="chevron-up" class="icon"></i></button>
+            <button class="key k-left" type="button" data-key="left" aria-label="Left"><i data-lucide="chevron-left" class="icon"></i></button>
+            <button class="key k-ok" type="button" data-key="ok">OK</button>
+            <button class="key k-right" type="button" data-key="right" aria-label="Right"><i data-lucide="chevron-right" class="icon"></i></button>
+            <button class="key k-down" type="button" data-key="down" aria-label="Down"><i data-lucide="chevron-down" class="icon"></i></button>
+          </div>
+          <div class="remote-row">
+            <button class="round" type="button" data-key="hold" aria-label="Long press"><i data-lucide="timer" class="icon"></i></button>
+          </div>
+        </div>
+        <div>
+          <div class="head">
+            <p class="kicker" data-i18n="remote.kicker">Remote first</p>
+            <h2 data-i18n="remote.title">Zap like it’s <em>real TV</em>.</h2>
+            <p data-i18n="remote.lead">In the live player, every key does something useful. Try the remote.</p>
+          </div>
+          <ul class="keymap">
+            <li data-key="up down"><kbd>▲ ▼</kbd><div><strong data-i18n="remote.ud">Change channel</strong><span data-i18n="remote.ud2">Zap through your followed channels that are live, or popular streams in guest mode.</span></div></li>
+            <li data-key="left"><kbd>◀</kbd><div><strong data-i18n="remote.l">Live list</strong><span data-i18n="remote.l2">Opens the list of live channels on top of the video.</span></div></li>
+            <li data-key="right"><kbd>▶</kbd><div><strong data-i18n="remote.r">Chat</strong><span data-i18n="remote.r2">Shows the chat beside the stream, then its “Write” button when you are signed in.</span></div></li>
+            <li data-key="ok"><kbd>OK</kbd><div><strong data-i18n="remote.ok">Action bar</strong><span data-i18n="remote.ok2">Quality, audio only, sleep timer, multi-view, channel page, stream stats.</span></div></li>
+            <li data-key="hold"><kbd><i data-lucide="timer" class="icon"></i></kbd><div><strong data-i18n="remote.h">Long press on a card</strong><span data-i18n="remote.h2">Opens the channel page: past broadcasts, clips, schedule and panels.</span></div></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <div class="wrap">
+        <div class="head reveal">
+          <p class="kicker" data-i18n="feat.kicker">Features</p>
+          <h2 data-i18n="feat.title">Everything you watch on Twitch, <em>on the big screen</em>.</h2>
+          <p data-i18n="feat.lead">A Rust core for the Twitch APIs, chat and storage, with a Jetpack Compose for TV interface.</p>
+        </div>
+        <div class="bento">
+          <article class="card wide tall reveal">
+            <div class="badge"><i data-lucide="radio-tower" class="icon"></i></div>
+            <h3 data-i18n="f.live">Live streams</h3>
+            <p data-i18n="f.live2">Fast channel zapping and quality selection, remembered per channel.</p>
+            <ul>
+              <li data-i18n="f.live3">Experimental low-latency mode: about 3.7 s behind the streamer instead of 7.2 s, on channels that allow it.</li>
+              <li data-i18n="f.live4">Audio only, which keeps playing in the background.</li>
+              <li data-i18n="f.live5">Sleep timer (15, 30, 60 or 90 minutes).</li>
+              <li data-i18n="f.live6">Stream stats: resolution, bitrate, delay, dropped frames.</li>
+              <li data-i18n="f.live7">Animated preview after a moment of focus on a card.</li>
+            </ul>
+          </article>
+          <article class="card wide reveal">
+            <div class="badge"><i data-lucide="layout-grid" class="icon"></i></div>
+            <h3 data-i18n="f.multi">Multi-view</h3>
+            <p data-i18n="f.multi2">Two to four streams side by side, on devices that can decode them. Sound follows the focused tile.</p>
+            <div class="tiles" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+          </article>
+          <article class="card wide reveal">
+            <div class="badge"><i data-lucide="message-square-text" class="icon"></i></div>
+            <h3 data-i18n="f.chat">Chat</h3>
+            <p data-i18n="f.chat2">Read and send messages, badges, 7TV / BTTV / FFZ emotes (animated where the device allows), highlighted mentions, optional message times, hidden words and users.</p>
+          </article>
+          <article class="card peach reveal">
+            <div class="badge"><i data-lucide="users" class="icon"></i></div>
+            <h3 data-i18n="f.acc">Accounts</h3>
+            <p data-i18n="f.acc2">Sign in by scanning a QR code with your phone, no typing on the TV. Several accounts, plus a guest mode that needs none.</p>
+          </article>
+          <article class="card reveal">
+            <div class="badge"><i data-lucide="history" class="icon"></i></div>
+            <h3 data-i18n="f.vod">Past broadcasts</h3>
+            <p data-i18n="f.vod2">Resume where you stopped, per profile, with the chat replayed in sync. Clips too.</p>
+          </article>
+          <article class="card reveal">
+            <div class="badge"><i data-lucide="compass" class="icon"></i></div>
+            <h3 data-i18n="f.disc">Discover</h3>
+            <p data-i18n="f.disc2">Followed channels first, recommendations, popular streams and categories, a language filter, search with recent searches.</p>
+          </article>
+          <article class="card reveal">
+            <div class="badge"><i data-lucide="monitor-play" class="icon"></i></div>
+            <h3 data-i18n="f.tv">Android TV</h3>
+            <p data-i18n="f.tv2">“Continue watching” row, global and voice search, and twitch.tv links open in the app.</p>
+          </article>
+          <article class="card peach reveal">
+            <div class="badge"><i data-lucide="gauge" class="icon"></i></div>
+            <h3 data-i18n="f.perf">Light on old boxes</h3>
+            <p data-i18n="f.perf2">Native Rust core, Baseline Profile for fast startup, and heavy effects turned off on low-memory devices.</p>
+          </article>
+          <article class="card reveal">
+            <div class="badge"><i data-lucide="shield-check" class="icon"></i></div>
+            <h3 data-i18n="f.priv">Private by design</h3>
+            <p data-i18n="f.priv2">Tokens encrypted with the Android Keystore and never logged. No analytics; the optional crash log stays on the device.</p>
+          </article>
+          <article class="card wide reveal">
+            <div class="badge"><i data-lucide="refresh-cw" class="icon"></i></div>
+            <h3 data-i18n="f.upd">Updates in the app</h3>
+            <p data-i18n="f.upd2">New versions from GitHub Releases, offered at launch. Beta versions are opt-in.</p>
+          </article>
+          <article class="card wide reveal">
+            <div class="badge"><i data-lucide="languages" class="icon"></i></div>
+            <h3 data-i18n="f.lang">English and French</h3>
+            <p data-i18n="f.lang2">The interface follows the system language, or the app’s own setting on Android 13+.</p>
+          </article>
+        </div>
+        <p class="note reveal"><i data-lucide="info" class="icon"></i><span data-i18n="feat.note">Ads inserted by Twitch play as usual: StreamSofa never blocks them and never tries to unlock subscriber or Turbo perks. Following a channel happens on your phone (a QR code on each channel page), because Twitch closed that API to third-party apps.</span></p>
+      </div>
+    </section>
+
+    <section id="preview">
+      <div class="wrap">
+        <div class="head reveal">
+          <p class="kicker" data-i18n="prev.kicker">Preview</p>
+          <h2 data-i18n="prev.title">Built for a 10-foot screen.</h2>
+          <p data-i18n="prev.lead">Screenshots from the Google TV emulator at 1080p.</p>
+        </div>
+        <div class="gallery">
+          <figure class="shot reveal">
+            <button type="button" data-full="screenshots/home.jpg"><img src="screenshots/home.jpg" alt="Home with popular live streams and categories" loading="lazy" width="1920" height="1080"></button>
+            <figcaption data-i18n="prev.home"><b>Home</b>: followed channels first, then popular streams and categories.</figcaption>
+          </figure>
+          <figure class="shot reveal">
+            <button type="button" data-full="screenshots/player.jpg"><img src="screenshots/player.jpg" alt="Live player with the action bar and the chat" loading="lazy" width="1920" height="1080"></button>
+            <figcaption data-i18n="prev.player"><b>Player</b>: OK opens the action bar, Right shows the chat.</figcaption>
+          </figure>
+          <figure class="shot reveal">
+            <button type="button" data-full="screenshots/live-list.jpg"><img src="screenshots/live-list.jpg" alt="List of live channels over the player" loading="lazy" width="1920" height="1080"></button>
+            <figcaption data-i18n="prev.list"><b>Live list</b>: Left opens it, Up and Down change channel directly.</figcaption>
+          </figure>
+          <figure class="shot reveal">
+            <button type="button" data-full="screenshots/settings.jpg"><img src="screenshots/settings.jpg" alt="Settings screen" loading="lazy" width="1920" height="1080"></button>
+            <figcaption data-i18n="prev.settings"><b>Settings</b>: chat, quality, low latency, accent color, updates.</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="install">
+      <div class="wrap">
+        <div class="head reveal">
+          <p class="kicker" data-i18n="inst.kicker">Quick start</p>
+          <h2 data-i18n="inst.title">On your TV in <em>two minutes</em>.</h2>
+          <p data-i18n="inst.lead">StreamSofa is distributed as an APK, outside the Play Store. Once installed, it updates itself.</p>
+        </div>
+
+        <div class="tabs" role="tablist" aria-label="Install method">
+          <button class="tab" role="tab" type="button" id="t-tv" aria-controls="p-tv" aria-selected="true" data-i18n="inst.tabTv">On the TV (easiest)</button>
+          <button class="tab" role="tab" type="button" id="t-pc" aria-controls="p-pc" aria-selected="false" data-i18n="inst.tabPc">From a computer</button>
+          <button class="tab" role="tab" type="button" id="t-src" aria-controls="p-src" aria-selected="false" data-i18n="inst.tabSrc">Build from source</button>
+        </div>
+
+        <div class="panel" role="tabpanel" id="p-tv" aria-labelledby="t-tv">
+          <ol class="steps">
+            <li><strong data-i18n="tv.s1">Install Downloader</strong><p data-i18n="tv.s1b">Search for “Downloader” (by AFTVnews) in the Play Store of your TV. It is free.</p></li>
+            <li><strong data-i18n="tv.s2">Allow it to install apps</strong><p data-i18n="tv.s2b">Settings → Apps → Security &amp; restrictions → Unknown sources → turn on Downloader. The exact path depends on the TV.</p></li>
+            <li><strong data-i18n="tv.s3">Type this address in Downloader</strong><p data-i18n="tv.s3b">It downloads the latest version, which works on every device. Then confirm the install.</p>
+              <div class="code"><pre>limoniak.github.io/streamsofa-tv/get</pre><button class="copy" type="button" aria-label="Copy"><i data-lucide="copy" class="icon"></i></button></div>
+            </li>
+            <li><strong data-i18n="tv.s4">Open StreamSofa</strong><p data-i18n="tv.s4b">Pick “Guest” to watch right away, or add your Twitch account by scanning the QR code with your phone.</p></li>
+          </ol>
+        </div>
+
+        <div class="panel" role="tabpanel" id="p-pc" aria-labelledby="t-pc" hidden>
+          <ol class="steps">
+            <li><strong data-i18n="pc.s1">Download the APK</strong><p data-i18n="pc.s1b">From the latest release, pick the file for your device:</p>
+              <table class="abi">
+                <tr><td data-i18n="pc.a1">Most recent boxes and TVs (Chromecast with Google TV, Shield…)</td><td><code>…-arm64-v8a.apk</code></td></tr>
+                <tr><td data-i18n="pc.a2">Older or 32-bit boxes (Mi Box S…)</td><td><code>…-armeabi-v7a.apk</code></td></tr>
+                <tr><td data-i18n="pc.a3">Not sure</td><td><code>…-universal.apk</code></td></tr>
+              </table>
+            </li>
+            <li><strong data-i18n="pc.s2">Turn on network debugging on the TV</strong><p data-i18n="pc.s2b">Settings → System → About → press “Android TV OS build” 7 times, then Developer options → USB / network debugging.</p></li>
+            <li><strong data-i18n="pc.s3">Install with adb</strong><p data-i18n="pc.s3b">Replace the address with your TV’s IP (Settings → Network).</p>
+              <div class="code"><pre id="adb-cmd">adb connect 192.168.1.42
+adb install streamsofa-0.2.0-universal.apk</pre><button class="copy" type="button" aria-label="Copy"><i data-lucide="copy" class="icon"></i></button></div>
+            </li>
+          </ol>
+        </div>
+
+        <div class="panel" role="tabpanel" id="p-src" aria-labelledby="t-src" hidden>
+          <ol class="steps">
+            <li><strong data-i18n="src.s1">Requirements</strong><p data-i18n="src.s1b">JDK 21, Android SDK (platform 37), NDK 29.0.14206865, Rust stable with the Android targets and cargo-ndk.</p>
+              <div class="code"><pre>rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+cargo install cargo-ndk --locked</pre><button class="copy" type="button" aria-label="Copy"><i data-lucide="copy" class="icon"></i></button></div>
+            </li>
+            <li><strong data-i18n="src.s2">Configure</strong><p data-i18n="src.s2b">Register an application of type “Public” on the Twitch developer console, then fill in the SDK path and <code>twitch.clientId</code>.</p>
+              <div class="code"><pre>git clone https://github.com/Limoniak/streamsofa-tv.git
+cd streamsofa-tv
+cp android/local.properties.example android/local.properties</pre><button class="copy" type="button" aria-label="Copy"><i data-lucide="copy" class="icon"></i></button></div>
+            </li>
+            <li><strong data-i18n="src.s3">Build and install</strong><p data-i18n="src.s3b">Add <code>-Plumen.abis=arm64-v8a</code> to build a single ABI and iterate faster.</p>
+              <div class="code"><pre>cd android &amp;&amp; ./gradlew :app:assembleDebug
+adb install -r app/build/outputs/apk/debug/app-universal-debug.apk</pre><button class="copy" type="button" aria-label="Copy"><i data-lucide="copy" class="icon"></i></button></div>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div>
+        <img src="logo.svg" alt="StreamSofa" width="109" height="34">
+        <p data-i18n="foot.by">Made by <a href="https://github.com/Limoniak">Limoniak</a>. Free software under the <a href="https://github.com/Limoniak/streamsofa-tv/blob/main/LICENSE">GPL-3.0</a>.</p>
+        <p class="disclaimer" data-i18n="foot.disc">StreamSofa is an unofficial app, not affiliated with, endorsed by or sponsored by Twitch Interactive, Inc. Twitch is a trademark of Twitch Interactive, Inc.</p>
+      </div>
+      <nav aria-label="Links">
+        <a href="https://github.com/Limoniak/streamsofa-tv/releases"><i data-lucide="package" class="icon"></i><span data-i18n="foot.rel">Releases</span></a>
+        <a href="https://github.com/Limoniak/streamsofa-tv/issues"><i data-lucide="bug" class="icon"></i><span data-i18n="foot.issues">Issues</span></a>
+        <a href="https://github.com/Limoniak/streamsofa-tv/blob/main/ROADMAP.md"><i data-lucide="map" class="icon"></i><span data-i18n="foot.road">Roadmap</span></a>
+        <a href="https://github.com/Limoniak/streamsofa-tv/blob/main/CHANGELOG.md"><i data-lucide="scroll-text" class="icon"></i><span data-i18n="foot.log">Changelog</span></a>
+        <a href="https://github.com/Limoniak/streamsofa-tv/blob/main/LICENSE"><i data-lucide="scale" class="icon"></i><span data-i18n="foot.lic">License</span></a>
+      </nav>
+    </div>
+  </footer>
+
+  <dialog class="lightbox" id="lightbox">
+    <form method="dialog"><button aria-label="Close"><i data-lucide="x" class="icon"></i></button></form>
+    <img alt="">
+  </dialog>
+
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <script src="site/site.js"></script>
+</body>
+</html>

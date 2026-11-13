@@ -20,6 +20,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - A dot on "Profiles" in the side menu when an account has to sign in again.
 - Optional crash log, kept on the device and exportable to Downloads (Settings > Crash log). Nothing is sent.
 - Beta versions: an option to also be offered pre-releases (Settings > Updates).
+- Project website, with a short install link to type in Downloader on the TV: `limoniak.github.io/streamsofa-tv/get`.
+- Each release also ships `streamsofa.apk` (universal), always reachable at `releases/latest/download/streamsofa.apk`.
 
 ### Changed
 - Up / Down on a channel outside the zapping list now jumps to the first channel of the list.

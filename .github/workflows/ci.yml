@@ -98,6 +98,9 @@ jobs:
             abi=$(basename "$apk" | sed -E 's/^app-(.*)-release\.apk$/\1/')
             cp "$apk" "../dist/streamsofa-${VERSION}-${abi}.apk"
           done
+          # Nom fixe pour le lien court releases/latest/download/streamsofa.apk (page docs/get) ;
+          # sans suffixe d'ABI, la recherche de mise à jour de l'app l'ignore.
+          cp ../dist/streamsofa-${VERSION}-universal.apk ../dist/streamsofa.apk
           ls -l ../dist
 
       - name: Release GitHub

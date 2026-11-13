@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <b>A fast, modern Twitch client for Android TV and Google TV.</b><br>
+  <b>A fast, modern Twitch client for Android TV and Google TV.</b> · <a href="https://limoniak.github.io/streamsofa-tv/">Website</a><br>
   Built for the couch: remote-first navigation, readable from three meters away, quick on low-end boxes.
 </p>
 
@@ -58,7 +58,7 @@ StreamSofa is distributed as an APK on [GitHub Releases](https://github.com/Limo
 | Older or 32-bit boxes (Mi Box S, ...) | `streamsofa-<version>-armeabi-v7a.apk` |
 | Not sure | `streamsofa-<version>-universal.apk` |
 
-**On the TV**: install the free *Downloader* app, allow it to install unknown apps (Settings → Apps → Security), then enter the APK link.
+**On the TV**: install the free *Downloader* app, allow it to install unknown apps (Settings → Apps → Security), then type `limoniak.github.io/streamsofa-tv/get`: it downloads the latest universal APK.
 
 **From a computer**, with developer options and network debugging enabled on the TV:
 
@@ -67,7 +67,7 @@ adb connect <tv-ip-address>
 adb install streamsofa-<version>-universal.apk
 ```
 
-Once installed, StreamSofa checks for a new version at each launch and offers to download it; Android then asks you to confirm the install. The check can be turned off in *Paramètres → Mises à jour*.
+Once installed, StreamSofa checks for a new version at each launch and offers to download it; Android then asks you to confirm the install. The check can be turned off in *Settings → Updates*.
 
 ## Build from source
 

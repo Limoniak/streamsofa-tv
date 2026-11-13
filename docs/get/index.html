@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Download StreamSofa</title>
+  <!-- Lien court à taper dans Downloader sur la TV : télécharge l'APK universel de la dernière version stable. -->
+  <meta http-equiv="refresh" content="6; url=https://github.com/Limoniak/streamsofa-tv/releases/latest/download/streamsofa.apk">
+  <style>
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #130f19; color: #f4eee8;
+      font: 20px/1.6 system-ui, sans-serif; text-align: center; padding: 16px; box-sizing: border-box; }
+    a { color: #b79cff; }
+    small { color: #b6abbd; }
+  </style>
+</head>
+<body>
+  <main>
+    <p>Downloading StreamSofa…<br><small>Téléchargement de StreamSofa…</small></p>
+    <p><a id="link" href="https://github.com/Limoniak/streamsofa-tv/releases/latest">Download / Télécharger</a></p>
+  </main>
+  <script>
+    // L'API donne l'APK universel même pour les releases publiées avant le nom fixe streamsofa.apk.
+    fetch("https://api.github.com/repos/Limoniak/streamsofa-tv/releases/latest")
+      .then((r) => r.json())
+      .then((release) => {
+        const assets = release.assets || [];
+        const apk = assets.find((a) => a.name === "streamsofa.apk") || assets.find((a) => a.name.endsWith("-universal.apk"));
+        if (!apk) return;
+        document.getElementById("link").href = apk.browser_download_url;
+        location.href = apk.browser_download_url;
+      })
+      .catch(() => {});
+  </script>
+</body>
+</html>
