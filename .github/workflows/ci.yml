@@ -45,9 +45,9 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - uses: android-actions/setup-android@v3
+      # SDK Android préinstallé sur le runner ($ANDROID_HOME) : il ne manque que le NDK épinglé.
       - name: NDK
-        run: sdkmanager --install "ndk;${NDK_VERSION}"
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;${NDK_VERSION}" > /dev/null
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Tests Rust
