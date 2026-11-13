@@ -16,4 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "lumen"
 
-include(":app", ":core-bridge", ":designsystem")
+include(":app", ":core-bridge", ":data", ":designsystem", ":feature:auth")

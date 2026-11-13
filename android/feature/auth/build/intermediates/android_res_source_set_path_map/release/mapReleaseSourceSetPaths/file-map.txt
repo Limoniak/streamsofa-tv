@@ -1,0 +1,9 @@
+dev.lumen.feature.auth-pngs-0 /home/user/lumen-tv/android/feature/auth/build/generated/res/pngs/release
+dev.lumen.feature.auth-updated_navigation_xml-1 /home/user/lumen-tv/android/feature/auth/build/generated/updated_navigation_xml/release
+dev.lumen.feature.auth-mergeReleaseResources-2 /home/user/lumen-tv/android/feature/auth/build/intermediates/incremental/release/mergeReleaseResources/merged.dir
+dev.lumen.feature.auth-mergeReleaseResources-3 /home/user/lumen-tv/android/feature/auth/build/intermediates/incremental/release/mergeReleaseResources/stripped.dir
+dev.lumen.feature.auth-release-4 /home/user/lumen-tv/android/feature/auth/build/intermediates/merged_res/release/mergeReleaseResources
+dev.lumen.feature.auth-release-5 /home/user/lumen-tv/android/feature/auth/build/intermediates/packaged_res/release/packageReleaseResources
+dev.lumen.feature.auth-main-6 /home/user/lumen-tv/android/feature/auth/src/main/res
+dev.lumen.feature.auth-release-7 /home/user/lumen-tv/android/feature/auth/src/release/res
+gradleHome-0 /root/.gradle

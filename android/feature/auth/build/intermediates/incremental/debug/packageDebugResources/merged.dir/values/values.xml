@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_back">Retour</string>
+    <string name="login_error_expired">Le code a expiré avant d\'être validé.</string>
+    <string name="login_error_network">Impossible de joindre Twitch. Vérifiez la connexion réseau.</string>
+    <string name="login_error_not_configured">Cette version de l\'application n\'a pas de Client ID Twitch.</string>
+    <string name="login_error_other">La connexion a échoué. Réessayez dans un instant.</string>
+    <string name="login_error_storage">Le stockage sécurisé de l\'appareil a refusé d\'enregistrer le compte.</string>
+    <string name="login_note">La lecture reste anonyme : les avantages Turbo ou d\'abonnement ne s\'y appliquent pas.</string>
+    <string name="login_requesting">Demande d\'un code à Twitch…</string>
+    <string name="login_retry">Obtenir un nouveau code</string>
+    <string name="login_step_code">puis saisissez ce code :</string>
+    <string name="login_step_scan">Scannez le QR code avec votre téléphone, ou ouvrez</string>
+    <string name="login_success">Bienvenue, %1$s !</string>
+    <string name="login_title">Connecter un compte Twitch</string>
+    <string name="login_url">twitch.tv/activate</string>
+    <string name="login_waiting">En attente de votre validation…</string>
+    <string name="profiles_active">Actif</string>
+    <string name="profiles_add">Ajouter un compte</string>
+    <string name="profiles_guest">Invité</string>
+    <string name="profiles_guest_hint">Sans connexion, chat en lecture seule</string>
+    <string name="profiles_needs_reauth">Reconnexion requise</string>
+    <string name="profiles_remove_body">Le compte Twitch n\'est pas supprimé. Vous pourrez le reconnecter à tout moment.</string>
+    <string name="profiles_remove_cancel">Annuler</string>
+    <string name="profiles_remove_confirm">Retirer</string>
+    <string name="profiles_remove_hint">Appui long sur un profil pour le retirer de cet appareil.</string>
+    <string name="profiles_remove_title">Retirer %1$s de cet appareil ?</string>
+    <string name="profiles_title">Qui regarde ?</string>
+</resources>

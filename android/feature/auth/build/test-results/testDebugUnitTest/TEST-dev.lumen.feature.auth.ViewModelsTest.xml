@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.lumen.feature.auth.ViewModelsTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-11-13T10:31:19.014Z" hostname="vm" time="0.25">
+  <properties/>
+  <testcase name="expiry while waiting offers a retry" classname="dev.lumen.feature.auth.ViewModelsTest" time="0.207"/>
+  <testcase name="login shows the code, then succeeds once the user approves" classname="dev.lumen.feature.auth.ViewModelsTest" time="0.004"/>
+  <testcase name="selecting an account that needs reauth sends the user to login instead" classname="dev.lumen.feature.auth.ViewModelsTest" time="0.017"/>
+  <testcase name="core errors map to distinct messages" classname="dev.lumen.feature.auth.ViewModelsTest" time="0.003"/>
+  <testcase name="selecting a healthy account activates it and enters the app" classname="dev.lumen.feature.auth.ViewModelsTest" time="0.003"/>
+  <testcase name="guest mode clears the active account but keeps the list" classname="dev.lumen.feature.auth.ViewModelsTest" time="0.002"/>
+  <testcase name="selecting an account removed in the meantime neither crashes nor navigates" classname="dev.lumen.feature.auth.ViewModelsTest" time="0.002"/>
+  <testcase name="an expired code can be replaced, and the stale wait cannot overwrite the new one" classname="dev.lumen.feature.auth.ViewModelsTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

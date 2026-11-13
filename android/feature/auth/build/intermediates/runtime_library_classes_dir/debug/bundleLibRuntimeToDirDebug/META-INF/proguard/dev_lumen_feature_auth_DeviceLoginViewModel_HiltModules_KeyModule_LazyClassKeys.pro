@@ -1,0 +1,1 @@
+-keep,allowobfuscation,allowshrinking class dev.lumen.feature.auth.DeviceLoginViewModel

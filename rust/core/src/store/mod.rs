@@ -1,0 +1,199 @@
+//! Base SQLite locale. Ne contient jamais de jeton : uniquement des métadonnées.
+
+use std::path::Path;
+use std::sync::Mutex;
+
+use rusqlite::{params, Connection, OptionalExtension};
+
+use crate::accounts::{Account, AccountState};
+use crate::error::CoreError;
+
+/// Une entrée par version de schéma, appliquées dans l'ordre ; `PRAGMA user_version` fait foi.
+const MIGRATIONS: &[&str] = &["
+    CREATE TABLE accounts (
+        id               TEXT PRIMARY KEY,
+        login            TEXT NOT NULL,
+        display_name     TEXT NOT NULL,
+        avatar_url       TEXT NOT NULL,
+        scopes           TEXT NOT NULL,
+        state            TEXT NOT NULL,
+        added_at         INTEGER NOT NULL,
+        last_used_at     INTEGER NOT NULL
+    );
+    CREATE TABLE app_state (
+        key   TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+    );
+"];
+
+const ACTIVE_ACCOUNT: &str = "active_account_id";
+
+pub struct Db(Mutex<Connection>);
+
+impl Db {
+    pub fn open(path: &Path) -> Result<Self, CoreError> {
+        Self::init(Connection::open(path)?)
+    }
+
+    #[cfg(test)]
+    pub fn in_memory() -> Result<Self, CoreError> {
+        Self::init(Connection::open_in_memory()?)
+    }
+
+    fn init(mut conn: Connection) -> Result<Self, CoreError> {
+        conn.pragma_update(None, "journal_mode", "WAL")?;
+        conn.pragma_update(None, "synchronous", "NORMAL")?;
+        let version: u32 = conn.pragma_query_value(None, "user_version", |r| r.get(0))?;
+        for (index, sql) in MIGRATIONS.iter().enumerate().skip(version as usize) {
+            let tx = conn.transaction()?;
+            tx.execute_batch(sql)?;
+            tx.pragma_update(None, "user_version", (index + 1) as u32)?;
+            tx.commit()?;
+        }
+        Ok(Self(Mutex::new(conn)))
+    }
+
+    fn conn(&self) -> std::sync::MutexGuard<'_, Connection> {
+        self.0.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    pub fn accounts(&self) -> Result<Vec<Account>, CoreError> {
+        let conn = self.conn();
+        let mut stmt = conn.prepare(
+            "SELECT id, login, display_name, avatar_url, state FROM accounts ORDER BY added_at, id",
+        )?;
+        let rows = stmt.query_map([], |r| {
+            Ok(Account {
+                id: r.get(0)?,
+                login: r.get(1)?,
+                display_name: r.get(2)?,
+                avatar_url: r.get(3)?,
+                state: AccountState::from_db(&r.get::<_, String>(4)?),
+            })
+        })?;
+        Ok(rows.collect::<Result<_, _>>()?)
+    }
+
+    pub fn account_exists(&self, id: &str) -> Result<bool, CoreError> {
+        Ok(self
+            .conn()
+            .query_row("SELECT 1 FROM accounts WHERE id = ?1", [id], |_| Ok(()))
+            .optional()?
+            .is_some())
+    }
+
+    /// Ajoute le compte, ou met à jour son profil s'il se reconnecte.
+    pub fn upsert_account(&self, account: &Account, scopes: &str, now: i64) -> Result<(), CoreError> {
+        self.conn().execute(
+            "INSERT INTO accounts (id, login, display_name, avatar_url, scopes, state, added_at, last_used_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7)
+             ON CONFLICT(id) DO UPDATE SET
+                 login = excluded.login, display_name = excluded.display_name,
+                 avatar_url = excluded.avatar_url, scopes = excluded.scopes,
+                 state = excluded.state, last_used_at = excluded.last_used_at",
+            params![
+                account.id, account.login, account.display_name, account.avatar_url,
+                scopes, account.state.as_db(), now
+            ],
+        )?;
+        Ok(())
+    }
+
+    /// Renvoie `true` si l'état a réellement changé.
+    pub fn set_account_state(&self, id: &str, state: AccountState) -> Result<bool, CoreError> {
+        let changed = self.conn().execute(
+            "UPDATE accounts SET state = ?2 WHERE id = ?1 AND state <> ?2",
+            params![id, state.as_db()],
+        )?;
+        Ok(changed > 0)
+    }
+
+    pub fn delete_account(&self, id: &str) -> Result<(), CoreError> {
+        let mut conn = self.conn();
+        let tx = conn.transaction()?;
+        tx.execute("DELETE FROM accounts WHERE id = ?1", [id])?;
+        tx.execute("DELETE FROM app_state WHERE key = ?1 AND value = ?2", params![ACTIVE_ACCOUNT, id])?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    pub fn active_account_id(&self) -> Result<Option<String>, CoreError> {
+        Ok(self
+            .conn()
+            .query_row("SELECT value FROM app_state WHERE key = ?1", [ACTIVE_ACCOUNT], |r| r.get(0))
+            .optional()?)
+    }
+
+    /// `None` = mode invité.
+    pub fn set_active_account(&self, id: Option<&str>, now: i64) -> Result<(), CoreError> {
+        let mut conn = self.conn();
+        let tx = conn.transaction()?;
+        match id {
+            Some(id) => {
+                tx.execute(
+                    "INSERT INTO app_state (key, value) VALUES (?1, ?2)
+                     ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                    params![ACTIVE_ACCOUNT, id],
+                )?;
+                tx.execute("UPDATE accounts SET last_used_at = ?2 WHERE id = ?1", params![id, now])?;
+            }
+            None => {
+                tx.execute("DELETE FROM app_state WHERE key = ?1", [ACTIVE_ACCOUNT])?;
+            }
+        }
+        tx.commit()?;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn account(id: &str) -> Account {
+        Account {
+            id: id.into(),
+            login: format!("login{id}"),
+            display_name: format!("Name{id}"),
+            avatar_url: String::new(),
+            state: AccountState::Ok,
+        }
+    }
+
+    #[test]
+    fn reopening_keeps_data_and_does_not_rerun_migrations() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("lumen.db");
+        {
+            let db = Db::open(&path).unwrap();
+            db.upsert_account(&account("1"), "a b", 10).unwrap();
+            db.set_active_account(Some("1"), 11).unwrap();
+        }
+        let db = Db::open(&path).unwrap();
+        assert_eq!(db.accounts().unwrap(), vec![account("1")]);
+        assert_eq!(db.active_account_id().unwrap().as_deref(), Some("1"));
+    }
+
+    #[test]
+    fn upsert_keeps_insertion_order_when_an_account_reconnects() {
+        let db = Db::in_memory().unwrap();
+        db.upsert_account(&account("1"), "", 10).unwrap();
+        db.upsert_account(&account("2"), "", 20).unwrap();
+        db.set_account_state("1", AccountState::NeedsReauth).unwrap();
+        db.upsert_account(&account("1"), "", 30).unwrap();
+        let ids: Vec<_> = db.accounts().unwrap().into_iter().map(|a| (a.id, a.state)).collect();
+        assert_eq!(ids, vec![("1".into(), AccountState::Ok), ("2".into(), AccountState::Ok)]);
+    }
+
+    #[test]
+    fn deleting_the_active_account_falls_back_to_guest() {
+        let db = Db::in_memory().unwrap();
+        db.upsert_account(&account("1"), "", 10).unwrap();
+        db.upsert_account(&account("2"), "", 10).unwrap();
+        db.set_active_account(Some("1"), 10).unwrap();
+        db.delete_account("2").unwrap();
+        assert_eq!(db.active_account_id().unwrap().as_deref(), Some("1"));
+        db.delete_account("1").unwrap();
+        assert_eq!(db.active_account_id().unwrap(), None);
+    }
+}

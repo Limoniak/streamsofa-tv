@@ -3,6 +3,8 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
 }
 
 fun loadProperties(name: String) = Properties().apply {
@@ -79,8 +81,13 @@ android {
 }
 
 dependencies {
-    implementation(project(":core-bridge"))
+    implementation(project(":data"))
     implementation(project(":designsystem"))
+    implementation(project(":feature:auth"))
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    implementation(libs.hilt.navigation.compose)
+    implementation(libs.navigation.compose)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
