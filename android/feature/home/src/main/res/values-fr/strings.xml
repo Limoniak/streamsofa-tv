@@ -29,4 +29,6 @@
     <string name="search_recent">Recherches récentes</string>
     <string name="search_recent_clear">Effacer</string>
     <string name="channel_follow_qr">Scannez pour suivre cette chaîne depuis votre téléphone</string>
+    <string name="following_clips">Clips des chaînes suivies</string>
+    <string name="category_clips">Meilleurs clips de la semaine</string>
 </resources>

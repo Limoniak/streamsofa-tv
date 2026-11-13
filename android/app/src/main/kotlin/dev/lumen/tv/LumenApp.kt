@@ -21,6 +21,7 @@ class LumenApp : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
         crashLog.install(BuildConfig.VERSION_NAME)
+        LauncherRefreshJob.schedule(this)
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader = lumenImageLoader(context)

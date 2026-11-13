@@ -141,11 +141,14 @@ fun Video.toCard(viewsLabel: String) = VideoCardModel(
     finished = finished,
 )
 
-/** « Pseudo  ·  12,3 k vues » */
-fun Clip.toCard(viewsLabel: String) = VideoCardModel(
+/** « Pseudo  ·  12,3 k vues » ; [showChannel] : la chaîne plutôt que l'auteur du clip (rangées multi-chaînes). */
+fun Clip.toCard(viewsLabel: String, showChannel: Boolean = false) = VideoCardModel(
     key = "clip:$slug",
     title = title,
-    subtitle = listOfNotNull(curator.takeIf { it.isNotEmpty() }, "${formatViewers(views.toInt())} $viewsLabel").joinToString("  ·  "),
+    subtitle = listOfNotNull(
+        (if (showChannel) channelName else curator).takeIf { it.isNotEmpty() },
+        "${formatViewers(views.toInt())} $viewsLabel",
+    ).joinToString("  ·  "),
     thumbnailTemplate = thumbnailUrl,
     durationS = durationS.toLong(),
     positionS = 0,

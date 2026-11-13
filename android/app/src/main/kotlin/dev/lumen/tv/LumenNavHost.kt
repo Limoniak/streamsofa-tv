@@ -159,12 +159,17 @@ fun LumenNavHost(session: SessionViewModel = hiltViewModel()) {
                         onOpenStream = navController::openLive,
                         onOpenChannel = navController::openChannel,
                         onSignIn = { navController.navigate(Routes.PROFILES) },
+                        onOpenClip = { slug, title -> navController.navigate(Routes.clip(slug, title)) },
                     )
                 }
             }
             composable(Routes.CATEGORY, deepLinks = links("streamsofa://category/{id}?name={name}")) {
                 Shell(selected = null, onTab = navController::openTab) {
-                    CategoryRoute(onOpenStream = navController::openLive, onOpenChannel = navController::openChannel)
+                    CategoryRoute(
+                        onOpenStream = navController::openLive,
+                        onOpenChannel = navController::openChannel,
+                        onOpenClip = { slug, title -> navController.navigate(Routes.clip(slug, title)) },
+                    )
                 }
             }
             composable(Routes.CHANNEL, deepLinks = links("streamsofa://channel/{login}")) {

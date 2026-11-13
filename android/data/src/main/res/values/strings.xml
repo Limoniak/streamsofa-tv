@@ -9,4 +9,5 @@
     <string name="error_other">Something unexpected went wrong.</string>
     <string name="error_subscribers_only">This video is for subscribers of the channel only.</string>
     <string name="retry">Retry</string>
+    <string name="launcher_channel_name">Live channels you follow</string>
 </resources>

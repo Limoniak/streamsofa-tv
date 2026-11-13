@@ -29,4 +29,6 @@
     <string name="search_recent">Recent searches</string>
     <string name="search_recent_clear">Clear</string>
     <string name="channel_follow_qr">Scan to follow this channel from your phone</string>
+    <string name="following_clips">Clips from channels you follow</string>
+    <string name="category_clips">Top clips this week</string>
 </resources>

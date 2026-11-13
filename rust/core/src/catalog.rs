@@ -166,6 +166,8 @@ pub struct Clip {
     /// URL directe (taille fixe), vide si inconnue.
     pub thumbnail_url: String,
     pub curator: String,
+    /// Chaîne du clip (nom affiché).
+    pub channel_name: String,
 }
 
 /// Fichier MP4 d'un clip, déjà signé pour une lecture anonyme.

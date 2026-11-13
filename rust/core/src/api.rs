@@ -72,6 +72,8 @@ impl Default for Endpoints {
 const PAGE_SIZE: u32 = 30;
 /// Au-delà, les suivis en live ne tiennent de toute façon plus dans une rangée.
 const MAX_FOLLOWED_PAGES: usize = 5;
+/// Chaînes interrogées pour la rangée « clips des suivis » : une requête GQL chacune.
+const FOLLOWED_CLIP_CHANNELS: usize = 12;
 /// VOD d'une chaîne en invité : une seule page, donc la plus grande que GQL accepte.
 const GUEST_VIDEOS: u32 = 100;
 /// Résultats de recherche par type : de quoi remplir une rangée.
@@ -618,6 +620,32 @@ impl Core {
             return Ok(week);
         }
         self.gql.clips(&login, true, PAGE_SIZE).await
+    }
+
+    /// Clips les plus vus de la semaine dans une catégorie.
+    pub async fn category_clips(&self, category_id: String, language: Option<String>) -> Result<Vec<Clip>, CoreError> {
+        self.gql.category_clips(&category_id, language.as_deref().filter(|l| !l.is_empty()), PAGE_SIZE).await
+    }
+
+    /// Clips de la semaine des chaînes suivies : celles en live d'abord, puis les derniers suivis,
+    /// [`FOLLOWED_CLIP_CHANNELS`] chaînes au plus, du plus vu au moins vu.
+    pub async fn followed_clips(&self) -> Result<Vec<Clip>, CoreError> {
+        let live = self.followed_streams().await?;
+        let follows = self
+            .with_helix(|token: Secret, user_id: String| async move { self.helix.followed_channels(&token, &user_id, None).await })
+            .await?
+            .map(|page| page.data)
+            .unwrap_or_default();
+        let mut logins: Vec<String> = live.into_iter().map(|s| s.login).chain(follows.into_iter().map(|f| f.broadcaster_login)).collect();
+        let mut seen = std::collections::HashSet::new();
+        logins.retain(|l| seen.insert(l.clone()));
+        logins.truncate(FOLLOWED_CLIP_CHANNELS);
+        // Une chaîne en erreur est simplement absente de la rangée.
+        let lists = futures_util::future::join_all(logins.iter().map(|login| self.gql.clips(login, false, 5))).await;
+        let mut clips: Vec<Clip> = lists.into_iter().flatten().flatten().collect();
+        clips.sort_by(|a, b| b.views.cmp(&a.views));
+        clips.truncate(PAGE_SIZE as usize);
+        Ok(clips)
     }
 
     /// VOD d'une chaîne, des plus récentes aux plus anciennes, avec la reprise du profil actif.

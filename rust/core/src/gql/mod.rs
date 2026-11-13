@@ -504,28 +504,6 @@ impl GqlClient {
     /// `all_time` : sinon, les clips des 7 derniers jours.
     pub async fn clips(&self, login: &str, all_time: bool, first: u32) -> Result<Vec<Clip>, CoreError> {
         #[derive(Deserialize)]
-        struct Curator {
-            #[serde(default, rename = "displayName")]
-            display_name: String,
-        }
-        #[derive(Deserialize)]
-        #[serde(rename_all = "camelCase")]
-        struct GClip {
-            slug: String,
-            #[serde(default)]
-            title: String,
-            #[serde(default)]
-            duration_seconds: u32,
-            #[serde(default)]
-            view_count: u32,
-            #[serde(default)]
-            created_at: Option<String>,
-            #[serde(default, rename = "thumbnailURL")]
-            thumbnail_url: Option<String>,
-            #[serde(default)]
-            curator: Option<Curator>,
-        }
-        #[derive(Deserialize)]
         struct GUser {
             clips: Option<Connection<GClip>>,
         }
@@ -535,25 +513,23 @@ impl GqlClient {
         }
         let period = if all_time { "ALL_TIME" } else { "LAST_WEEK" };
         let data: Data = self.run("Clips", queries::CLIPS, json!({ "login": login, "first": first, "period": period })).await?;
-        Ok(data
-            .user
-            .and_then(|u| u.clips)
-            .map(|c| c.edges)
-            .unwrap_or_default()
-            .into_iter()
-            .map(|edge| {
-                let c = edge.node;
-                Clip {
-                    created_at: c.created_at.as_deref().and_then(parse_utc).unwrap_or(0),
-                    slug: c.slug,
-                    title: c.title,
-                    duration_s: c.duration_seconds,
-                    views: c.view_count,
-                    thumbnail_url: c.thumbnail_url.unwrap_or_default(),
-                    curator: c.curator.map(|c| c.display_name).unwrap_or_default(),
-                }
-            })
-            .collect())
+        Ok(clip_list(data.user.and_then(|u| u.clips)))
+    }
+
+    /// `language` : code ISO 639-1 (`fr`), `None` pour toutes les langues.
+    pub async fn category_clips(&self, category_id: &str, language: Option<&str>, first: u32) -> Result<Vec<Clip>, CoreError> {
+        #[derive(Deserialize)]
+        struct GGame {
+            clips: Option<Connection<GClip>>,
+        }
+        #[derive(Deserialize)]
+        struct Data {
+            game: Option<GGame>,
+        }
+        let languages = language.map(|l| vec![l.to_uppercase()]);
+        let variables = json!({ "id": category_id, "first": first, "languages": languages });
+        let data: Data = self.run("CategoryClips", queries::CATEGORY_CLIPS, variables).await?;
+        Ok(clip_list(data.game.and_then(|g| g.clips)))
     }
 
     /// Fichiers d'un clip, de la meilleure qualité à la plus basse ; vide si le clip n'existe plus.
@@ -914,6 +890,53 @@ impl From<GVideo> for Video {
             finished: false,
         }
     }
+}
+
+#[derive(Deserialize)]
+struct GName {
+    #[serde(default, rename = "displayName")]
+    display_name: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct GClip {
+    slug: String,
+    #[serde(default)]
+    title: String,
+    #[serde(default)]
+    duration_seconds: u32,
+    #[serde(default)]
+    view_count: u32,
+    #[serde(default)]
+    created_at: Option<String>,
+    #[serde(default, rename = "thumbnailURL")]
+    thumbnail_url: Option<String>,
+    #[serde(default)]
+    curator: Option<GName>,
+    #[serde(default)]
+    broadcaster: Option<GName>,
+}
+
+fn clip_list(connection: Option<Connection<GClip>>) -> Vec<Clip> {
+    connection
+        .map(|c| c.edges)
+        .unwrap_or_default()
+        .into_iter()
+        .map(|edge| {
+            let c = edge.node;
+            Clip {
+                created_at: c.created_at.as_deref().and_then(parse_utc).unwrap_or(0),
+                slug: c.slug,
+                title: c.title,
+                duration_s: c.duration_seconds,
+                views: c.view_count,
+                thumbnail_url: c.thumbnail_url.unwrap_or_default(),
+                curator: c.curator.map(|c| c.display_name).unwrap_or_default(),
+                channel_name: c.broadcaster.map(|b| b.display_name).unwrap_or_default(),
+            }
+        })
+        .collect()
 }
 
 fn stream_page(connection: Option<Connection<GStream>>) -> StreamPage {

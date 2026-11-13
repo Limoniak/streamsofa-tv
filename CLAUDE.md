@@ -41,6 +41,10 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
 - Sondages et prédictions : GQL anonyme (`user.viewablePoll`, `channel.activePredictionEvents`), relus toutes les 15 s
   seulement quand le chat est affiché (PubSub n'existe plus, EventSub exige les scopes du diffuseur). Lecture seule.
 - Apparence du chat (`chat_text_size`, `chat_width`, `chat_overlay`) : `ChatLook`, lu à l'ouverture du lecteur.
+- Rangée launcher « Chaînes suivies en live » : chaîne d'aperçu `TvContract` (`LauncherChannel`), réécrite à chaque
+  `followedStreams()` et par `LauncherRefreshJob` (JobScheduler, 30 min, sans dépendance). Vide en invité.
+- Clips : catégorie = GQL `game.clips` (semaine, filtre de langue) en tête de la grille ; suivis = clips de la semaine
+  de 12 chaînes (en live d'abord, puis derniers suivis), une requête GQL chacune, triés par vues.
 - Faible latence : segments standards + live offset 5 s par défaut. Option expérimentale « Faible latence » :
   les `#EXT-X-TWITCH-PREFETCH` deviennent des segments (`LowLatency.kt`) et la cible passe à 2 s
   (mesuré : 3,7 s contre 7,2 s). Seules certaines chaînes en annoncent ; sans prefetch, aucun effet ni coupure.

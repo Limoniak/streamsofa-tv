@@ -9,4 +9,5 @@
     <string name="error_other">Une erreur inattendue s\'est produite.</string>
     <string name="error_subscribers_only">Vidéo réservée aux abonnés de la chaîne.</string>
     <string name="retry">Réessayer</string>
+    <string name="launcher_channel_name">Chaînes suivies en live</string>
 </resources>

@@ -453,3 +453,25 @@ async fn channel_activity_without_poll_or_prediction() {
     let activity = h.core.channel_activity("alpha".into()).await.unwrap();
     assert_eq!((activity.poll, activity.prediction), (None, None));
 }
+
+#[tokio::test]
+async fn category_clips_filter_by_language() {
+    let h = Harness::new().await;
+    Mock::given(method("POST"))
+        .and(path("/gql"))
+        .and(body_string_contains("\"operationName\":\"CategoryClips\""))
+        .and(body_string_contains("\"languages\":[\"FR\"]"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": { "game": { "clips": { "edges": [
+            { "node": { "slug": "s1", "title": "Ouf", "durationSeconds": 30, "viewCount": 900,
+                "curator": { "displayName": "Bob" }, "broadcaster": { "displayName": "Alice" } } }] } } } })))
+        .mount(&h.server)
+        .await;
+    let clips = h.core.category_clips("32982".into(), Some("fr".into())).await.unwrap();
+    assert_eq!((clips[0].slug.as_str(), clips[0].channel_name.as_str(), clips[0].curator.as_str()), ("s1", "Alice", "Bob"));
+}
+
+#[tokio::test]
+async fn guest_followed_clips_need_an_account() {
+    let h = Harness::new().await;
+    assert!(matches!(h.core.followed_clips().await, Err(CoreError::NotSignedIn)));
+}

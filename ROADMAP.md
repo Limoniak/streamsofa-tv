@@ -9,11 +9,6 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 
 - [ ] 🟡 More interface languages (English and French today); translations welcome.
 
-## Discover
-
-- [ ] 🟡 Android TV launcher row with your followed channels that are live.
-- [ ] 🟡 Top clips per category and per followed channel.
-
 ## Accounts and profiles
 
 - [ ] 🟡 Settings per profile (accent color, chat, quality) instead of shared ones.

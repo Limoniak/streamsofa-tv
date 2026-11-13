@@ -53,5 +53,9 @@
             android:name=".SearchProvider"
             android:authorities="dev.streamsofa.tv.search"
             android:exported="true" />
+        <service
+            android:name=".LauncherRefreshJob"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
 </manifest>

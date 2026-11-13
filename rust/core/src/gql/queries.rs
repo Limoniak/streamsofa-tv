@@ -89,7 +89,12 @@ pub const SEARCH: &str = "query Search($query: String!) { \
 /// `period` : `LAST_WEEK` ou `ALL_TIME`.
 pub const CLIPS: &str = "query Clips($login: String!, $first: Int, $period: ClipsPeriod) { user(login: $login) { \
     clips(first: $first, criteria: { period: $period }) { edges { node { \
-    slug title durationSeconds viewCount createdAt thumbnailURL curator { displayName } } } } } }";
+    slug title durationSeconds viewCount createdAt thumbnailURL curator { displayName } broadcaster { displayName } } } } } }";
+
+/// Clips les plus vus de la semaine dans une catégorie, filtrables par langue (codes en majuscules).
+pub const CATEGORY_CLIPS: &str = "query CategoryClips($id: ID!, $first: Int, $languages: [Language!]) { game(id: $id) { \
+    clips(first: $first, criteria: { period: LAST_WEEK, languages: $languages }) { edges { node { \
+    slug title durationSeconds viewCount createdAt thumbnailURL curator { displayName } broadcaster { displayName } } } } } }";
 
 /// Jeton anonyme d'un clip et ses fichiers MP4, à signer avec ce jeton.
 pub const CLIP_PLAYBACK: &str = "query ClipPlayback($slug: ID!) { clip(slug: $slug) { \

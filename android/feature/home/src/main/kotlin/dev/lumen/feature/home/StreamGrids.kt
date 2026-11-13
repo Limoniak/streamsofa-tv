@@ -1,5 +1,6 @@
 package dev.lumen.feature.home
 
+import dev.lumen.designsystem.VideoCard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,6 +35,7 @@ import java.util.Locale
 import androidx.tv.material3.Text
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.lumen.core.Channel
+import dev.lumen.core.Clip
 import dev.lumen.core.LiveStream
 import dev.lumen.data.CatalogRepository
 import dev.lumen.data.LoadError
@@ -80,6 +83,8 @@ class FollowingViewModel @Inject constructor(private val catalog: CatalogReposit
     val state: StateFlow<GridUiState> = _state.asStateFlow()
     private val _channels = MutableStateFlow<List<Channel>>(emptyList())
     val channels: StateFlow<List<Channel>> = _channels.asStateFlow()
+    private val _clips = MutableStateFlow<List<Clip>>(emptyList())
+    val clips: StateFlow<List<Clip>> = _clips.asStateFlow()
 
     init {
         reload()
@@ -90,6 +95,7 @@ class FollowingViewModel @Inject constructor(private val catalog: CatalogReposit
         viewModelScope.launch {
             // Secondaires : en cas d'échec, les lives suffisent.
             launch { loadCatching { catalog.followedChannels() }.onSuccess { _channels.value = it } }
+            launch { loadCatching { catalog.followedClips() }.onSuccess { _clips.value = it } }
             loadCatching { catalog.followedStreams() }
                 .onSuccess { items -> _state.value = GridUiState(items = items, loading = false) }
                 .onFailure { e -> _state.update { it.copy(loading = false, error = e.toLoadError()) } }
@@ -110,6 +116,9 @@ class CategoryViewModel @Inject constructor(
     private val _state = MutableStateFlow(GridUiState())
     val state: StateFlow<GridUiState> = _state.asStateFlow()
     private var job: Job? = null
+    private val _clips = MutableStateFlow<List<Clip>>(emptyList())
+    val clips: StateFlow<List<Clip>> = _clips.asStateFlow()
+    private var clipsJob: Job? = null
 
     /** Code ISO 639-1, vide = toutes ; mémorisé pour toutes les catégories. */
     val language: StateFlow<String> = settings.state.map { it.streamLanguage }
@@ -129,6 +138,12 @@ class CategoryViewModel @Inject constructor(
         job?.cancel()
         _state.value = GridUiState()
         load(null)
+        clipsJob?.cancel()
+        _clips.value = emptyList()
+        // Secondaires : sans clips, la grille des lives suffit.
+        clipsJob = viewModelScope.launch {
+            loadCatching { catalog.categoryClips(categoryId, language.value.ifEmpty { null }) }.onSuccess { _clips.value = it }
+        }
     }
 
     fun loadMore() {
@@ -159,10 +174,12 @@ fun FollowingRoute(
     onOpenStream: (String) -> Unit,
     onOpenChannel: (String) -> Unit,
     onSignIn: () -> Unit,
+    onOpenClip: (String, String) -> Unit,
     viewModel: FollowingViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val channels by viewModel.channels.collectAsStateWithLifecycle()
+    val clips by viewModel.clips.collectAsStateWithLifecycle()
     StreamGridScreen(
         title = stringResource(R.string.following_title),
         state = state,
@@ -170,6 +187,8 @@ fun FollowingRoute(
         onOpenStream = onOpenStream,
         onOpenChannel = onOpenChannel,
         channels = channels,
+        clips = ClipRow(stringResource(R.string.following_clips), clips, onTop = false),
+        onOpenClip = onOpenClip,
         onRetry = viewModel::reload,
         onNearEnd = {},
         onSignIn = onSignIn,
@@ -180,10 +199,12 @@ fun FollowingRoute(
 fun CategoryRoute(
     onOpenStream: (String) -> Unit,
     onOpenChannel: (String) -> Unit,
+    onOpenClip: (String, String) -> Unit,
     viewModel: CategoryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val language by viewModel.language.collectAsStateWithLifecycle()
+    val clips by viewModel.clips.collectAsStateWithLifecycle()
     StreamGridScreen(
         title = viewModel.name,
         header = { LanguageChips(language, viewModel::setLanguage) },
@@ -191,11 +212,17 @@ fun CategoryRoute(
         emptyText = stringResource(R.string.category_empty),
         onOpenStream = onOpenStream,
         onOpenChannel = onOpenChannel,
+        // En tête : la grille des lives se prolonge page après page, on n'atteindrait jamais sa fin.
+        clips = ClipRow(stringResource(R.string.category_clips), clips, onTop = true),
+        onOpenClip = onOpenClip,
         onRetry = viewModel::reload,
         onNearEnd = viewModel::loadMore,
         onSignIn = {},
     )
 }
+
+/** Rangée de clips d'une grille : en tête ([onTop]) ou entre les lives et les chaînes. */
+data class ClipRow(val title: String, val clips: List<Clip>, val onTop: Boolean)
 
 @Composable
 fun StreamGridScreen(
@@ -208,12 +235,19 @@ fun StreamGridScreen(
     onNearEnd: () -> Unit,
     onSignIn: () -> Unit,
     channels: List<Channel> = emptyList(),
+    clips: ClipRow? = null,
+    onOpenClip: (String, String) -> Unit = { _, _ -> },
     header: @Composable () -> Unit = {},
 ) {
     val memory = rememberFocusMemory()
-    val keys = state.items.map { it.login } + channels.map { "ch:${it.login}" }
+    val clipKeys = clips?.clips.orEmpty().map { "clip:${it.slug}" }
+    val keys = state.items.map { it.login } + clipKeys + channels.map { "ch:${it.login}" }
     val target = memory.target(keys, keys.firstOrNull())
     LaunchedEffect(target != null) { if (target != null) memory.requester.requestWhenAttached() }
+    val gridState = rememberLazyGridState()
+    // Clips en tête arrivés après les lives : la grille resterait calée sous eux.
+    val clipsOnTop = clips?.onTop == true && clips.clips.isNotEmpty()
+    LaunchedEffect(clipsOnTop) { if (clipsOnTop && gridState.firstVisibleItemIndex <= 1) gridState.scrollToItem(0) }
 
     Column(Modifier.fillMaxSize().padding(top = LumenInsets.vertical)) {
         Text(
@@ -237,10 +271,33 @@ fun StreamGridScreen(
             }
             else -> LazyVerticalGrid(
                 columns = GridCells.Adaptive(LumenCardSize.streamWidth),
+                state = gridState,
                 contentPadding = PaddingValues(horizontal = LumenInsets.horizontal, vertical = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(20.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
+                val clipRow: () -> Unit = {
+                    if (clips != null && clips.clips.isNotEmpty()) {
+                        item(span = { GridItemSpan(maxLineSpan) }, key = "clips") {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text(clips.title, style = MaterialTheme.typography.titleLarge)
+                                val viewsLabel = stringResource(R.string.video_views)
+                                CardRow(clips.clips, key = { "clip:${it.slug}" }, padded = false) { clip ->
+                                    val key = "clip:${clip.slug}"
+                                    VideoCard(
+                                        video = clip.toCard(viewsLabel, showChannel = true),
+                                        onClick = {
+                                            memory.key = key
+                                            onOpenClip(clip.slug, clip.title)
+                                        },
+                                        modifier = Modifier.restoreFocusHere(memory, key == target),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                if (clips?.onTop == true) clipRow()
                 if (state.items.isEmpty()) {
                     items(8) { StreamCardSkeleton() }
                 }
@@ -264,6 +321,7 @@ fun StreamGridScreen(
                         Text(emptyText, style = MaterialTheme.typography.bodyLarge, color = LumenColors.OnSurfaceMuted)
                     }
                 }
+                if (clips?.onTop == false) clipRow()
                 if (channels.isNotEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         Text(

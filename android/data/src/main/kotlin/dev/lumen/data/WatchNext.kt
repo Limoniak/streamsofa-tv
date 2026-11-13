@@ -72,8 +72,9 @@ class WatchNext @Inject constructor(@ApplicationContext private val context: Con
     private fun vodIntent(id: String) = Intent(Intent.ACTION_VIEW, Uri.parse("streamsofa://vod/$id"))
         .setPackage(context.packageName)
 
-    // Gabarit Twitch `{width}x{height}` ou `%{width}x%{height}` : le launcher veut une URL finale.
-    private fun sizedImageUrl(template: String) = template
-        .replace("%{width}", "640").replace("%{height}", "360")
-        .replace("{width}", "640").replace("{height}", "360")
 }
+
+// Gabarit Twitch `{width}x{height}` ou `%{width}x%{height}` : le launcher veut une URL finale.
+internal fun sizedImageUrl(template: String) = template
+    .replace("%{width}", "640").replace("%{height}", "360")
+    .replace("{width}", "640").replace("{height}", "360")

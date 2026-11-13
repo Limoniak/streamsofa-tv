@@ -101,6 +101,10 @@ interface CatalogRepository {
 
     suspend fun channelAbout(login: String): ChannelAbout?
     suspend fun channelClips(login: String): List<Clip>
+    /** [language] : code ISO 639-1, `null` pour toutes. */
+    suspend fun categoryClips(categoryId: String, language: String?): List<Clip>
+    /** Clips de la semaine des chaînes suivies ; lève `NotSignedIn` en invité. */
+    suspend fun followedClips(): List<Clip>
     suspend fun clipPlayback(slug: String): List<ClipQuality>
 
     /** Raids lancés par [broadcasterId] tant que le flux est collecté ; rien en invité. */
@@ -111,14 +115,19 @@ interface CatalogRepository {
 @Singleton
 internal class RustCatalogRepository @Inject constructor(
     private val coreHolder: CoreHolder,
+    private val launcher: LauncherChannel,
 ) : CatalogRepository {
     private val _followed = MutableStateFlow<List<LiveStream>>(emptyList())
     override val followed: StateFlow<List<LiveStream>> = _followed.asStateFlow()
 
     override suspend fun followedStreams(): List<LiveStream> = try {
-        coreHolder.get().followedStreams().also { _followed.value = it }
+        coreHolder.get().followedStreams().also {
+            _followed.value = it
+            launcher.publish(it)
+        }
     } catch (e: CoreException.NotSignedIn) {
         _followed.value = emptyList()
+        launcher.publish(emptyList())
         throw e
     }
 
@@ -167,6 +176,10 @@ internal class RustCatalogRepository @Inject constructor(
     override suspend fun channelAbout(login: String) = coreHolder.get().channelAbout(login)
 
     override suspend fun channelClips(login: String) = coreHolder.get().channelClips(login)
+
+    override suspend fun categoryClips(categoryId: String, language: String?) = coreHolder.get().categoryClips(categoryId, language)
+
+    override suspend fun followedClips() = coreHolder.get().followedClips()
 
     override suspend fun clipPlayback(slug: String) = coreHolder.get().clipPlayback(slug)
 
