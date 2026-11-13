@@ -49,9 +49,9 @@ Exceptions : `README.md` et `CHANGELOG.md` sont en anglais (chaque changement vi
   Fichiers générés : `banner.xml`, `ic_launcher.xml`, `docs/logo.svg` (script hors dépôt). Palette : fonds prune
   `#130F19`/`#1B1622`, texte crème `#F4EEE8`, accent lavande `#B79CFF`, pêche `#FFB38A` (clé d'accent `orange` conservée).
 - Télécommande du lecteur live, style télé (choix de l'utilisateur) : ▲ ▼ zappent entre les suivis en live, ◀ ouvre la
-  liste des lives (`LiveList`, suivis sinon top), ▶ affiche/masque le chat, OK ouvre la barre d'actions (Écrire, Chat,
-  Qualité, Multi-view, Page de la chaîne). L'aide des touches reste affichée dans le panneau d'infos. Écrire n'est
-  jamais déclenché par une flèche.
+  liste des lives (`LiveList`, suivis sinon top), ▶ affiche le chat puis va sur son bouton « Écrire »
+  (compte connecté ; ◀ revient à la vidéo, ▶ masque le chat), OK ouvre la barre d'actions (Chat, Qualité, Multi-view,
+  Page de la chaîne). L'aide des touches reste affichée dans le panneau d'infos. La saisie ne s'ouvre que par OK sur « Écrire ».
 
 ## Jalons
 

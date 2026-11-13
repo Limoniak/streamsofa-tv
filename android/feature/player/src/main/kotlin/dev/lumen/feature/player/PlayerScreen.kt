@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
@@ -104,6 +105,9 @@ fun PlayerRoute(
     var interactions by remember { mutableIntStateOf(0) }
     val rootFocus = remember { FocusRequester() }
     val controlsFocus = remember { FocusRequester() }
+    val writeFocus = remember { FocusRequester() }
+    var writeFocused by remember { mutableStateOf(false) }
+    val canWrite = canSend && state.stream != null
 
     // Chaque changement de chaîne affiche brièvement son nom : on sait où l'on a zappé.
     LaunchedEffect(state.login) { if (overlay == Overlay.Hidden) overlay = Overlay.Info }
@@ -119,6 +123,7 @@ fun PlayerRoute(
     }
     BackHandler(enabled = overlay == Overlay.Actions) { overlay = Overlay.Hidden }
     BackHandler(enabled = listing) { listing = false }
+    BackHandler(enabled = writeFocused) { rootFocus.requestFocus() }
     BackHandler(enabled = state.raid != null) { viewModel.cancelRaid() }
 
     Row(
@@ -130,7 +135,7 @@ fun PlayerRoute(
                 false
             }
             .onKeyEvent { event ->
-                if (event.type != KeyEventType.KeyDown || overlay == Overlay.Actions || listing) return@onKeyEvent false
+                if (event.type != KeyEventType.KeyDown || overlay == Overlay.Actions || listing || writeFocused) return@onKeyEvent false
                 val ok = event.key == Key.DirectionCenter || event.key == Key.Enter || event.key == Key.NumPadEnter
                 if (ok && state.raid != null) {
                     viewModel.followRaid()
@@ -152,7 +157,8 @@ fun PlayerRoute(
                         true
                     }
                     Key.DirectionRight -> {
-                        chatVisible = !chatVisible
+                        // Chat affiché et compte connecté : ▶ va sur « Écrire » ; un second ▶ masque le chat.
+                        if (chatVisible && canWrite) writeFocus.requestFocus() else chatVisible = !chatVisible
                         true
                     }
                     else -> false
@@ -194,15 +200,6 @@ fun PlayerRoute(
                 showActions = overlay == Overlay.Actions,
                 controlsFocus = controlsFocus,
                 chatVisible = chatVisible,
-                onWrite = if (canSend && state.stream != null) {
-                    {
-                        overlay = Overlay.Hidden
-                        chatVisible = true
-                        composing = true
-                    }
-                } else {
-                    null
-                },
                 onToggleChat = { chatVisible = !chatVisible },
                 onQuality = viewModel::selectQuality,
                 onMulti = if (viewModel.maxTiles > 1) {
@@ -230,7 +227,27 @@ fun PlayerRoute(
             )
         }
       }
-        if (chatVisible) ChatPanel(chat, Modifier.width(340.dp).fillMaxHeight())
+        if (chatVisible) {
+            Column(Modifier.width(340.dp).fillMaxHeight().background(LumenColors.Background)) {
+                ChatPanel(chat, Modifier.weight(1f).fillMaxWidth())
+                if (canWrite) {
+                    WriteButton(
+                        onClick = {
+                            overlay = Overlay.Hidden
+                            composing = true
+                        },
+                        onLeave = { rootFocus.requestFocus() },
+                        onHideChat = {
+                            rootFocus.requestFocus()
+                            chatVisible = false
+                        },
+                        modifier = Modifier
+                            .focusRequester(writeFocus)
+                            .onFocusChanged { writeFocused = it.isFocused },
+                    )
+                }
+            }
+        }
     }
 
     if (composing) {
@@ -264,7 +281,6 @@ private fun InfoPanel(
     showActions: Boolean,
     controlsFocus: FocusRequester,
     chatVisible: Boolean,
-    onWrite: (() -> Unit)?,
     onToggleChat: () -> Unit,
     onQuality: (String?) -> Unit,
     onMulti: (() -> Unit)?,
@@ -309,9 +325,7 @@ private fun InfoPanel(
         }
         if (showActions) {
             Row(Modifier.actionRow(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                val first = Modifier.focusRequester(controlsFocus)
-                if (onWrite != null) Button(onClick = onWrite, modifier = first) { Text(stringResource(R.string.player_write)) }
-                Button(onClick = onToggleChat, modifier = if (onWrite == null) first else Modifier) {
+                Button(onClick = onToggleChat, modifier = Modifier.focusRequester(controlsFocus)) {
                     Text(stringResource(if (chatVisible) R.string.player_chat_hide else R.string.player_chat_show))
                 }
                 if (state.variants.isNotEmpty()) {
@@ -344,6 +358,31 @@ private fun InfoPanel(
             style = MaterialTheme.typography.labelLarge,
             color = LumenColors.OnSurfaceMuted,
         )
+    }
+}
+
+/** « Écrire » en bas du chat : OK ouvre la saisie, ◀ revient à la vidéo, ▶ masque le chat. */
+@Composable
+private fun WriteButton(onClick: () -> Unit, onLeave: () -> Unit, onHideChat: () -> Unit, modifier: Modifier = Modifier) {
+    Button(
+        onClick = onClick,
+        modifier = modifier
+            .fillMaxWidth()
+            // Marge assez large pour le bouton agrandi au focus.
+            .padding(horizontal = 24.dp, vertical = 16.dp)
+            .onPreviewKeyEvent {
+                if (it.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                when (it.key) {
+                    Key.DirectionLeft -> onLeave()
+                    Key.DirectionRight -> onHideChat()
+                    // Seul élément du panneau : ▲ ▼ ne doivent pas zapper par-dessous.
+                    Key.DirectionUp, Key.DirectionDown -> Unit
+                    else -> return@onPreviewKeyEvent false
+                }
+                true
+            },
+    ) {
+        Text(stringResource(R.string.player_write))
     }
 }
 

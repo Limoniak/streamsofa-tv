@@ -22,6 +22,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
@@ -39,6 +44,7 @@ import dev.lumen.designsystem.requestWhenAttached
 fun ChatComposer(onSend: (String) -> Unit, onDismiss: () -> Unit) {
     var text by remember { mutableStateOf("") }
     val focus = remember { FocusRequester() }
+    val sendFocus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestWhenAttached() }
     val send = { if (text.isNotBlank()) onSend(text) else onDismiss() }
 
@@ -69,10 +75,17 @@ fun ChatComposer(onSend: (String) -> Unit, onDismiss: () -> Unit) {
                     cursorBrush = SolidColor(LumenColors.Accent),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                     keyboardActions = KeyboardActions(onSend = { send() }),
-                    modifier = Modifier.focusRequester(focus),
+                    modifier = Modifier
+                        .focusRequester(focus)
+                        // Sans ça, le champ garde les flèches et la télécommande y reste bloquée.
+                        .onPreviewKeyEvent {
+                            val out = it.type == KeyEventType.KeyDown && (it.key == Key.DirectionRight || it.key == Key.DirectionDown)
+                            if (out) sendFocus.requestFocus()
+                            out
+                        },
                 )
             }
-            Button(onClick = send) { Text(stringResource(R.string.chat_send)) }
+            Button(onClick = send, modifier = Modifier.focusRequester(sendFocus)) { Text(stringResource(R.string.chat_send)) }
             // Retour ferme d'abord le clavier : un bouton explicite pour sortir sans envoyer.
             Button(onClick = onDismiss) { Text(stringResource(R.string.chat_cancel)) }
         }
