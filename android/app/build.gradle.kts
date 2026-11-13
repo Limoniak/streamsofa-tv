@@ -84,6 +84,8 @@ dependencies {
     implementation(project(":data"))
     implementation(project(":designsystem"))
     implementation(project(":feature:auth"))
+    implementation(project(":feature:home"))
+    implementation(project(":feature:player"))
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)

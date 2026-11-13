@@ -1,9 +1,11 @@
 package dev.lumen.designsystem
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.ColorScheme
+import androidx.tv.material3.LocalContentColor
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.darkColorScheme
 
@@ -23,6 +25,8 @@ object LumenColors {
     val OnSurfaceMuted = Color(0xFFA6A3B3)
     val Success = Color(0xFF6FD9A0)
     val Error = Color(0xFFFF8A80)
+    val Live = Color(0xFFE5484D)
+    val Skeleton = Color(0xFF2A2A33)
 }
 
 private val DarkScheme: ColorScheme = darkColorScheme(
@@ -35,9 +39,13 @@ private val DarkScheme: ColorScheme = darkColorScheme(
     surfaceVariant = LumenColors.SurfaceRaised,
     onSurfaceVariant = LumenColors.OnSurfaceMuted,
     error = LumenColors.Error,
+    border = LumenColors.Accent,
 )
 
 @Composable
 fun LumenTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = DarkScheme, content = content)
+    MaterialTheme(colorScheme = DarkScheme) {
+        // Texte clair par défaut hors Surface (titres de rangées, écrans plein cadre).
+        CompositionLocalProvider(LocalContentColor provides LumenColors.OnSurface, content = content)
+    }
 }

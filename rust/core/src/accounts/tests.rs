@@ -8,7 +8,7 @@ use super::*;
 use crate::api::{Core, CoreConfig, Endpoints};
 
 #[derive(Default)]
-struct MemoryStore {
+pub(crate) struct MemoryStore {
     entries: Mutex<HashMap<String, Vec<u8>>>,
     fail_saves: AtomicBool,
 }
@@ -19,7 +19,7 @@ impl SecretStore for MemoryStore {
     }
     fn save(&self, key: String, blob: Vec<u8>) -> Result<(), CoreError> {
         if self.fail_saves.load(Ordering::SeqCst) {
-            return Err(CoreError::SecretStore { reason: "keystore verrouillé".into() });
+            return Err(CoreError::SecretStore { reason: "keystore verrouillÃ©".into() });
         }
         self.entries.lock().unwrap().insert(key, blob);
         Ok(())
@@ -47,7 +47,7 @@ impl MemoryStore {
 }
 
 #[derive(Default)]
-struct Recorder(Mutex<Vec<AccountsSnapshot>>);
+pub(crate) struct Recorder(Mutex<Vec<AccountsSnapshot>>);
 
 impl AccountsListener for Recorder {
     fn on_accounts_changed(&self, snapshot: AccountsSnapshot) {
@@ -55,16 +55,16 @@ impl AccountsListener for Recorder {
     }
 }
 
-struct Harness {
-    server: MockServer,
-    store: Arc<MemoryStore>,
-    events: Arc<Recorder>,
-    core: Arc<Core>,
+pub(crate) struct Harness {
+    pub(crate) server: MockServer,
+    pub(crate) store: Arc<MemoryStore>,
+    pub(crate) events: Arc<Recorder>,
+    pub(crate) core: Arc<Core>,
     _dir: tempfile::TempDir,
 }
 
 impl Harness {
-    async fn new() -> Self {
+    pub(crate) async fn new() -> Self {
         let server = MockServer::start().await;
         let store = Arc::new(MemoryStore::default());
         let dir = tempfile::tempdir().unwrap();
@@ -78,6 +78,8 @@ impl Harness {
             Endpoints {
                 id: server.uri(),
                 helix: format!("{}/helix", server.uri()),
+                gql: format!("{}/gql", server.uri()),
+                usher: server.uri(),
                 min_poll_interval: Duration::from_millis(10),
             },
         )
@@ -124,7 +126,7 @@ impl Harness {
     }
 
     /// Connecte un compte de bout en bout via le flux par code.
-    async fn sign_in(&self, user_id: &str, login: &str) -> Account {
+    pub(crate) async fn sign_in(&self, user_id: &str, login: &str) -> Account {
         let access = format!("access-{login}");
         self.server.reset().await;
         self.mock_device_code(1800).await;
@@ -170,7 +172,7 @@ fn pending() -> ResponseTemplate {
 async fn device_login_waits_for_approval_then_stores_the_account() {
     let h = Harness::new().await;
     h.mock_device_code(1800).await;
-    // Deux réponses « en attente », puis l'utilisateur valide.
+    // Deux rÃ©ponses Â« en attente Â», puis l'utilisateur valide.
     Mock::given(method("POST"))
         .and(path("/oauth2/token"))
         .and(body_string_contains("device_code=dev-secret"))
@@ -257,7 +259,7 @@ async fn login_fails_cleanly_when_the_keystore_refuses_the_token() {
     let login = h.core.start_device_login().await.unwrap();
     let err = h.core.complete_device_login(login.user_code).await.unwrap_err();
     assert!(matches!(err, CoreError::SecretStore { .. }));
-    assert!(h.core.accounts().unwrap().accounts.is_empty(), "pas de compte fantôme sans jeton");
+    assert!(h.core.accounts().unwrap().accounts.is_empty(), "pas de compte fantÃ´me sans jeton");
 }
 
 #[tokio::test]
@@ -288,7 +290,7 @@ async fn an_expiring_token_is_refreshed_and_the_rotated_refresh_token_persisted(
     h.core.accounts.cache.lock().unwrap().clear();
     h.mock_refresh("old-refresh", ResponseTemplate::new(200).set_body_json(token_body("new-access", "new-refresh"))).await;
 
-    // Deux demandes simultanées ne doivent produire qu'un seul refresh (`expect(1)`).
+    // Deux demandes simultanÃ©es ne doivent produire qu'un seul refresh (`expect(1)`).
     let (a, b) = tokio::join!(h.core.accounts.access_token("42"), h.core.accounts.access_token("42"));
     assert_eq!(a.unwrap().expose(), "new-access");
     assert_eq!(b.unwrap().expose(), "new-access");
@@ -314,7 +316,7 @@ async fn a_rejected_refresh_marks_the_account_without_removing_it() {
     assert_eq!(h.state_of("42"), AccountState::NeedsReauth);
     assert!(h.store.tokens("42").is_none());
     assert_eq!(h.events.0.lock().unwrap().last().unwrap().accounts[0].state, AccountState::NeedsReauth);
-    // L'appel suivant échoue de la même façon, sans nouvel aller-retour réseau.
+    // L'appel suivant Ã©choue de la mÃªme faÃ§on, sans nouvel aller-retour rÃ©seau.
     assert!(matches!(h.core.accounts.access_token("42").await, Err(CoreError::ReauthRequired { .. })));
 }
 
@@ -352,7 +354,7 @@ async fn startup_validation_flags_a_revoked_account() {
 
     h.core.validate_accounts().await.unwrap();
     assert_eq!(h.state_of("42"), AccountState::NeedsReauth);
-    // Toujours actif : l'UI doit proposer la reconnexion, pas faire disparaître le compte.
+    // Toujours actif : l'UI doit proposer la reconnexion, pas faire disparaÃ®tre le compte.
     assert_eq!(h.core.accounts().unwrap().active_id.as_deref(), Some("42"));
 }
 
@@ -382,7 +384,7 @@ async fn several_accounts_switch_and_remove_independently() {
     let h = Harness::new().await;
     h.sign_in("1", "alice").await;
     h.sign_in("2", "bob").await;
-    assert_eq!(h.core.accounts().unwrap().active_id.as_deref(), Some("2"), "le dernier connecté devient actif");
+    assert_eq!(h.core.accounts().unwrap().active_id.as_deref(), Some("2"), "le dernier connectÃ© devient actif");
 
     h.core.set_active_account(Some("1".into())).unwrap();
     assert_eq!(h.core.accounts.access_token("1").await.unwrap().expose(), "access-alice");
@@ -399,7 +401,7 @@ async fn several_accounts_switch_and_remove_independently() {
 
     let snapshot = h.core.accounts().unwrap();
     assert_eq!(snapshot.accounts.iter().map(|a| a.login.as_str()).collect::<Vec<_>>(), ["bob"]);
-    assert_eq!(snapshot.active_id, None, "retirer le compte actif bascule en invité");
+    assert_eq!(snapshot.active_id, None, "retirer le compte actif bascule en invitÃ©");
     assert!(h.store.tokens("1").is_none());
     assert!(h.store.tokens("2").is_some());
     assert!(matches!(h.core.set_active_account(Some("1".into())), Err(CoreError::UnknownAccount { .. })));

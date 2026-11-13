@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_followed">Vos chaînes en live</string>
+    <string name="home_popular">Lives populaires</string>
+    <string name="home_categories">Catégories populaires</string>
+    <string name="home_no_followed">Aucune de vos chaînes n\'est en live.</string>
+    <string name="home_needs_reauth">%1$s doit se reconnecter : Twitch n\'accepte plus sa session.</string>
+    <string name="home_reconnect">Se reconnecter</string>
+    <string name="following_title">Suivis en live</string>
+    <string name="sign_in">Connecter un compte</string>
+    <string name="category_empty">Personne ne diffuse dans cette catégorie.</string>
+</resources>

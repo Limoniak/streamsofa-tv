@@ -1,5 +1,6 @@
 package dev.lumen.tv
 
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -18,12 +20,22 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.lumen.data.AccountsRepository
 import dev.lumen.feature.auth.DeviceLoginRoute
 import dev.lumen.feature.auth.ProfilesRoute
+import dev.lumen.feature.home.CategoryRoute
+import dev.lumen.feature.home.FollowingRoute
+import dev.lumen.feature.home.HomeRoute
+import dev.lumen.feature.player.PlayerRoute
 import javax.inject.Inject
 
 private object Routes {
     const val PROFILES = "profiles"
     const val LOGIN = "login"
     const val HOME = "home"
+    const val FOLLOWING = "following"
+    const val CATEGORY = "category/{id}?name={name}"
+    const val LIVE = "live/{login}"
+
+    fun category(id: String, name: String) = "category/${Uri.encode(id)}?name=${Uri.encode(name)}"
+    fun live(login: String) = "live/${Uri.encode(login)}"
 }
 
 @HiltViewModel
@@ -67,14 +79,44 @@ fun LumenNavHost(session: SessionViewModel = hiltViewModel()) {
             )
         }
         composable(Routes.HOME) {
-            // Lu ici, et non capturé depuis l'extérieur : le graphe de navigation ne doit pas
-            // être reconstruit à chaque changement de compte.
-            val latest by session.snapshot.collectAsStateWithLifecycle()
-            HomePlaceholder(
-                snapshot = latest ?: return@composable,
-                onSwitchProfile = { navController.navigate(Routes.PROFILES) },
-                onReconnect = { navController.navigate(Routes.LOGIN) },
-            )
+            Shell(ShellTab.Home, onTab = navController::openTab) {
+                HomeRoute(
+                    onOpenStream = navController::openLive,
+                    onOpenCategory = { id, name -> navController.navigate(Routes.category(id, name)) },
+                    onReconnect = { navController.navigate(Routes.LOGIN) },
+                )
+            }
+        }
+        composable(Routes.FOLLOWING) {
+            Shell(ShellTab.Following, onTab = navController::openTab) {
+                FollowingRoute(
+                    onOpenStream = navController::openLive,
+                    onSignIn = { navController.navigate(Routes.PROFILES) },
+                )
+            }
+        }
+        composable(Routes.CATEGORY) {
+            Shell(selected = null, onTab = navController::openTab) {
+                CategoryRoute(onOpenStream = navController::openLive)
+            }
+        }
+        composable(Routes.LIVE) { PlayerRoute() }
+    }
+}
+
+private fun NavController.openLive(login: String) = navigate(Routes.live(login))
+
+/** Les onglets ne s'empilent pas : Retour depuis « Suivis » ramène à l'accueil. */
+private fun NavController.openTab(tab: ShellTab) {
+    when (tab) {
+        ShellTab.Profiles -> navigate(Routes.PROFILES)
+        ShellTab.Home -> navigate(Routes.HOME) {
+            popUpTo(Routes.HOME) { inclusive = false }
+            launchSingleTop = true
+        }
+        ShellTab.Following -> navigate(Routes.FOLLOWING) {
+            popUpTo(Routes.HOME)
+            launchSingleTop = true
         }
     }
 }

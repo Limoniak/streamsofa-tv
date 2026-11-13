@@ -17,4 +17,9 @@ dependencies {
     api(libs.compose.ui)
     api(libs.compose.foundation)
     api(libs.tv.material)
+    // Images des cartes. Le module réseau s'enregistre seul auprès de Coil.
+    api(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+
+    testImplementation(libs.junit)
 }

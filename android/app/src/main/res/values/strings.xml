@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Lumen</string>
-    <string name="home_guest">Mode invité</string>
-    <string name="home_signed_in">Connecté en tant que %1$s</string>
-    <string name="home_needs_reauth">%1$s doit se reconnecter : Twitch n\'accepte plus sa session.</string>
-    <string name="home_reconnect">Se reconnecter</string>
-    <string name="home_switch_profile">Changer de profil</string>
+    <string name="nav_home">Accueil</string>
+    <string name="nav_following">Suivis</string>
+    <string name="nav_profiles">Profils</string>
 </resources>

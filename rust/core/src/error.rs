@@ -19,6 +19,18 @@ pub enum CoreError {
     DeviceCodeExpired,
     #[error("compte inconnu : {account_id}")]
     UnknownAccount { account_id: String },
+    /// Fonction réservée aux comptes connectés (lives suivis) alors qu'on est en invité.
+    #[error("aucun compte actif")]
+    NotSignedIn,
+    /// La chaîne n'est pas en live (ou n'existe pas).
+    #[error("chaîne hors ligne")]
+    Offline,
+    /// Twitch refuse la lecture : restriction géographique, réservée aux abonnés…
+    #[error("contenu indisponible : {detail}")]
+    Unavailable { detail: String },
+    /// L'API interne GQL a répondu dans un format inattendu : Twitch l'a probablement modifiée.
+    #[error("l'API interne de Twitch a changé ({operation}) : {detail}")]
+    GqlChanged { operation: String, detail: String },
     #[error("stockage sécurisé indisponible : {reason}")]
     SecretStore { reason: String },
     #[error("base locale indisponible : {reason}")]

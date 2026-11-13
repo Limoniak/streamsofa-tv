@@ -1,6 +1,6 @@
 //! Comptes Twitch : connexion par code d'appareil, jetons, compte actif.
 //!
-//! Les jetons ne vivent qu'en mémoire et, chiffrés par l'hôte, dans le `SecretStore`.
+//! Les jetons ne vivent qu'en mÃ©moire et, chiffrÃ©s par l'hÃ´te, dans le `SecretStore`.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -16,13 +16,13 @@ use crate::qr::{self, QrMatrix};
 use crate::secret::Secret;
 use crate::store::Db;
 
-/// Un jeton d'accès qui expire dans moins de 5 minutes est renouvelé avant usage.
+/// Un jeton d'accÃ¨s qui expire dans moins de 5 minutes est renouvelÃ© avant usage.
 const REFRESH_MARGIN_S: i64 = 300;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
 pub enum AccountState {
     Ok,
-    /// Jeton révoqué, expiré ou perdu : le compte reste listé mais doit se reconnecter.
+    /// Jeton rÃ©voquÃ©, expirÃ© ou perdu : le compte reste listÃ© mais doit se reconnecter.
     NeedsReauth,
 }
 
@@ -55,17 +55,17 @@ pub struct Account {
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
 pub struct AccountsSnapshot {
     pub accounts: Vec<Account>,
-    /// `None` = mode invité.
+    /// `None` = mode invitÃ©.
     pub active_id: Option<String>,
 }
 
-/// Implémenté côté Kotlin pour suivre les changements (ajout, retrait, expiration, bascule).
+/// ImplÃ©mentÃ© cÃ´tÃ© Kotlin pour suivre les changements (ajout, retrait, expiration, bascule).
 #[uniffi::export(with_foreign)]
 pub trait AccountsListener: Send + Sync {
     fn on_accounts_changed(&self, snapshot: AccountsSnapshot);
 }
 
-/// Ce qu'il faut afficher à l'écran pendant une connexion par code.
+/// Ce qu'il faut afficher Ã  l'Ã©cran pendant une connexion par code.
 #[derive(Debug, Clone, uniffi::Record)]
 pub struct DeviceLogin {
     pub user_code: String,
@@ -98,7 +98,7 @@ pub struct AccountManager {
     auth: AuthClient,
     helix: HelixClient,
     cache: Mutex<HashMap<String, StoredTokens>>,
-    /// Un verrou par compte : deux refresh simultanés grilleraient le jeton à usage unique.
+    /// Un verrou par compte : deux refresh simultanÃ©s grilleraient le jeton Ã  usage unique.
     locks: Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>,
     /// Connexion en cours. Le code d'appareil ne franchit jamais la FFI.
     pending: Mutex<Option<DeviceCodeResponse>>,
@@ -178,7 +178,7 @@ impl AccountManager {
         let tokens = loop {
             tokio::time::sleep(interval).await;
             if Instant::now() >= deadline {
-                // Si le réseau était coupé, c'est ça qu'il faut dire, pas « code expiré ».
+                // Si le rÃ©seau Ã©tait coupÃ©, c'est Ã§a qu'il faut dire, pas Â« code expirÃ© Â».
                 return Err(last_error.unwrap_or(CoreError::DeviceCodeExpired));
             }
             match self.auth.poll_device_token(&pending.device_code).await {
@@ -196,11 +196,11 @@ impl AccountManager {
         let identity = match self.auth.validate(&tokens.access_token).await {
             Ok(identity) => identity,
             Err(AuthError::Rejected) => {
-                return Err(CoreError::Api { status: 401, detail: "jeton refusé dès son émission".into() })
+                return Err(CoreError::Api { status: 401, detail: "jeton refusÃ© dÃ¨s son Ã©mission".into() })
             }
             Err(AuthError::Transient(e)) => return Err(e),
         };
-        // Le profil n'est que cosmétique : son échec ne doit pas faire échouer la connexion.
+        // Le profil n'est que cosmÃ©tique : son Ã©chec ne doit pas faire Ã©chouer la connexion.
         let (display_name, avatar_url) = match self.helix.current_user(&tokens.access_token).await {
             Ok(user) => (user.display_name, user.profile_image_url),
             Err(_) => (identity.login.clone(), String::new()),
@@ -215,7 +215,7 @@ impl AccountManager {
 
         let guard = self.lock_for(&account.id);
         let _guard = guard.lock().await;
-        // Le secret d'abord : un compte listé sans jeton serait inutilisable.
+        // Le secret d'abord : un compte listÃ© sans jeton serait inutilisable.
         self.save_tokens(&account.id, &tokens).await?;
         self.db.upsert_account(&account, &identity.scopes.join(" "), now())?;
         self.db.set_active_account(Some(&account.id), now())?;
@@ -225,8 +225,28 @@ impl AccountManager {
 
     // --- Jetons --------------------------------------------------------------------------
 
-    /// Jeton d'accès valide pour ce compte, renouvelé au besoin.
-    #[allow(dead_code)] // appelé par les modules Helix et chat à partir du jalon 3
+    /// Compte actif s'il est utilisable ; `None` en invitÃ© ou s'il doit se reconnecter.
+    pub fn active_usable_account(&self) -> Result<Option<Account>, CoreError> {
+        let Some(id) = self.db.active_account_id()? else { return Ok(None) };
+        Ok(self.db.accounts()?.into_iter().find(|a| a.id == id && a.state == AccountState::Ok))
+    }
+
+    /// Twitch a refusÃ© `rejected` (401) avant son expiration prÃ©vue : renouvelle-le, sauf si
+    /// un autre appel l'a dÃ©jÃ  fait entre-temps.
+    pub async fn token_rejected(&self, account_id: &str, rejected: &Secret) -> Result<Secret, CoreError> {
+        self.ensure_exists(account_id)?;
+        let guard = self.lock_for(account_id);
+        let _guard = guard.lock().await;
+        let Some(tokens) = self.load_tokens(account_id).await? else {
+            return Err(self.require_reauth(account_id).await);
+        };
+        if &tokens.access_token != rejected {
+            return Ok(tokens.access_token);
+        }
+        Ok(self.refresh_locked(account_id, &tokens).await?.access_token)
+    }
+
+    /// Jeton d'accÃ¨s valide pour ce compte, renouvelÃ© au besoin.
     pub async fn access_token(&self, account_id: &str) -> Result<Secret, CoreError> {
         self.ensure_exists(account_id)?;
         let guard = self.lock_for(account_id);
@@ -247,8 +267,8 @@ impl AccountManager {
         }
     }
 
-    /// Vérifie chaque compte auprès de Twitch (au démarrage, puis toutes les heures).
-    /// Une panne réseau ne change l'état d'aucun compte.
+    /// VÃ©rifie chaque compte auprÃ¨s de Twitch (au dÃ©marrage, puis toutes les heures).
+    /// Une panne rÃ©seau ne change l'Ã©tat d'aucun compte.
     pub async fn validate_all(&self) -> Result<(), CoreError> {
         for account in self.db.accounts()? {
             if account.state == AccountState::NeedsReauth {
@@ -266,7 +286,7 @@ impl AccountManager {
                     lock(&self.cache).insert(account.id.clone(), tokens);
                 }
                 Ok(_) | Err(AuthError::Rejected) => {
-                    // Les erreurs passagères sont ignorées ; un refus marque déjà le compte.
+                    // Les erreurs passagÃ¨res sont ignorÃ©es ; un refus marque dÃ©jÃ  le compte.
                     let _ = self.refresh_locked(&account.id, &tokens).await;
                 }
                 Err(AuthError::Transient(_)) => {}
@@ -275,14 +295,14 @@ impl AccountManager {
         Ok(())
     }
 
-    /// À appeler en tenant le verrou du compte.
+    /// Ã€ appeler en tenant le verrou du compte.
     async fn refresh_locked(&self, account_id: &str, tokens: &StoredTokens) -> Result<StoredTokens, CoreError> {
         match self.auth.refresh(&tokens.refresh_token).await {
             Ok(response) => {
                 let fresh = StoredTokens::from_response(response);
-                // L'ancien jeton de rafraîchissement est déjà consommé. Si l'écriture échoue,
-                // la session continue en mémoire et le compte se reconnectera au prochain
-                // démarrage : c'est moins grave que d'échouer maintenant.
+                // L'ancien jeton de rafraÃ®chissement est dÃ©jÃ  consommÃ©. Si l'Ã©criture Ã©choue,
+                // la session continue en mÃ©moire et le compte se reconnectera au prochain
+                // dÃ©marrage : c'est moins grave que d'Ã©chouer maintenant.
                 let _ = self.save_tokens(account_id, &fresh).await;
                 lock(&self.cache).insert(account_id.to_owned(), fresh.clone());
                 Ok(fresh)
@@ -315,7 +335,7 @@ impl AccountManager {
         lock(&self.locks).remove(account_id);
         self.notify();
 
-        // Révocation au mieux : hors ligne, le compte est quand même retiré de l'appareil.
+        // RÃ©vocation au mieux : hors ligne, le compte est quand mÃªme retirÃ© de l'appareil.
         if let Some(tokens) = tokens {
             let _ = self.auth.revoke(&tokens.access_token).await;
         }
@@ -385,4 +405,4 @@ fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
 }
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;

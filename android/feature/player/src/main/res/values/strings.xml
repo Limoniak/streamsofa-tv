@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="player_quality_auto">Auto</string>
+    <string name="player_zap_hint">◀ ▶ changer de chaîne suivie</string>
+</resources>
