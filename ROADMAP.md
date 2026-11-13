@@ -7,7 +7,6 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 
 ## Next up
 
-- [ ] 🟢 Test on real hardware: Mi Box S, Chromecast with Google TV, Nvidia Shield (launcher banner, "Continue watching" row, voice search, raids).
 - [ ] 🟡 English interface, with the language picked from the system (the app is French only today).
 - [ ] 🟢 Screenshots and a short demo GIF in the README.
 - [ ] 🟢 Choose and add a license.
