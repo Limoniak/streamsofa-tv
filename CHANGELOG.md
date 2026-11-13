@@ -35,6 +35,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Each profile, guest included, now has its own settings (accent color, chat, quality, language filter, recent searches). Update and crash log options stay shared. Your current settings are copied into every profile.
 - Optional 4-digit PIN on a profile (long press on it in the profile picker). A forgotten PIN: remove the profile and sign in again.
 - Kids profile: no chat, and channels marked mature or carrying content warnings are hidden and cannot be played. Only the PIN of a non-kids profile can turn it off.
+- Spanish, German, Italian and Brazilian Portuguese interface.
 
 ### Changed
 - Up / Down on a channel outside the zapping list now jumps to the first channel of the list.

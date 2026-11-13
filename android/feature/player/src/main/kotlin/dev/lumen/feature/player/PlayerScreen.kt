@@ -81,11 +81,7 @@ private fun Modifier.actionRow() = offset(x = -FOCUS_ROOM)
     .horizontalScroll(rememberScrollState())
     .padding(horizontal = FOCUS_ROOM, vertical = 6.dp)
 
-/**
- * Télécommande, comme une télé : ▲ ▼ changent de chaîne suivie, ◀ ouvre la liste des lives,
- * ▶ affiche ou masque le chat, OK ouvre la barre d'actions (écrire, chat, qualité, multi-view,
- * page de la chaîne). Retour ferme d'abord ce qui est ouvert.
- */
+/** Branche le ViewModel et la vidéo sur [PlayerScreen], qui porte toute la logique de télécommande. */
 @OptIn(UnstableApi::class)
 @Composable
 fun PlayerRoute(
@@ -98,14 +94,62 @@ fun PlayerRoute(
     val chat by viewModel.chat.collectAsStateWithLifecycle()
     val canSend by viewModel.canSend.collectAsStateWithLifecycle()
     val myLogin by viewModel.myLogin.collectAsStateWithLifecycle()
-    // Masqué par défaut (réglable) : la vidéo d'abord, Bas affiche le chat.
-    var chatVisible by rememberSaveable { mutableStateOf(viewModel.chatByDefault) }
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onStart() }
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onStop() }
+    PlayerScreen(
+        state = state,
+        chat = chat,
+        canSend = canSend,
+        myLogin = myLogin,
+        actions = viewModel,
+        onMultiView = onMultiView,
+        onOpenChannel = onOpenChannel,
+        onOpenVod = onOpenVod,
+        video = {
+            AndroidView(
+                factory = { context ->
+                    PlayerView(context).apply {
+                        useController = false
+                        isFocusable = false
+                        setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
+                        player = viewModel.player
+                    }
+                },
+                // Son seul ou minuterie écoulée : la télé peut passer en veille.
+                update = { it.keepScreenOn = !state.sleeping && !state.audioOnly },
+                onRelease = { it.player = null },
+                modifier = Modifier.fillMaxSize(),
+            )
+        },
+        stats = { StatsOverlay(viewModel.player, it) },
+    )
+}
+
+/**
+ * Télécommande, comme une télé : ▲ ▼ changent de chaîne suivie, ◀ ouvre la liste des lives,
+ * ▶ affiche ou masque le chat, OK ouvre la barre d'actions (écrire, chat, qualité, multi-view,
+ * page de la chaîne). Retour ferme d'abord ce qui est ouvert.
+ * Sans ViewModel ni ExoPlayer ([video] et [stats] sont fournis par l'appelant) : testable à la télécommande.
+ */
+@Composable
+internal fun PlayerScreen(
+    state: PlayerUiState,
+    chat: ChatUiState,
+    canSend: Boolean,
+    myLogin: String?,
+    actions: PlayerActions,
+    onMultiView: (logins: List<String>) -> Unit,
+    onOpenChannel: (login: String) -> Unit,
+    onOpenVod: (id: String) -> Unit,
+    video: @Composable () -> Unit,
+    stats: @Composable (Modifier) -> Unit,
+) {
+    // Masqué par défaut (réglable) : la vidéo d'abord, ▶ affiche le chat.
+    var chatVisible by rememberSaveable { mutableStateOf(actions.chatByDefault) }
     var composing by remember { mutableStateOf(false) }
     var picking by remember { mutableStateOf(false) }
     var listing by remember { mutableStateOf(false) }
     var showStats by rememberSaveable { mutableStateOf(false) }
-    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onStart() }
-    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onStop() }
 
     var overlay by remember { mutableStateOf(Overlay.Hidden) }
     var interactions by remember { mutableIntStateOf(0) }
@@ -136,15 +180,15 @@ fun PlayerRoute(
     BackHandler(enabled = overlay == Overlay.Actions) { overlay = Overlay.Hidden }
     BackHandler(enabled = listing) { listing = false }
     BackHandler(enabled = writeFocused) { rootFocus.requestFocus() }
-    BackHandler(enabled = state.raid != null) { viewModel.cancelRaid() }
+    BackHandler(enabled = state.raid != null) { actions.cancelRaid() }
 
-    val look = remember { viewModel.chatLook }
+    val look = remember { actions.chatLook }
     // Sondage et prédiction relus toutes les 15 s, seulement chat affiché : aucun flux temps réel en anonyme.
     var channelActivity by remember { mutableStateOf<ChannelActivity?>(null) }
     LaunchedEffect(chatVisible, state.login) {
         channelActivity = null
         while (chatVisible) {
-            channelActivity = loadCatching { viewModel.channelActivity() }.getOrNull()
+            channelActivity = loadCatching { actions.channelActivity() }.getOrNull()
             delay(ACTIVITY_REFRESH_MS)
         }
     }
@@ -152,7 +196,7 @@ fun PlayerRoute(
     val chatColumn: @Composable (Modifier) -> Unit = { modifier ->
         Column(modifier) {
             channelActivity?.takeIf { it.poll != null || it.prediction != null }?.let { ActivityCard(it) }
-            ChatPanel(chat, Modifier.weight(1f).fillMaxWidth(), mention = myLogin, timestamps = viewModel.chatTimestamps, look = look)
+            ChatPanel(chat, Modifier.weight(1f).fillMaxWidth(), mention = myLogin, timestamps = actions.chatTimestamps, look = look)
             if (canWrite) {
                 WriteButton(
                     onClick = {
@@ -184,19 +228,19 @@ fun PlayerRoute(
                 if (event.type != KeyEventType.KeyDown || overlay == Overlay.Actions || listing || writeFocused) return@onKeyEvent false
                 val ok = event.key == Key.DirectionCenter || event.key == Key.Enter || event.key == Key.NumPadEnter
                 if (ok && state.raid != null) {
-                    viewModel.followRaid()
+                    actions.followRaid()
                     return@onKeyEvent true
                 }
                 // Écran de fin : ◀ ▶ passent d'une suite à l'autre, ▲ ▼ zappent toujours.
                 if (ended != null && (event.key == Key.DirectionLeft || event.key == Key.DirectionRight)) return@onKeyEvent false
                 when (event.key) {
                     Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> {
-                        if (state.status is PlayerStatus.Failed || state.sleeping) viewModel.retry() else overlay = Overlay.Actions
+                        if (state.status is PlayerStatus.Failed || state.sleeping) actions.retry() else overlay = Overlay.Actions
                         true
                     }
                     Key.DirectionUp, Key.DirectionDown -> {
                         // Sans chaîne voisine, on montre au moins les infos et l'aide des touches.
-                        if (state.canZap) viewModel.zap(if (event.key == Key.DirectionUp) 1 else -1) else overlay = Overlay.Info
+                        if (state.canZap) actions.zap(if (event.key == Key.DirectionUp) 1 else -1) else overlay = Overlay.Info
                         true
                     }
                     Key.DirectionLeft -> {
@@ -206,7 +250,7 @@ fun PlayerRoute(
                     }
                     Key.DirectionRight -> {
                         // Chat affiché et compte connecté : ▶ va sur « Écrire » ; un second ▶ masque le chat.
-                        if (chatVisible && canWrite) writeFocus.requestFocus() else if (viewModel.chatAllowed) chatVisible = !chatVisible
+                        if (chatVisible && canWrite) writeFocus.requestFocus() else if (actions.chatAllowed) chatVisible = !chatVisible
                         true
                     }
                     else -> false
@@ -216,47 +260,34 @@ fun PlayerRoute(
             .focusable(),
     ) {
       Box(Modifier.weight(1f).fillMaxHeight()) {
-        AndroidView(
-            factory = { context ->
-                PlayerView(context).apply {
-                    useController = false
-                    isFocusable = false
-                    setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
-                    player = viewModel.player
-                }
-            },
-            // Son seul ou minuterie écoulée : la télé peut passer en veille.
-            update = { it.keepScreenOn = !state.sleeping && !state.audioOnly },
-            onRelease = { it.player = null },
-            modifier = Modifier.fillMaxSize(),
-        )
+        video()
 
         // Remonté pour laisser la place au panneau d'infos.
         if (state.audioOnly) AudioOnlyCard(state, Modifier.align(Alignment.Center).offset(y = (-120).dp))
-        if (showStats && !state.audioOnly) StatsOverlay(viewModel.player, Modifier.align(Alignment.TopEnd))
+        if (showStats && !state.audioOnly) stats(Modifier.align(Alignment.TopEnd))
 
         val status = state.status
         when {
             state.sleeping -> MessageState(
                 text = stringResource(R.string.player_slept),
                 actionLabel = stringResource(R.string.player_resume),
-                onAction = viewModel::retry,
+                onAction = actions::retry,
                 modifier = Modifier.align(Alignment.Center),
             )
             ended != null -> EndedPanel(
                 name = state.stream?.displayName ?: state.login,
                 ended = ended,
                 focus = endedFocus,
-                onRaid = { viewModel.open(it) },
-                onNext = { viewModel.open(it) },
+                onRaid = { actions.open(it) },
+                onNext = { actions.open(it) },
                 onVideo = onOpenVod,
-                onRetry = viewModel::retry,
+                onRetry = actions::retry,
                 modifier = Modifier.align(Alignment.Center),
             )
             status is PlayerStatus.Failed -> MessageState(
                 text = stringResource(status.error.messageRes),
                 actionLabel = stringResource(DataR.string.retry),
-                onAction = viewModel::retry,
+                onAction = actions::retry,
                 modifier = Modifier.align(Alignment.Center),
             )
             else -> Unit
@@ -272,9 +303,9 @@ fun PlayerRoute(
                 showActions = overlay == Overlay.Actions,
                 controlsFocus = controlsFocus,
                 chatVisible = chatVisible,
-                onToggleChat = { chatVisible = !chatVisible }.takeIf { viewModel.chatAllowed },
-                onQuality = viewModel::selectQuality,
-                onMulti = if (viewModel.maxTiles > 1) {
+                onToggleChat = { chatVisible = !chatVisible }.takeIf { actions.chatAllowed },
+                onQuality = actions::selectQuality,
+                onMulti = if (actions.maxTiles > 1) {
                     {
                         overlay = Overlay.Hidden
                         picking = true
@@ -285,8 +316,8 @@ fun PlayerRoute(
                 onChannel = { onOpenChannel(state.login) },
                 showStats = showStats,
                 onStats = { showStats = !showStats },
-                onAudioOnly = viewModel::toggleAudioOnly,
-                onSleep = viewModel::cycleSleepTimer,
+                onAudioOnly = actions::toggleAudioOnly,
+                onSleep = actions::cycleSleepTimer,
                 onPip = if (canPip) {
                     {
                         overlay = Overlay.Hidden
@@ -300,11 +331,11 @@ fun PlayerRoute(
         }
         if (listing) {
             LiveList(
-                load = viewModel::liveList,
+                load = actions::liveList,
                 current = state.login,
                 onPick = {
                     listing = false
-                    viewModel.open(it)
+                    actions.open(it)
                 },
                 onDismiss = { listing = false },
                 modifier = Modifier.align(Alignment.CenterStart),
@@ -317,18 +348,18 @@ fun PlayerRoute(
     if (composing) {
         ChatComposer(
             onSend = { text, replyTo ->
-                viewModel.sendChat(text, replyTo)
+                actions.sendChat(text, replyTo)
                 composing = false
             },
             replyCandidates = { chat.replyCandidates() },
             onDismiss = { composing = false },
-            loadEmotes = viewModel::chatEmotes,
+            loadEmotes = actions::chatEmotes,
         )
     }
     if (picking) {
         MultiPicker(
-            load = viewModel::multiCandidates,
-            maxExtra = viewModel.maxTiles - 1,
+            load = actions::multiCandidates,
+            maxExtra = actions.maxTiles - 1,
             onLaunch = {
                 picking = false
                 onMultiView(listOf(state.login) + it)
@@ -336,8 +367,10 @@ fun PlayerRoute(
             onDismiss = { picking = false },
         )
     }
-    // Une boîte fermée, la télécommande revient au lecteur.
-    LaunchedEffect(composing, picking, listing) { if (!composing && !picking && !listing) rootFocus.requestWhenAttached() }
+    // Une boîte fermée, la télécommande revient au lecteur (aux suites proposées si le live est terminé).
+    LaunchedEffect(composing, picking, listing) {
+        if (!composing && !picking && !listing) (if (ended != null) endedFocus else rootFocus).requestWhenAttached()
+    }
 }
 
 @kotlin.OptIn(ExperimentalTvMaterial3Api::class)

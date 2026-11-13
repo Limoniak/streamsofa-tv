@@ -33,7 +33,7 @@
 | **Android TV** | "Continue watching" and "Live channels you follow" rows, global and voice search, `twitch.tv` links open in the app. |
 | **Raids** | When the channel you watch raids, a banner offers to follow it. |
 
-The interface is in English and French and follows the system language. On Android 13 and later it can also be set for the app alone in the Android settings.
+The interface is in English, French, Spanish, German, Italian and Brazilian Portuguese, and follows the system language. On Android 13 and later it can also be set for the app alone in the Android settings.
 
 Ads inserted by Twitch play as usual: StreamSofa never blocks them and never tries to unlock subscriber or Turbo perks.
 
@@ -136,6 +136,18 @@ The Baseline Profile (faster startup and scrolling) should be regenerated when t
 ```bash
 cd android && ./gradlew :app:generateBaselineProfile -Plumen.abis=x86_64
 ```
+
+Startup and scrolling benchmarks, with and without the profile, run the same way (on an emulator, add `-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR`; the numbers are then only worth comparing with each other):
+
+```bash
+cd android && ./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest -Plumen.abis=x86_64
+```
+
+The **Benchmarks** workflow does both on an Android TV emulator every Monday, or on demand from the Actions tab. It publishes the measurements in the run summary and, when the regenerated profile differs, opens a pull request from the `ci/baseline-profile` branch (this needs "Allow GitHub Actions to create and approve pull requests" in Settings → Actions → General).
+
+### Translations
+
+Each module has its strings in `src/main/res/values/strings.xml` (English) and one `values-<language>/strings.xml` per translation. To add a language, copy the six English files, translate them, and add the language to `android/app/src/main/res/xml/locales_config.xml`. A unit test (`TranslationsTest`) fails when a translation misses a key or changes a `%1$s` parameter.
 
 ## Credits
 

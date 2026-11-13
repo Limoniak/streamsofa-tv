@@ -113,6 +113,38 @@ internal fun liveMediaItem(url: String, targetOffsetMs: Long = LIVE_OFFSET_MS): 
     )
     .build()
 
+/**
+ * Ce que la télécommande du lecteur déclenche et lit : le ViewModel en production, un faux dans
+ * les tests de l'écran (aucun ExoPlayer ni réseau n'y est nécessaire).
+ */
+interface PlayerActions {
+    /** Profil enfants : ni chat, ni connexion IRC. */
+    val chatAllowed: Boolean
+    val chatByDefault: Boolean
+    val chatTimestamps: Boolean
+    val chatLook: ChatLook
+    /** 1 : pas de multi-view sur cet appareil. */
+    val maxTiles: Int
+
+    fun zap(delta: Int)
+    /** Chaîne choisie dans la liste des lives. */
+    fun open(login: String)
+    fun retry()
+    fun followRaid()
+    fun cancelRaid()
+    fun selectQuality(name: String?)
+    fun toggleAudioOnly()
+    fun cycleSleepTimer()
+    fun sendChat(text: String, replyTo: String? = null)
+    /** Lives proposés (liste ◀, multi-view) : les suivis en live, sinon les plus regardés. */
+    suspend fun liveList(): List<LiveStream>
+    /** Chaînes à ajouter au multi-view. */
+    suspend fun multiCandidates(): List<LiveStream>
+    /** Sondage et prédiction de la chaîne affichée. */
+    suspend fun channelActivity(): ChannelActivity
+    suspend fun chatEmotes(): List<PickerEmote>
+}
+
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -121,12 +153,11 @@ class PlayerViewModel @Inject constructor(
     private val chatRepo: ChatRepository,
     accounts: AccountsRepository,
     private val settings: SettingsRepository,
-) : ViewModel() {
-    /** Profil enfants : ni chat, ni connexion IRC. */
-    val chatAllowed: Boolean get() = !settings.state.value.kids
-    val chatByDefault: Boolean get() = settings.state.value.chatByDefault && chatAllowed
-    val chatTimestamps: Boolean get() = settings.state.value.chatTimestamps
-    val chatLook: ChatLook get() = settings.state.value.chatLook()
+) : ViewModel(), PlayerActions {
+    override val chatAllowed: Boolean get() = !settings.state.value.kids
+    override val chatByDefault: Boolean get() = settings.state.value.chatByDefault && chatAllowed
+    override val chatTimestamps: Boolean get() = settings.state.value.chatTimestamps
+    override val chatLook: ChatLook get() = settings.state.value.chatLook()
     /** Une fois une qualité choisie à la main (Auto compris), le réglage par défaut ne s'applique plus. */
     private var qualityChosen = false
 
@@ -203,14 +234,14 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    fun followRaid() {
+    override fun followRaid() {
         val raid = _state.value.raid ?: return
         followJob?.cancel()
         retried = false
         load(raid.toLogin)
     }
 
-    fun cancelRaid() {
+    override fun cancelRaid() {
         followJob?.cancel()
         _state.update { it.copy(raid = null) }
     }
@@ -219,26 +250,25 @@ class PlayerViewModel @Inject constructor(
 
     private fun refreshCanZap() = _state.update { it.copy(canZap = zapTarget(zapLogins(), it.login, 1) != null) }
 
-    fun zap(delta: Int) {
+    override fun zap(delta: Int) {
         val next = zapTarget(zapLogins(), _state.value.login, delta) ?: return
         retried = false
         load(next)
     }
 
-    /** Chaîne choisie dans la liste des lives. */
-    fun open(login: String) {
+    override fun open(login: String) {
         if (login == _state.value.login) return
         retried = false
         load(login)
     }
 
-    fun retry() {
+    override fun retry() {
         retried = false
         load(_state.value.login)
     }
 
     /** Son seul : moins de données, et la lecture continue quand l'écran se met en veille. */
-    fun toggleAudioOnly() {
+    override fun toggleAudioOnly() {
         setAudioOnly(!_state.value.audioOnly)
         play()
     }
@@ -252,7 +282,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     /** Passe à la durée suivante de [SLEEP_OPTIONS], puis revient à « aucune ». */
-    fun cycleSleepTimer() {
+    override fun cycleSleepTimer() {
         val next = SLEEP_OPTIONS.firstOrNull { it > _state.value.sleepMinutes } ?: 0
         sleepJob?.cancel()
         _state.update { it.copy(sleepMinutes = next) }
@@ -264,20 +294,16 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /** 1 : pas de multi-view sur cet appareil. */
-    val maxTiles: Int = DecoderProbe.maxStreams(context)
+    override val maxTiles: Int = DecoderProbe.maxStreams(context)
 
-    /** Lives proposés (liste ◀, multi-view) : les suivis en live, sinon les plus regardés. */
-    suspend fun liveList(): List<LiveStream> =
+    override suspend fun liveList(): List<LiveStream> =
         catalog.followed.value.ifEmpty { loadCatching { catalog.topStreams(null).items }.getOrDefault(emptyList()) }
 
-    /** Sondage et prédiction de la chaîne affichée. */
-    suspend fun channelActivity(): ChannelActivity = catalog.channelActivity(_state.value.login)
+    override suspend fun channelActivity(): ChannelActivity = catalog.channelActivity(_state.value.login)
 
-    /** Chaînes à ajouter au multi-view. */
-    suspend fun multiCandidates(): List<LiveStream> = liveList().filter { it.login != _state.value.login }
+    override suspend fun multiCandidates(): List<LiveStream> = liveList().filter { it.login != _state.value.login }
 
-    fun selectQuality(name: String?) {
+    override fun selectQuality(name: String?) {
         qualityChosen = true
         _state.update { it.copy(quality = name) }
         val login = _state.value.login
@@ -298,9 +324,9 @@ class PlayerViewModel @Inject constructor(
         player.play()
     }
 
-    suspend fun chatEmotes(): List<PickerEmote> = _state.value.stream?.channelId?.let { chatRepo.emotes(it) }.orEmpty()
+    override suspend fun chatEmotes(): List<PickerEmote> = _state.value.stream?.channelId?.let { chatRepo.emotes(it) }.orEmpty()
 
-    fun sendChat(text: String, replyTo: String? = null) {
+    override fun sendChat(text: String, replyTo: String?) {
         val broadcasterId = _state.value.stream?.channelId ?: return
         viewModelScope.launch {
             val failure = try {

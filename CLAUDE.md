@@ -4,7 +4,8 @@ Client Twitch non officiel pour Android TV / Google TV, alternative moderne à S
 Distribution en APK sideload via GitHub Releases, licence GPL-3.0-or-later. Aucune affiliation avec Twitch.
 Priorités, dans l'ordre : performance, connexion Twitch fiable, multi-compte, design 10-foot.
 L'utilisateur parle français ; les commentaires et les messages de commit sont en français.
-L'UI suit la langue du système : anglais dans `values/strings.xml` (défaut), français dans `values-fr/` ; toujours ajouter les deux.
+L'UI suit la langue du système : anglais dans `values/strings.xml` (défaut), puis `values-fr/`, `-es/`, `-de/`, `-it/`, `-pt-rBR/` ;
+toute chaîne ajoutée l'est dans les six (`TranslationsTest` dans `:data` échoue sinon), et une langue nouvelle va aussi dans `locales_config.xml`.
 Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque changement visible va dans `Unreleased`).
 
 ## Architecture
@@ -122,6 +123,11 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
 - Lecteur VOD : ▲ fait défiler la vitesse, chapitres GQL `moments(VIDEO_CHAPTER_MARKERS)` marqués sur la barre.
   Live terminé ou chaîne hors ligne (`LoadError.Offline`) : écran de fin (raid ignoré, live suivant, dernière VOD).
   Multi-view : appui long OK = menu Remplacer / Retirer.
+
+- Tests du lecteur à la télécommande : `PlayerScreen` (sans ViewModel ni ExoPlayer, actions derrière `PlayerActions`)
+  monté sous Robolectric dans `PlayerRemoteTest` ; tournent avec les tests unitaires, sans émulateur.
+  Benchmarks (`:baselineprofile`, `Benchmarks.kt`) et régénération du Baseline Profile : workflow `benchmarks.yml`
+  (émulateur Android TV x86_64, lundi ou à la demande, PR depuis `ci/baseline-profile`). Jamais exécuté avant le premier run en CI.
 
 Schéma SQLite (migrations dans `store/mod.rs`, clé `scope` = `global` | `guest` | id de compte) :
 `vod_progress` (migration 2), `settings` (migration 3, portée `global` pour les réglages de l'appareil, sinon le profil ; filtres du chat dans `chat_hidden_words`/`chat_hidden_users`), `meta_cache(key,body,fetched_at,ttl_s)` (migration 4 :

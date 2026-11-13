@@ -1,0 +1,140 @@
+# Benchmarks (démarrage, défilement de l'accueil) sur un émulateur Android TV, et régénération du
+# Baseline Profile : chaque lundi, ou à la demande (onglet Actions → Benchmarks → Run workflow).
+#
+# Les chiffres d'un émulateur partagé ne valent que comparés entre eux (avec / sans profil, d'une
+# semaine à l'autre) : ils sont publiés dans le résumé du run et en artefact, sans seuil bloquant.
+# Si le profil régénéré diffère de celui du dépôt, il est poussé sur la branche `ci/baseline-profile`
+# et une pull request est ouverte (ou mise à jour).
+#
+# Secret utilisé : TWITCH_CLIENT_ID (l'accueil invité doit charger pour que le parcours ait un sens).
+# Pour la pull request : Settings → Actions → General → « Allow GitHub Actions to create and approve
+# pull requests » ; sinon la branche est tout de même poussée.
+name: Benchmarks
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: benchmarks
+  cancel-in-progress: true
+
+env:
+  NDK_VERSION: 29.0.14206865
+  PROFILE: android/app/src/release/generated/baselineProfiles/baseline-prof.txt
+  PROFILE_BRANCH: ci/baseline-profile
+
+jobs:
+  benchmarks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-linux-android
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - name: cargo-ndk
+        run: cargo install cargo-ndk --locked
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: NDK
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;${NDK_VERSION}" > /dev/null
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: local.properties
+        working-directory: android
+        env:
+          TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID }}
+        run: |
+          echo "sdk.dir=${ANDROID_HOME}" > local.properties
+          echo "twitch.clientId=${TWITCH_CLIENT_ID}" >> local.properties
+          chmod +x gradlew
+
+      # Les runners Linux exposent KVM : sans cette règle l'émulateur tournerait sans accélération.
+      - name: KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # Compilé avant de démarrer l'émulateur : le cœur Rust et R8 ne lui disputent pas le processeur.
+      - name: Compilation
+        working-directory: android
+        run: >
+          ./gradlew --no-daemon -Plumen.abis=x86_64
+          :app:assembleNonMinifiedRelease :app:assembleBenchmarkRelease
+          :baselineprofile:assembleNonMinifiedRelease :baselineprofile:assembleBenchmarkRelease
+
+      # Image x86_64 : le cœur Rust n'est pas compilé pour x86 32 bits (seule ABI des images TV plus anciennes).
+      # Le profil d'abord : les benchmarks « avec profil » mesurent ainsi celui qui vient d'être généré.
+      - name: Baseline Profile puis benchmarks
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: android-tv
+          arch: x86_64
+          profile: tv_1080p
+          disable-animations: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          working-directory: android
+          script: |
+            ./gradlew --no-daemon -Plumen.abis=x86_64 :app:generateBaselineProfile
+            ./gradlew --no-daemon -Plumen.abis=x86_64 :baselineprofile:connectedBenchmarkReleaseAndroidTest -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR
+
+      - name: Résumé
+        if: always()
+        run: |
+          {
+            echo "## Benchmarks (émulateur Android TV, API 36)"
+            echo
+            echo "| Test | Mesure | Min | Médiane | Max |"
+            echo "|---|---|---|---|---|"
+            find android/baselineprofile/build/outputs -name '*benchmarkData.json' -print0 | xargs -0 -r jq -r '
+              .benchmarks[] | . as $b
+              | ((.metrics // {}) | to_entries[] | [$b.className + "." + $b.name, .key, .value.minimum, .value.median, .value.maximum]),
+                ((.sampledMetrics // {}) | to_entries[] | [$b.className + "." + $b.name, .key + " (P50 / P90 / P99)", .value.P50, .value.P90, .value.P99])
+              | map(if type == "number" then (. * 10 | round / 10) else . end)
+              | "| " + (map(tostring) | join(" | ")) + " |"' | sed 's/dev\.lumen\.baselineprofile\.//'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmarks
+          path: |
+            android/baselineprofile/build/outputs/connected_android_test_additional_output/**/*.json
+            ${{ env.PROFILE }}
+          if-no-files-found: warn
+
+      - name: Pull request du profil régénéré
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- "$PROFILE"; then
+            echo "Baseline Profile inchangé." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$PROFILE_BRANCH"
+          git add "$PROFILE"
+          git commit -m "Baseline Profile régénéré par la CI"
+          git push --force origin "$PROFILE_BRANCH"
+          if [ -z "$(gh pr list --head "$PROFILE_BRANCH" --state open --json number --jq '.[].number')" ]; then
+            gh pr create --head "$PROFILE_BRANCH" --base "${GITHUB_REF_NAME}" \
+              --title "Baseline Profile régénéré" \
+              --body "Profil régénéré sur l'émulateur par le workflow Benchmarks (run ${GITHUB_RUN_ID}). Les mesures avec et sans profil sont dans le résumé du run." \
+              || echo "Branche \`$PROFILE_BRANCH\` poussée, mais la pull request n'a pas pu être ouverte (voir l'en-tête du workflow)." >> "$GITHUB_STEP_SUMMARY"
+          fi

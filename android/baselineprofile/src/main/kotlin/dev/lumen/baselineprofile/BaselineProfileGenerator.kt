@@ -2,8 +2,6 @@ package dev.lumen.baselineprofile
 
 import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.uiautomator.By
-import androidx.test.uiautomator.Until
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -18,14 +16,10 @@ class BaselineProfileGenerator {
     val rule = BaselineProfileRule()
 
     @Test
-    fun startupAndBrowse() = rule.collect(packageName = "dev.streamsofa.tv", includeInStartupProfile = true) {
+    fun startupAndBrowse() = rule.collect(packageName = PACKAGE, includeInStartupProfile = true) {
         pressHome()
         startActivityAndWait()
-        // L'accueil (ou le choix du profil) a fini de charger quand une rangée est affichée.
-        device.wait(Until.hasObject(By.textContains("live")), 15_000)
-        repeat(4) { device.pressDPadRight() }
-        repeat(2) { device.pressDPadDown() }
-        repeat(4) { device.pressDPadRight() }
-        device.waitForIdle()
+        waitForHome()
+        browseHome()
     }
 }

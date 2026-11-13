@@ -7,12 +7,11 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 
 ## Next up
 
-- [ ] 🟡 More interface languages (English and French today); translations welcome.
+- [ ] 🟢 More interface languages (English, French, Spanish, German, Italian and Brazilian Portuguese today); translations and corrections welcome.
 
 ## Quality and tooling
 
-- [ ] 🟡 UI tests for the player remote (zapping, live list, chat, action bar).
-- [ ] 🟡 Startup and scrolling benchmarks in CI, with automatic Baseline Profile refresh.
+- [ ] 🟡 Remote-only UI tests for the past broadcast player and multi-view, like the ones of the live player.
 
 ## Not planned
 

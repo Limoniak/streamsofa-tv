@@ -12,6 +12,11 @@ android {
     defaultConfig {
         minSdk = 26
     }
+
+    // Tests de l'écran du lecteur à la télécommande : Compose sous Robolectric, sans émulateur.
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 dependencies {
@@ -27,4 +32,8 @@ dependencies {
     implementation(libs.media3.ui)
 
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.ext.junit)
+    testImplementation(libs.compose.ui.test.junit4)
+    debugImplementation(libs.compose.ui.test.manifest)
 }
