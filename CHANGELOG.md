@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-13
+
 ### Changed
 - Live player remote, TV style: Up / Down change channel, Left opens the list of live channels, Right shows or hides the chat, OK opens an action bar (chat, quality, multi-view, channel page). The available keys are always shown in the info panel.
 - Writing a chat message starts from a "Write" button at the bottom of the chat (Right when the chat is shown), never by accident; the message box has a Cancel button.
@@ -29,5 +31,6 @@ First public release.
 - Settings: chat at launch, default quality, accent color, update check at startup.
 - In-app updates from GitHub Releases, with the APK matching the device's architecture.
 
-[Unreleased]: https://github.com/Limoniak/streamsofa-tv/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Limoniak/streamsofa-tv/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Limoniak/streamsofa-tv/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Limoniak/streamsofa-tv/releases/tag/v0.1.0
