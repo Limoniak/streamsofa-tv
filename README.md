@@ -1,4 +1,4 @@
-# Lumen
+# StreamSofa
 
 Client Twitch non officiel pour Android TV / Google TV. Aucune affiliation avec Twitch.
 
@@ -55,11 +55,11 @@ La CI (`.github/workflows/ci.yml`) teste chaque push et publie une release sign�
    mise à jour ne pourra s'installer par-dessus les versions déjà distribuées.
 
    ```bash
-   keytool -genkeypair -v -keystore lumen-release.jks -alias lumen -keyalg RSA -keysize 4096 -validity 10000
+   keytool -genkeypair -v -keystore streamsofa-release.jks -alias streamsofa -keyalg RSA -keysize 4096 -validity 10000
    ```
 
 2. Renseigner les secrets du dépôt (Settings → Secrets and variables → Actions) :
-   `TWITCH_CLIENT_ID`, `LUMEN_KEYSTORE_BASE64` (sortie de `base64 -w0 lumen-release.jks`),
+   `TWITCH_CLIENT_ID`, `LUMEN_KEYSTORE_BASE64` (sortie de `base64 -w0 streamsofa-release.jks`),
    `LUMEN_KEYSTORE_PASSWORD`, `LUMEN_KEY_ALIAS`, `LUMEN_KEY_PASSWORD`.
 3. Taguer : `git tag v0.2.0 && git push origin v0.2.0`. La version de l'app vient du tag.
 

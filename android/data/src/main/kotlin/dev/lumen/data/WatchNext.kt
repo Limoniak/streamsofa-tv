@@ -69,7 +69,7 @@ class WatchNext @Inject constructor(@ApplicationContext private val context: Con
             null
         }
 
-    private fun vodIntent(id: String) = Intent(Intent.ACTION_VIEW, Uri.parse("lumen://vod/$id"))
+    private fun vodIntent(id: String) = Intent(Intent.ACTION_VIEW, Uri.parse("streamsofa://vod/$id"))
         .setPackage(context.packageName)
 
     // Gabarit Twitch `{width}x{height}` ou `%{width}x%{height}` : le launcher veut une URL finale.

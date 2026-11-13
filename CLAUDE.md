@@ -1,4 +1,4 @@
-# Lumen — contexte pour Claude Code
+# StreamSofa — contexte pour Claude Code
 
 Client Twitch non officiel pour Android TV / Google TV, alternative moderne à S0undTV.
 Distribution en APK sideload via GitHub Releases. Aucune affiliation avec Twitch.
@@ -41,7 +41,10 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
 - TLS : rustls + ring + webpki-roots (pas d'OpenSSL, pas d'init JNI). DI : Hilt. Préférences : SQLite côté Rust.
 - Replay de chat VOD : pagination par offset uniquement, repli sur « VOD sans chat ».
   Le chat n'est chargé que s'il est affiché ; après un saut, on montre les 30 s précédentes.
-- Nom « Lumen » et `applicationId` `dev.lumen.tv` provisoires, à confirmer par l'utilisateur.
+- Nom : **StreamSofa**, `applicationId` `dev.streamsofa.tv`, liens internes `streamsofa://`. Le code garde
+  l'ancien nom interne « Lumen » (`lumen-core`, packages `dev.lumen.*`, `namespace`, `lumen.db`, alias Keystore,
+  secrets CI `LUMEN_*`) : invisible pour l'utilisateur, ne pas renommer. Bannière et icône générées
+  (canapé + texte Poppins Bold OFL converti en tracés).
 
 ## Jalons
 
@@ -74,7 +77,7 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
   recherche de mise à jour au démarrage). Préférences globales dans `settings` (migration 3), lues par
   `SettingsRepository`. Accent = état Compose (`LumenColors.accent`), appliqué sans redémarrer.
   Mise à jour : release GitHub `Limoniak/lumen-tv` plus récente → APK de l'ABI de l'appareil
-  (`lumen-<version>-<abi>.apk`, sinon universel), téléchargé par Rust, installé via FileProvider.
+  (`streamsofa-<version>-<abi>.apk`, sinon universel ; seul le suffixe `-<abi>.apk` compte), téléchargé par Rust, installé via FileProvider.
   Jamais proposée automatiquement sur une build de debug (signature différente).
   CI GitHub Actions : tests Rust + Android à chaque push, release signée sur tag `vX.Y.Z`
   (version issue du tag ; secrets décrits dans le README). Baseline Profile : module `:baselineprofile`
@@ -85,7 +88,7 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
   (`recommendation_seeds`). Filtre de langue des catégories (préférence `stream_language`). Page chaîne :
   planning à venir, clips (semaine puis tout temps, lecteur MP4 `clip/{slug}`), panneaux « À propos ».
   Raids : EventSub WebSocket `channel.raid` (compte connecté seulement), bandeau 10 s, OK = suivre, Retour = rester.
-  Intégration TV : liens `lumen://` et twitch.tv (`singleTask`, `addOnNewIntentListener`), « Continuer à regarder »
+  Intégration TV : liens `streamsofa://` et twitch.tv (`singleTask`, `addOnNewIntentListener`), « Continuer à regarder »
   via `TvContract.WatchNextPrograms` (publié en quittant une VOD, retiré une fois finie, jamais remis si l'utilisateur
   l'a retiré), recherche globale/vocale via `SearchProvider` + `searchable.xml`. Google TV peut ignorer les deux
   pour une app hors Play Store. Suivre/ne plus suivre : impossible, Twitch a retiré les endpoints de l'API (27 juillet 2021) ;

@@ -28,7 +28,7 @@ pub fn build_client(app_version: &str) -> Result<reqwest::Client, CoreError> {
 
     reqwest::Client::builder()
         .tls_backend_preconfigured(tls)
-        .user_agent(format!("Lumen/{app_version}"))
+        .user_agent(format!("StreamSofa/{app_version}"))
         .connect_timeout(Duration::from_secs(10))
         .timeout(Duration::from_secs(20))
         .build()

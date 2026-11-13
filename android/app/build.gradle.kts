@@ -30,7 +30,7 @@ android {
     ndkVersion = "29.0.14206865"
 
     defaultConfig {
-        applicationId = "dev.lumen.tv"
+        applicationId = "dev.streamsofa.tv"
         minSdk = 26
         targetSdk = 37
         versionCode = appVersionCode

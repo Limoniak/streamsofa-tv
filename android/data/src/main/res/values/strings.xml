@@ -5,7 +5,7 @@
     <string name="error_not_signed_in">Connectez un compte pour voir vos suivis.</string>
     <string name="error_offline">Cette chaîne n\'est pas en live.</string>
     <string name="error_unavailable">Twitch refuse la lecture (région ou abonnement).</string>
-    <string name="error_twitch_changed">Twitch a modifié son service : une mise à jour de Lumen est nécessaire.</string>
+    <string name="error_twitch_changed">Twitch a modifié son service : une mise à jour de StreamSofa est nécessaire.</string>
     <string name="error_other">Une erreur inattendue s\'est produite.</string>
     <string name="retry">Réessayer</string>
 </resources>

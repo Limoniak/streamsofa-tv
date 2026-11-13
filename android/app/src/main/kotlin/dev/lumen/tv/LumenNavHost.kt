@@ -63,7 +63,7 @@ private object Routes {
     fun clip(slug: String, title: String) = "clip/${Uri.encode(slug)}?title=${Uri.encode(title)}"
 }
 
-/** Liens `lumen://…` (internes) et twitch.tv (partagés) vers un écran. */
+/** Liens `streamsofa://…` (internes) et twitch.tv (partagés) vers un écran. */
 private fun links(vararg patterns: String) = patterns.map { p -> navDeepLink { uriPattern = p } }
 
 private fun twitch(path: String) = arrayOf("https://www.twitch.tv/$path", "https://twitch.tv/$path", "https://m.twitch.tv/$path")
@@ -72,7 +72,7 @@ private fun twitch(path: String) = arrayOf("https://www.twitch.tv/$path", "https
 fun Intent.asDeepLink(): Intent {
     if (action != Intent.ACTION_SEARCH) return this
     val query = getStringExtra(SearchManager.QUERY).orEmpty()
-    return Intent(Intent.ACTION_VIEW, Uri.parse("lumen://search?q=${Uri.encode(query)}"))
+    return Intent(Intent.ACTION_VIEW, Uri.parse("streamsofa://search?q=${Uri.encode(query)}"))
 }
 
 @HiltViewModel
@@ -136,7 +136,7 @@ fun LumenNavHost(session: SessionViewModel = hiltViewModel()) {
         composable(
             Routes.SEARCH,
             arguments = listOf(navArgument("q") { defaultValue = "" }),
-            deepLinks = links("lumen://search?q={q}"),
+            deepLinks = links("streamsofa://search?q={q}"),
         ) {
             Shell(ShellTab.Search, onTab = navController::openTab) {
                 SearchRoute(
@@ -158,12 +158,12 @@ fun LumenNavHost(session: SessionViewModel = hiltViewModel()) {
                 )
             }
         }
-        composable(Routes.CATEGORY, deepLinks = links("lumen://category/{id}?name={name}")) {
+        composable(Routes.CATEGORY, deepLinks = links("streamsofa://category/{id}?name={name}")) {
             Shell(selected = null, onTab = navController::openTab) {
                 CategoryRoute(onOpenStream = navController::openLive, onOpenChannel = navController::openChannel)
             }
         }
-        composable(Routes.CHANNEL, deepLinks = links("lumen://channel/{login}")) {
+        composable(Routes.CHANNEL, deepLinks = links("streamsofa://channel/{login}")) {
             Shell(selected = null, onTab = navController::openTab) {
                 ChannelRoute(
                     onOpenStream = navController::openLive,
@@ -173,7 +173,7 @@ fun LumenNavHost(session: SessionViewModel = hiltViewModel()) {
             }
         }
         composable(Routes.CLIP, arguments = listOf(navArgument("title") { defaultValue = "" })) { ClipPlayerRoute() }
-        composable(Routes.LIVE, deepLinks = links("lumen://live/{login}", *twitch("{login}"))) {
+        composable(Routes.LIVE, deepLinks = links("streamsofa://live/{login}", *twitch("{login}"))) {
             PlayerRoute(onMultiView = { navController.navigate(Routes.multi(it)) })
         }
         composable(Routes.MULTI) {
@@ -186,7 +186,7 @@ fun LumenNavHost(session: SessionViewModel = hiltViewModel()) {
                 },
             )
         }
-        composable(Routes.VOD, deepLinks = links("lumen://vod/{id}", *twitch("videos/{id}"))) { VodPlayerRoute() }
+        composable(Routes.VOD, deepLinks = links("streamsofa://vod/{id}", *twitch("videos/{id}"))) { VodPlayerRoute() }
     }
 }
 

@@ -18,7 +18,7 @@ class BaselineProfileGenerator {
     val rule = BaselineProfileRule()
 
     @Test
-    fun startupAndBrowse() = rule.collect(packageName = "dev.lumen.tv", includeInStartupProfile = true) {
+    fun startupAndBrowse() = rule.collect(packageName = "dev.streamsofa.tv", includeInStartupProfile = true) {
         pressHome()
         startActivityAndWait()
         // L'accueil (ou le choix du profil) a fini de charger quand une rangée est affichée.

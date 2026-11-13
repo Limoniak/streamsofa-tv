@@ -18,7 +18,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Suggestions pour la recherche globale (et vocale) du launcher Android TV.
- * Chaque résultat ouvre un lien `lumen://` que la navigation sait suivre.
+ * Chaque résultat ouvre un lien `streamsofa://` que la navigation sait suivre.
  */
 class SearchProvider : ContentProvider() {
     @EntryPoint
@@ -62,10 +62,10 @@ class SearchProvider : ContentProvider() {
         /** Lignes sans `_ID` : texte, sous-titre, image, lien, en direct (1/0). */
         fun suggestions(results: SearchResults): List<Array<Any>> =
             results.channels.map { c ->
-                val link = if (c.live) "lumen://live/${Uri.encode(c.login)}" else "lumen://channel/${Uri.encode(c.login)}"
+                val link = if (c.live) "streamsofa://live/${Uri.encode(c.login)}" else "streamsofa://channel/${Uri.encode(c.login)}"
                 arrayOf<Any>(c.displayName, if (c.live) c.title else "", c.avatarUrl, link, if (c.live) 1 else 0)
             } + results.categories.map { g ->
-                val link = "lumen://category/${Uri.encode(g.id)}?name=${Uri.encode(g.name)}"
+                val link = "streamsofa://category/${Uri.encode(g.id)}?name=${Uri.encode(g.name)}"
                 arrayOf<Any>(g.name, "", g.boxArtUrl.replace("{width}", "285").replace("{height}", "380"), link, 0)
             }
     }

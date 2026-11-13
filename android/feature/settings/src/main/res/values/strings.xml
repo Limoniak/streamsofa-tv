@@ -17,7 +17,7 @@
     <string name="settings_version">Version installée : %1$s</string>
     <string name="update_check_now">Rechercher maintenant</string>
     <string name="update_checking">Recherche…</string>
-    <string name="update_up_to_date">Lumen est à jour.</string>
+    <string name="update_up_to_date">StreamSofa est à jour.</string>
     <string name="update_available">Version %1$s disponible</string>
     <string name="update_size">%1$s Mo</string>
     <string name="update_install">Installer</string>

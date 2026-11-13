@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 use crate::error::CoreError;
 
-/// Dépôt dont les releases publient les APK (`lumen-<version>-<abi>.apk`).
+/// Dépôt dont les releases publient les APK (`streamsofa-<version>-<abi>.apk`).
 pub(crate) const REPO: &str = "Limoniak/lumen-tv";
 
 /// Une version plus récente que celle installée, avec l'APK adapté à l'appareil.
@@ -136,11 +136,11 @@ mod tests {
 
     #[test]
     fn picks_the_apk_of_the_preferred_abi() {
-        let assets = [asset("lumen-0.2.0-universal.apk"), asset("lumen-0.2.0-armeabi-v7a.apk"), asset("lumen-0.2.0-arm64-v8a.apk")];
+        let assets = [asset("streamsofa-0.2.0-universal.apk"), asset("streamsofa-0.2.0-armeabi-v7a.apk"), asset("streamsofa-0.2.0-arm64-v8a.apk")];
         let abis = |list: &[&str]| list.iter().map(|s| s.to_string()).collect::<Vec<_>>();
-        assert_eq!(pick_apk(&assets, &abis(&["arm64-v8a", "armeabi-v7a"])).unwrap().name, "lumen-0.2.0-arm64-v8a.apk");
-        assert_eq!(pick_apk(&assets, &abis(&["armeabi-v7a"])).unwrap().name, "lumen-0.2.0-armeabi-v7a.apk");
-        assert_eq!(pick_apk(&assets, &abis(&["x86_64"])).unwrap().name, "lumen-0.2.0-universal.apk");
+        assert_eq!(pick_apk(&assets, &abis(&["arm64-v8a", "armeabi-v7a"])).unwrap().name, "streamsofa-0.2.0-arm64-v8a.apk");
+        assert_eq!(pick_apk(&assets, &abis(&["armeabi-v7a"])).unwrap().name, "streamsofa-0.2.0-armeabi-v7a.apk");
+        assert_eq!(pick_apk(&assets, &abis(&["x86_64"])).unwrap().name, "streamsofa-0.2.0-universal.apk");
         assert!(pick_apk(&[asset("notes.txt")], &abis(&["x86_64"])).is_none());
     }
 
@@ -154,7 +154,7 @@ mod tests {
                 "body": "Nouveautés",
                 "draft": false,
                 "prerelease": false,
-                "assets": [{"name": "lumen-0.2.0-universal.apk", "browser_download_url": "https://dl/u.apk", "size": 42}]
+                "assets": [{"name": "streamsofa-0.2.0-universal.apk", "browser_download_url": "https://dl/u.apk", "size": 42}]
             })))
             .mount(&server)
             .await;
