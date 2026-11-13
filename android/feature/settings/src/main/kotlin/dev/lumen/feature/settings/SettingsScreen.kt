@@ -60,7 +60,7 @@ private val AccentColor.label
         AccentColor.Violet -> R.string.accent_violet
         AccentColor.Blue -> R.string.accent_blue
         AccentColor.Green -> R.string.accent_green
-        AccentColor.Orange -> R.string.accent_orange
+        AccentColor.Peach -> R.string.accent_peach
         AccentColor.Pink -> R.string.accent_pink
     }
 

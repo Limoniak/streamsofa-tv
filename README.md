@@ -1,75 +1,128 @@
-# StreamSofa
+<p align="center">
+  <img src="docs/logo.svg" alt="StreamSofa" width="640">
+</p>
 
-Client Twitch non officiel pour Android TV / Google TV. Aucune affiliation avec Twitch.
+<p align="center">
+  <b>A fast, modern Twitch client for Android TV and Google TV.</b><br>
+  Built for the couch: remote-first navigation, readable from three meters away, quick on low-end boxes.
+</p>
 
-- `rust/` — cœur métier (`lumen-core`), exposé à Kotlin via UniFFI.
-- `android/` — application (Jetpack Compose for TV). `core-bridge` compile le cœur Rust
-  et génère ses bindings à chaque build.
+<p align="center">
+  <a href="https://github.com/Limoniak/streamsofa-tv/releases/latest"><img src="https://img.shields.io/github/v/release/Limoniak/streamsofa-tv?style=flat-square&color=B79CFF&labelColor=1B1622" alt="Latest release"></a>
+  <a href="https://github.com/Limoniak/streamsofa-tv/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Limoniak/streamsofa-tv/ci.yml?branch=main&style=flat-square&labelColor=1B1622" alt="CI"></a>
+  <img src="https://img.shields.io/badge/Android%20TV-8.0%2B-FFB38A?style=flat-square&labelColor=1B1622" alt="Android TV 8.0+">
+</p>
 
-## Prérequis
+> [!NOTE]
+> StreamSofa is an unofficial app. It is not affiliated with, endorsed by or sponsored by Twitch Interactive, Inc.
 
-- JDK 21, SDK Android (plateforme 37), NDK `29.0.14206865`
-- Rust stable, puis :
+## Features
+
+| | |
+|---|---|
+| **Watch** | Live streams with quality selection and fast channel zapping, an experimental low-latency mode, past broadcasts that remember where you stopped, clips. |
+| **Multi-view** | Two to four streams side by side, on devices that can decode them. Sound follows the focused tile. |
+| **Chat** | Read and send messages, badges, 7TV / BTTV / FFZ emotes (animated where the device allows), hidden words and users. Chat replay on past broadcasts. |
+| **Accounts** | Sign in by entering a code on your phone, no typing on the TV. Several accounts, plus a guest mode that needs no account at all. |
+| **Discover** | Followed channels first, recommendations, popular streams and categories, a language filter, search. |
+| **Android TV** | "Continue watching" row, global and voice search, `twitch.tv` links open in the app. |
+| **Raids** | When the channel you watch raids, a banner offers to follow it. |
+
+The interface is currently in French.
+
+Ads inserted by Twitch play as usual: StreamSofa never blocks them and never tries to unlock subscriber or Turbo perks.
+
+## Install
+
+StreamSofa is distributed as an APK on [GitHub Releases](https://github.com/Limoniak/streamsofa-tv/releases/latest), outside the Play Store.
+
+| Your device | APK to download |
+|---|---|
+| Most recent boxes and TVs (Chromecast with Google TV, Shield, ...) | `streamsofa-<version>-arm64-v8a.apk` |
+| Older or 32-bit boxes (Mi Box S, ...) | `streamsofa-<version>-armeabi-v7a.apk` |
+| Not sure | `streamsofa-<version>-universal.apk` |
+
+**On the TV**: install the free *Downloader* app, allow it to install unknown apps (Settings → Apps → Security), then enter the APK link.
+
+**From a computer**, with developer options and network debugging enabled on the TV:
 
 ```bash
-rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+adb connect <tv-ip-address>
+adb install streamsofa-<version>-universal.apk
 ```
 
-```bash
-cargo install cargo-ndk --locked
+Once installed, StreamSofa checks for new versions at startup and installs them for you (*Paramètres → Mises à jour*).
+
+## Build from source
+
+StreamSofa has a Rust core (Twitch APIs, chat, playlists, storage) exposed to a Kotlin / Jetpack Compose for TV app through [UniFFI](https://mozilla.github.io/uniffi-rs/).
+
+```
+rust/core            lumen-core: auth, accounts, Helix and GQL clients, chat (IRC), emotes, HLS, SQLite store, updates
+android/core-bridge  builds the native library (cargo-ndk, 3 ABIs) and generates the Kotlin bindings
+android/data         repositories, Hilt modules, Keystore-backed secret storage
+android/feature/*    auth, home, player, settings
+android/designsystem theme, colors, cards, overscan margins
+android/app          single Activity and navigation
 ```
 
-Copier `android/local.properties.example` en `android/local.properties` et le compléter.
+### Requirements
 
-## Compiler et installer
+- JDK 21, Android SDK (platform 37), NDK `29.0.14206865`
+- Rust stable with the Android targets and cargo-ndk:
+
+  ```bash
+  rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+  cargo install cargo-ndk --locked
+  ```
+
+- A Twitch application registered on the [Twitch developer console](https://dev.twitch.tv/console/apps), client type **Public**.
+
+Copy `android/local.properties.example` to `android/local.properties` and fill in the SDK path and `twitch.clientId`.
+
+### Build and run
 
 ```bash
 cd android && ./gradlew :app:assembleDebug
-```
-
-```bash
 adb install -r app/build/outputs/apk/debug/app-universal-debug.apk
 ```
 
-Pour itérer plus vite sur une seule box : `./gradlew :app:assembleDebug -Plumen.abis=arm64-v8a`.
+To iterate faster on a single device, build one ABI only: `./gradlew :app:assembleDebug -Plumen.abis=arm64-v8a`.
 
-## Tests
+### Tests
 
 ```bash
 cd rust && cargo test
+cd android && ./gradlew :core-bridge:testDebugUnitTest :data:testDebugUnitTest :feature:auth:testDebugUnitTest :feature:player:testDebugUnitTest
 ```
 
-```bash
-cd android && ./gradlew :core-bridge:testDebugUnitTest :app:testDebugUnitTest
-```
+The `core-bridge` tests load the Rust core built for the host machine, so they check the Kotlin ⇄ Rust bridge without a device.
 
-Les tests de `core-bridge` chargent le cœur Rust compilé pour la machine de build : ils
-vérifient le pont Kotlin ⇄ Rust sans appareil.
+## Releasing
 
-## Publier une version
+CI (`.github/workflows/ci.yml`) runs the tests on every push. Pushing a `vX.Y.Z` tag also builds signed APKs and publishes a GitHub release; the app version comes from the tag and the release notes from the matching section of [`CHANGELOG.md`](CHANGELOG.md).
 
-Les APK sont publiés sur les GitHub Releases ; l'app les propose en mise à jour (Paramètres).
-La CI (`.github/workflows/ci.yml`) teste chaque push et publie une release signée pour chaque tag `vX.Y.Z`.
-
-1. Créer une seule fois la clé de release, **à conserver précieusement** : sans elle, plus aucune
-   mise à jour ne pourra s'installer par-dessus les versions déjà distribuées.
+1. Create the release key once and **keep it safe**: without it, no future update can be installed over existing installs.
 
    ```bash
-   keytool -genkeypair -v -keystore streamsofa-release.jks -alias streamsofa -keyalg RSA -keysize 4096 -validity 10000
+   keytool -genkeypair -v -keystore streamsofa-release.jks -alias streamsofa -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=StreamSofa"
    ```
 
-2. Renseigner les secrets du dépôt (Settings → Secrets and variables → Actions) :
-   `TWITCH_CLIENT_ID`, `LUMEN_KEYSTORE_BASE64` (sortie de `base64 -w0 streamsofa-release.jks`),
+2. Add the repository secrets (Settings → Secrets and variables → Actions):
+   `TWITCH_CLIENT_ID`, `LUMEN_KEYSTORE_BASE64` (output of `base64 -w0 streamsofa-release.jks`),
    `LUMEN_KEYSTORE_PASSWORD`, `LUMEN_KEY_ALIAS`, `LUMEN_KEY_PASSWORD`.
-3. Taguer : `git tag v0.2.0 && git push origin v0.2.0`. La version de l'app vient du tag.
+3. Move the `Unreleased` entries of the changelog under the new version, then tag: `git tag v0.2.0 && git push origin v0.2.0`.
 
-En local, un `android/keystore.properties` (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`)
-signe `assembleRelease` avec la même clé ; sans lui, la release est signée avec la clé de debug.
+Locally, an `android/keystore.properties` file (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`) signs `assembleRelease` with the same key; without it, release builds use the debug key.
 
-Baseline Profile (démarrage et défilement plus fluides), à régénérer quand l'UI change beaucoup,
-émulateur ou box branché. Attention : l'app est désinstallée à la fin (comptes et reprises perdus
-sur cet appareil). Avec plusieurs appareils branchés, choisir la cible via `ANDROID_SERIAL`.
+The Baseline Profile (faster startup and scrolling) should be regenerated when the UI changes a lot, with an emulator or a box connected. The app is uninstalled at the end, so accounts and resume positions on that device are lost. With several devices connected, pick one with `ANDROID_SERIAL`.
 
 ```bash
 cd android && ./gradlew :app:generateBaselineProfile -Plumen.abis=x86_64
 ```
+
+## Credits
+
+- Wordmark set in [Fraunces](https://github.com/undercasetype/Fraunces) (SIL Open Font License), converted to vector paths.
+- Third-party emotes from [7TV](https://7tv.app), [BetterTTV](https://betterttv.com) and [FrankerFaceZ](https://www.frankerfacez.com).
+- Twitch is a trademark of Twitch Interactive, Inc.

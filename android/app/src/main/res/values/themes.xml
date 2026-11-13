@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="lumen_background">#0E0E12</color>
+    <color name="lumen_background">#130F19</color>
 
     <!-- Fond sombre dès la fenêtre de démarrage : pas de flash blanc avant Compose. -->
     <style name="Theme.Lumen" parent="android:Theme.Material.NoActionBar">

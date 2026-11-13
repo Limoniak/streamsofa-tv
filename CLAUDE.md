@@ -4,6 +4,7 @@ Client Twitch non officiel pour Android TV / Google TV, alternative moderne à S
 Distribution en APK sideload via GitHub Releases. Aucune affiliation avec Twitch.
 Priorités, dans l'ordre : performance, connexion Twitch fiable, multi-compte, design 10-foot.
 L'utilisateur parle français ; l'UI, les commentaires et les messages de commit sont en français.
+Exceptions : `README.md` et `CHANGELOG.md` sont en anglais (chaque changement visible va dans `Unreleased`).
 
 ## Architecture
 
@@ -43,8 +44,10 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
   Le chat n'est chargé que s'il est affiché ; après un saut, on montre les 30 s précédentes.
 - Nom : **StreamSofa**, `applicationId` `dev.streamsofa.tv`, liens internes `streamsofa://`. Le code garde
   l'ancien nom interne « Lumen » (`lumen-core`, packages `dev.lumen.*`, `namespace`, `lumen.db`, alias Keystore,
-  secrets CI `LUMEN_*`) : invisible pour l'utilisateur, ne pas renommer. Bannière et icône générées
-  (canapé + texte Poppins Bold OFL converti en tracés).
+  secrets CI `LUMEN_*`) : invisible pour l'utilisateur, ne pas renommer. Identité (piste « E1 ») : logotype « stream » crème + « sofa » pêche
+  assis dans un canapé lavande, Fraunces SOFT 100 / 750 (OFL) converti en tracés ; icône = le canapé avec un « s ».
+  Fichiers générés : `banner.xml`, `ic_launcher.xml`, `docs/logo.svg` (script hors dépôt). Palette : fonds prune
+  `#130F19`/`#1B1622`, texte crème `#F4EEE8`, accent lavande `#B79CFF`, pêche `#FFB38A` (clé d'accent `orange` conservée).
 
 ## Jalons
 

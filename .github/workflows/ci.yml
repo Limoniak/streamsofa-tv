@@ -104,4 +104,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/*.apk --title "StreamSofa ${GITHUB_REF_NAME#v}" --generate-notes
+        # Notes : la section du CHANGELOG pour cette version, sinon celles générées par GitHub.
+        run: |
+          awk -v v="${GITHUB_REF_NAME#v}" '/^## \[/{p = index($0, "[" v "]")} /^\[/{p = 0} p' CHANGELOG.md | tail -n +2 > notes.md
+          if [ -s notes.md ]; then notes=(--notes-file notes.md); else notes=(--generate-notes); fi
+          gh release create "$GITHUB_REF_NAME" dist/*.apk --title "StreamSofa ${GITHUB_REF_NAME#v}" "${notes[@]}"

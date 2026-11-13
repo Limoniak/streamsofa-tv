@@ -24,7 +24,8 @@ enum class AccentColor(val key: String, val color: Color, val onColor: Color) {
     Violet("violet", Color(0xFFB79CFF), Color(0xFF1E1147)),
     Blue("blue", Color(0xFF8CC4FF), Color(0xFF0B2547)),
     Green("green", Color(0xFF7FE0A8), Color(0xFF0B3320)),
-    Orange("orange", Color(0xFFFFB86B), Color(0xFF3D2200)),
+    // Clé « orange » conservée : c'est la valeur déjà enregistrée chez les utilisateurs.
+    Peach("orange", Color(0xFFFFB38A), Color(0xFF3D1E0C)),
     Pink("pink", Color(0xFFFF9CCB), Color(0xFF450F2B)),
     ;
 
@@ -38,15 +39,15 @@ object LumenColors {
     var accent by mutableStateOf(AccentColor.Violet)
     val Accent get() = accent.color
     val OnAccent get() = accent.onColor
-    val Background = Color(0xFF0E0E12)
-    val Surface = Color(0xFF17171D)
-    val SurfaceRaised = Color(0xFF22222B)
-    val OnSurface = Color(0xFFECEAF2)
-    val OnSurfaceMuted = Color(0xFFA6A3B3)
+    val Background = Color(0xFF130F19)
+    val Surface = Color(0xFF1B1622)
+    val SurfaceRaised = Color(0xFF261F30)
+    val OnSurface = Color(0xFFF4EEE8)
+    val OnSurfaceMuted = Color(0xFFA99FB6)
     val Success = Color(0xFF6FD9A0)
     val Error = Color(0xFFFF8A80)
     val Live = Color(0xFFE5484D)
-    val Skeleton = Color(0xFF2A2A33)
+    val Skeleton = Color(0xFF2E2639)
 }
 
 private fun darkScheme(): ColorScheme = darkColorScheme(
