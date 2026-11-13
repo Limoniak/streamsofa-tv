@@ -24,6 +24,7 @@ import dev.lumen.feature.home.CategoryRoute
 import dev.lumen.feature.home.ChannelRoute
 import dev.lumen.feature.home.FollowingRoute
 import dev.lumen.feature.home.HomeRoute
+import dev.lumen.feature.player.MultiViewRoute
 import dev.lumen.feature.player.PlayerRoute
 import dev.lumen.feature.player.VodPlayerRoute
 import javax.inject.Inject
@@ -37,11 +38,13 @@ private object Routes {
     const val LIVE = "live/{login}"
     const val CHANNEL = "channel/{login}"
     const val VOD = "vod/{id}"
+    const val MULTI = "multi/{logins}"
 
     fun category(id: String, name: String) = "category/${Uri.encode(id)}?name=${Uri.encode(name)}"
     fun live(login: String) = "live/${Uri.encode(login)}"
     fun channel(login: String) = "channel/${Uri.encode(login)}"
     fun vod(id: String) = "vod/${Uri.encode(id)}"
+    fun multi(logins: List<String>) = "multi/${Uri.encode(logins.joinToString(","))}"
 }
 
 @HiltViewModel
@@ -116,7 +119,19 @@ fun LumenNavHost(session: SessionViewModel = hiltViewModel()) {
                 )
             }
         }
-        composable(Routes.LIVE) { PlayerRoute() }
+        composable(Routes.LIVE) {
+            PlayerRoute(onMultiView = { navController.navigate(Routes.multi(it)) })
+        }
+        composable(Routes.MULTI) {
+            MultiViewRoute(
+                // Plein écran : la tuile remplace le multi-view et le lecteur d'où il a été lancé.
+                onOpenSingle = { login ->
+                    navController.navigate(Routes.live(login)) {
+                        popUpTo(Routes.LIVE) { inclusive = true }
+                    }
+                },
+            )
+        }
         composable(Routes.VOD) { VodPlayerRoute() }
     }
 }

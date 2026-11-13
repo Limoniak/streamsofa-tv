@@ -69,13 +69,17 @@ private const val OVERLAY_TIMEOUT_MS = 5_000L
  */
 @OptIn(UnstableApi::class)
 @Composable
-fun PlayerRoute(viewModel: PlayerViewModel = hiltViewModel()) {
+fun PlayerRoute(
+    onMultiView: (logins: List<String>) -> Unit = {},
+    viewModel: PlayerViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val chat by viewModel.chat.collectAsStateWithLifecycle()
     val canSend by viewModel.canSend.collectAsStateWithLifecycle()
     // Masqué par défaut : la vidéo d'abord, Bas affiche le chat.
     var chatVisible by rememberSaveable { mutableStateOf(false) }
     var composing by remember { mutableStateOf(false) }
+    var picking by remember { mutableStateOf(false) }
     LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onStop() }
 
@@ -173,6 +177,14 @@ fun PlayerRoute(viewModel: PlayerViewModel = hiltViewModel()) {
                 showControls = overlay == Overlay.Controls,
                 controlsFocus = controlsFocus,
                 onQuality = viewModel::selectQuality,
+                onMulti = if (viewModel.maxTiles > 1) {
+                    {
+                        overlay = Overlay.Hidden
+                        picking = true
+                    }
+                } else {
+                    null
+                },
                 modifier = Modifier.align(Alignment.BottomStart),
             )
         }
@@ -189,8 +201,19 @@ fun PlayerRoute(viewModel: PlayerViewModel = hiltViewModel()) {
             onDismiss = { composing = false },
         )
     }
-    // La boîte de saisie fermée, la télécommande revient au lecteur.
-    LaunchedEffect(composing) { if (!composing) rootFocus.requestWhenAttached() }
+    if (picking) {
+        MultiPicker(
+            load = viewModel::multiCandidates,
+            maxExtra = viewModel.maxTiles - 1,
+            onLaunch = {
+                picking = false
+                onMultiView(listOf(state.login) + it)
+            },
+            onDismiss = { picking = false },
+        )
+    }
+    // Une boîte fermée, la télécommande revient au lecteur.
+    LaunchedEffect(composing, picking) { if (!composing && !picking) rootFocus.requestWhenAttached() }
 }
 
 @kotlin.OptIn(ExperimentalTvMaterial3Api::class)
@@ -200,6 +223,7 @@ private fun InfoPanel(
     showControls: Boolean,
     controlsFocus: FocusRequester,
     onQuality: (String?) -> Unit,
+    onMulti: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val stream = state.stream
@@ -254,6 +278,9 @@ private fun InfoPanel(
                     ) {
                         Text(name ?: stringResource(R.string.player_quality_auto))
                     }
+                }
+                if (onMulti != null) {
+                    FilterChip(selected = false, onClick = onMulti) { Text(stringResource(R.string.player_multi)) }
                 }
             }
         }

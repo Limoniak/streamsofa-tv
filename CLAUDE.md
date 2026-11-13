@@ -58,7 +58,11 @@ L'utilisateur parle français ; l'UI, les commentaires et les messages de commit
   ±1 min en maintenant, ▼ chat), reprise par profil (table `vod_progress`), replay du chat synchronisé.
   Une VOD réservée aux abonnés est refusée avec un message, jamais contournée.
   En invité, une seule page de VOD (100) : la pagination GQL exige un jeton d'intégrité, non fourni.
-- [ ] J6 : multi-view (2 à 4 flux, sonde `MediaCodecList` + repli à l'exécution).
+- [x] J6 : multi-view (2 à 4 flux). Puce « Multi-view » dans le panneau du lecteur live (si la sonde
+  `MediaCodecList` autorise > 1 flux, jamais sur `isLowRamDevice`), choix parmi les suivis en live.
+  Un ExoPlayer par tuile, qualité fixe (720p à 2, 480p à 3-4), son sur la tuile focalisée ; erreur décodeur
+  → qualité inférieure puis « l'appareil ne peut pas ». OK = plein écran, appui long OK = retirer.
+  Validé sur l'émulateur avec 4 flux.
 - [ ] J7 : paramètres, thèmes, mise à jour auto via GitHub Releases, CI, Baseline Profiles, keystore de release.
 
 Schéma SQLite (migrations dans `store/mod.rs`, clé `scope` = `global` | `guest` | id de compte) : `vod_progress` existe (migration 2) ; prévus pour la suite :

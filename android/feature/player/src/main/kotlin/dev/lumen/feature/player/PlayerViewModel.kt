@@ -61,6 +61,20 @@ fun zapTarget(logins: List<String>, current: String, delta: Int): String? {
 
 private const val LIVE_OFFSET_MS = 5_000L
 
+/** Élément de lecture d'un live, partagé par le lecteur et le multi-view. */
+internal fun liveMediaItem(url: String): MediaItem = MediaItem.Builder()
+    .setUri(url)
+    .setMimeType(MimeTypes.APPLICATION_M3U8)
+    .setLiveConfiguration(
+        MediaItem.LiveConfiguration.Builder()
+            .setTargetOffsetMs(LIVE_OFFSET_MS)
+            // Rattrapage du direct imperceptible plutôt qu'un saut.
+            .setMinPlaybackSpeed(0.97f)
+            .setMaxPlaybackSpeed(1.03f)
+            .build(),
+    )
+    .build()
+
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -117,6 +131,17 @@ class PlayerViewModel @Inject constructor(
     fun retry() {
         retried = false
         load(_state.value.login)
+    }
+
+    /** 1 : pas de multi-view sur cet appareil. */
+    val maxTiles: Int = DecoderProbe.maxStreams(context)
+
+    /** Chaînes à ajouter au multi-view : les suivies en live, sinon les plus regardées. */
+    suspend fun multiCandidates(): List<LiveStream> {
+        val current = _state.value.login
+        val followed = catalog.followed.value
+        val pool = followed.ifEmpty { loadCatching { catalog.topStreams(null).items }.getOrDefault(emptyList()) }
+        return pool.filter { it.login != current }
     }
 
     fun selectQuality(name: String?) {
@@ -203,19 +228,7 @@ class PlayerViewModel @Inject constructor(
     private fun play() {
         val state = _state.value
         val url = state.variants.firstOrNull { it.name == state.quality }?.url ?: masterUrl ?: return
-        val item = MediaItem.Builder()
-            .setUri(url)
-            .setMimeType(MimeTypes.APPLICATION_M3U8)
-            .setLiveConfiguration(
-                MediaItem.LiveConfiguration.Builder()
-                    .setTargetOffsetMs(LIVE_OFFSET_MS)
-                    // Rattrapage du direct imperceptible plutôt qu'un saut.
-                    .setMinPlaybackSpeed(0.97f)
-                    .setMaxPlaybackSpeed(1.03f)
-                    .build(),
-            )
-            .build()
-        player.setMediaItem(item)
+        player.setMediaItem(liveMediaItem(url))
         player.prepare()
         player.play()
     }

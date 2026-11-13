@@ -5,6 +5,14 @@
     <string name="chat_connecting">Connexion au chat…</string>
     <string name="chat_compose_hint">Votre message</string>
     <string name="chat_send">Envoyer</string>
+    <string name="player_multi">Multi-view</string>
+    <string name="multi_pick_title">Ajouter jusqu\'à %1$d chaînes</string>
+    <string name="multi_pick_loading">Chargement…</string>
+    <string name="multi_pick_empty">Aucune autre chaîne en live.</string>
+    <string name="multi_launch">Lancer (%1$d)</string>
+    <string name="multi_cancel">Annuler</string>
+    <string name="multi_hint">◀ ▶ ▲ ▼ son de la tuile · OK plein écran · appui long OK retirer</string>
+    <string name="multi_decoder_busy">L\'appareil ne peut pas décoder un flux de plus.</string>
     <string name="vod_paused">En pause</string>
     <string name="vod_seek_hint">◀ ▶ reculer ou avancer · OK pause · ▼ chat</string>
     <string name="vod_no_chat">Pas de chat pour cette vidéo.</string>
