@@ -22,7 +22,7 @@ class CoreBridgeTest {
         Core(CoreConfig(clientId = clientId, dataDir = dataDir, appVersion = "test"), MemoryStore())
 
     @Test
-    fun `a new install starts with no account, in guest mode`() {
+    fun `new install is guest`() {
         core().use { core ->
             assertEquals(coreVersion(), core.version())
             val snapshot = core.accounts()
@@ -32,7 +32,7 @@ class CoreBridgeTest {
     }
 
     @Test
-    fun `async errors cross the bridge as typed exceptions`() = runBlocking {
+    fun `async errors are typed`() = runBlocking {
         core(clientId = " ").use { core ->
             assertFalse(core.hasClientId())
             try {
@@ -44,7 +44,7 @@ class CoreBridgeTest {
     }
 
     @Test
-    fun `constructor failures are typed too`() {
+    fun `constructor errors are typed`() {
         try {
             core(dataDir = "/nonexistent/lumen").close()
             fail("CoreException.Storage attendue")
@@ -53,7 +53,7 @@ class CoreBridgeTest {
     }
 
     @Test
-    fun `unknown accounts are rejected and listeners can be registered`() = runBlocking {
+    fun `unknown account is rejected`() = runBlocking {
         core(clientId = "abc").use { core ->
             assertTrue(core.hasClientId())
             core.setAccountsListener(object : AccountsListener {

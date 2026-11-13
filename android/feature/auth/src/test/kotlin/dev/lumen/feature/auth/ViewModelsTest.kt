@@ -18,6 +18,7 @@ import org.junit.Before
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
+// Noms de tests courts : chacun devient un nom de fichier .class, et Windows limite les chemins.
 class ViewModelsTest {
     private val dispatcher = StandardTestDispatcher()
 
@@ -27,7 +28,7 @@ class ViewModelsTest {
     // --- Profils ---------------------------------------------------------------------------
 
     @Test
-    fun `selecting a healthy account activates it and enters the app`() = runTest(dispatcher) {
+    fun `select healthy account enters`() = runTest(dispatcher) {
         val repo = FakeAccountsRepository(listOf(account("1"), account("2")), activeId = "1")
         val vm = ProfilesViewModel(repo)
         vm.select(account("2"))
@@ -36,7 +37,7 @@ class ViewModelsTest {
     }
 
     @Test
-    fun `selecting an account that needs reauth sends the user to login instead`() = runTest(dispatcher) {
+    fun `select expired account reconnects`() = runTest(dispatcher) {
         val expired = account("1", AccountState.NEEDS_REAUTH)
         val vm = ProfilesViewModel(FakeAccountsRepository(listOf(expired)))
         vm.select(expired)
@@ -44,7 +45,7 @@ class ViewModelsTest {
     }
 
     @Test
-    fun `guest mode clears the active account but keeps the list`() = runTest(dispatcher) {
+    fun `guest keeps account list`() = runTest(dispatcher) {
         val repo = FakeAccountsRepository(listOf(account("1")), activeId = "1")
         val vm = ProfilesViewModel(repo)
         vm.continueAsGuest()
@@ -54,7 +55,7 @@ class ViewModelsTest {
     }
 
     @Test
-    fun `selecting an account removed in the meantime neither crashes nor navigates`() = runTest(dispatcher) {
+    fun `select removed account is ignored`() = runTest(dispatcher) {
         val repo = FakeAccountsRepository(listOf(account("1")))
         val vm = ProfilesViewModel(repo)
         vm.remove(account("1"))
@@ -68,7 +69,7 @@ class ViewModelsTest {
     // --- Connexion par code ----------------------------------------------------------------
 
     @Test
-    fun `login shows the code, then succeeds once the user approves`() = runTest(dispatcher) {
+    fun `login shows code then succeeds`() = runTest(dispatcher) {
         val repo = FakeAccountsRepository().apply { startResults += Result.success(deviceLogin("ABCD1234")) }
         val vm = DeviceLoginViewModel(repo)
         assertEquals(DeviceLoginUiState.Requesting, vm.state.value)
@@ -82,7 +83,7 @@ class ViewModelsTest {
     }
 
     @Test
-    fun `core errors map to distinct messages`() = runTest(dispatcher) {
+    fun `core errors map to messages`() = runTest(dispatcher) {
         val cases = listOf(
             CoreException.NotConfigured() to LoginError.NotConfigured,
             CoreException.Network("dns") to LoginError.Network,
@@ -98,7 +99,7 @@ class ViewModelsTest {
     }
 
     @Test
-    fun `an expired code can be replaced, and the stale wait cannot overwrite the new one`() = runTest(dispatcher) {
+    fun `stale wait cannot overwrite new code`() = runTest(dispatcher) {
         val repo = FakeAccountsRepository().apply {
             startResults += Result.success(deviceLogin("OLD"))
             startResults += Result.success(deviceLogin("NEW"))
@@ -117,7 +118,7 @@ class ViewModelsTest {
     }
 
     @Test
-    fun `expiry while waiting offers a retry`() = runTest(dispatcher) {
+    fun `expiry offers retry`() = runTest(dispatcher) {
         val repo = FakeAccountsRepository().apply { startResults += Result.success(deviceLogin("ABCD")) }
         val vm = DeviceLoginViewModel(repo)
         advanceUntilIdle()
