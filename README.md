@@ -116,7 +116,7 @@ The `core-bridge` tests load the Rust core built for the host machine, so they c
 
 ## Releasing
 
-CI (`.github/workflows/ci.yml`) runs the tests on every push. Pushing a `vX.Y.Z` tag also builds signed APKs and publishes a GitHub release; the app version comes from the tag and the release notes from the matching section of [`CHANGELOG.md`](CHANGELOG.md).
+CI (`.github/workflows/ci.yml`) runs the tests on every push. Pushing a `vX.Y.Z` tag also builds signed APKs and publishes a GitHub release; the app version comes from the tag and the release notes from the matching section of [`CHANGELOG.md`](CHANGELOG.md). A tag with a suffix (`v0.3.0-beta.1`) publishes a pre-release, offered only to users who turned on "Beta versions".
 
 1. Create the release key once and **keep it safe**: without it, no future update can be installed over existing installs.
 

@@ -86,7 +86,9 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
   `SettingsRepository`. Accent = état Compose (`LumenColors.accent`), appliqué sans redémarrer.
   Mise à jour : release GitHub `Limoniak/streamsofa-tv` plus récente → APK de l'ABI de l'appareil
   (`streamsofa-<version>-<abi>.apk`, sinon universel ; seul le suffixe `-<abi>.apk` compte), téléchargé par Rust, installé via FileProvider.
-  Jamais proposée automatiquement sur une build de debug (signature différente).
+  Jamais proposée automatiquement sur une build de debug (signature différente). Option « Versions bêta » : liste des
+  releases avec pré-versions (ordre semver, tag `vX.Y.Z-beta.N` publié en pré-version par la CI).
+  Journal de crash local en option (`CrashLog`, `filesDir/crash.log`, 256 Ko), export MediaStore dans Téléchargements (API 29+).
   CI GitHub Actions : tests Rust + Android à chaque push, release signée sur tag `vX.Y.Z`
   (version issue du tag ; secrets décrits dans le README). Baseline Profile : module `:baselineprofile`
   + profileinstaller. Keystore de release : à créer par l'utilisateur (README), jamais généré ici.

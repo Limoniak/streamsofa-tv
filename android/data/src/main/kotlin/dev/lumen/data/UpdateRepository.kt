@@ -14,13 +14,15 @@ class UpdateRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val coreHolder: CoreHolder,
     private val coreSettings: CoreSettings,
+    private val settings: SettingsRepository,
 ) {
     val currentVersion: String get() = coreSettings.appVersion
 
     /** Une seule proposition automatique par lancement de l'app. */
     var promptedThisLaunch = false
 
-    suspend fun check(): AppUpdate? = coreHolder.get().checkUpdate(coreSettings.appVersion, Build.SUPPORTED_ABIS.toList())
+    suspend fun check(): AppUpdate? =
+        coreHolder.get().checkUpdate(coreSettings.appVersion, Build.SUPPORTED_ABIS.toList(), settings.awaitLoaded().betaUpdates)
 
     /** APK téléchargé dans le cache (`updates/`), partagé à l'installeur par le FileProvider. */
     suspend fun download(update: AppUpdate): File {

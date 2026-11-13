@@ -38,8 +38,6 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 
 - [ ] 🟡 UI tests for the player remote (zapping, live list, chat, action bar).
 - [ ] 🟡 Startup and scrolling benchmarks in CI, with automatic Baseline Profile refresh.
-- [ ] 🟢 Opt-in local crash log, exportable to attach to a bug report (nothing sent automatically).
-- [ ] 🟢 Beta update channel for pre-releases.
 
 ## Not planned
 

@@ -41,19 +41,42 @@ struct GithubAsset {
     size: u64,
 }
 
-/// `v1.2.3`, `1.2.3-beta` → `[1, 2, 3]`. `None` si ce n'est pas un numéro de version.
-fn parse_version(text: &str) -> Option<Vec<u64>> {
-    let core = text.trim().trim_start_matches('v').split(['-', '+']).next()?;
-    core.split('.').map(|part| part.parse().ok()).collect()
+/// Une partie de pré-version (`beta`, `2`) : numérique si possible, comme en semver.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+enum PreRelease {
+    Number(u64),
+    Text(String),
 }
 
+/// `v1.2.3-beta.2` → `([1, 2, 3], Some([beta, 2]))`. `None` si ce n'est pas un numéro de version.
+fn parse_version(text: &str) -> Option<(Vec<u64>, Option<Vec<PreRelease>>)> {
+    let text = text.trim().trim_start_matches('v').split('+').next()?;
+    let (core, pre) = match text.split_once('-') {
+        Some((core, pre)) => (core, Some(pre)),
+        None => (text, None),
+    };
+    let numbers = core.split('.').map(|part| part.parse().ok()).collect::<Option<Vec<u64>>>()?;
+    let pre = pre.map(|pre| {
+        pre.split('.').map(|part| part.parse().map(PreRelease::Number).unwrap_or_else(|_| PreRelease::Text(part.to_owned()))).collect()
+    });
+    Some((numbers, pre))
+}
+
+/// Ordre semver : `1.2.0-beta.1 < 1.2.0-beta.2 < 1.2.0`.
 fn is_newer(candidate: &str, current: &str) -> bool {
     match (parse_version(candidate), parse_version(current)) {
-        (Some(mut a), Some(mut b)) => {
+        (Some((mut a, a_pre)), Some((mut b, b_pre))) => {
             let len = a.len().max(b.len());
             a.resize(len, 0);
             b.resize(len, 0);
-            a > b
+            match a.cmp(&b) {
+                std::cmp::Ordering::Equal => match (a_pre, b_pre) {
+                    (None, Some(_)) => true,
+                    (Some(a), Some(b)) => a > b,
+                    _ => false,
+                },
+                order => order.is_gt(),
+            }
         }
         _ => false,
     }
@@ -66,22 +89,23 @@ fn pick_apk<'a>(assets: &'a [GithubAsset], abis: &[String]) -> Option<&'a Github
 }
 
 /// Dernière release publiée, si elle est plus récente que `current_version` et propose un APK installable.
-pub(crate) async fn check(http: &reqwest::Client, api: &str, current_version: &str, abis: &[String]) -> Result<Option<AppUpdate>, CoreError> {
-    let response = http
-        .get(format!("{api}/repos/{REPO}/releases/latest"))
-        .header("Accept", "application/vnd.github+json")
-        .send()
-        .await?;
+/// Avec `beta`, les pré-versions (tags `vX.Y.Z-beta.N`) comptent aussi.
+pub(crate) async fn check(http: &reqwest::Client, api: &str, current_version: &str, abis: &[String], beta: bool) -> Result<Option<AppUpdate>, CoreError> {
+    // `latest` ignore les pré-versions ; la liste (la plus récente en tête) les inclut.
+    let url = if beta { format!("{api}/repos/{REPO}/releases?per_page=20") } else { format!("{api}/repos/{REPO}/releases/latest") };
+    let response = http.get(url).header("Accept", "application/vnd.github+json").send().await?;
     match response.status().as_u16() {
         200..=299 => {}
         // Aucune release publiée pour l'instant.
         404 => return Ok(None),
         status => return Err(CoreError::Api { status, detail: "releases GitHub".into() }),
     }
-    let release: GithubRelease = response.json().await?;
-    if release.draft || release.prerelease || !is_newer(&release.tag_name, current_version) {
-        return Ok(None);
-    }
+    let releases: Vec<GithubRelease> = if beta { response.json().await? } else { vec![response.json().await?] };
+    let newest = releases
+        .into_iter()
+        .filter(|r| !r.draft && (beta || !r.prerelease) && is_newer(&r.tag_name, current_version))
+        .reduce(|best, r| if is_newer(&r.tag_name, &best.tag_name) { r } else { best });
+    let Some(release) = newest else { return Ok(None) };
     Ok(pick_apk(&release.assets, abis).map(|asset| AppUpdate {
         version: release.tag_name.trim_start_matches('v').to_owned(),
         notes: release.body.clone().unwrap_or_default(),
@@ -132,6 +156,30 @@ mod tests {
         assert!(!is_newer("v0.0.9", "0.1.0"));
         assert!(is_newer("v0.2.0", "0.1.0-dev"));
         assert!(!is_newer("nightly", "0.1.0"));
+        assert!(is_newer("v0.2.0", "0.2.0-beta.3"));
+        assert!(is_newer("v0.2.0-beta.10", "0.2.0-beta.9"));
+        assert!(is_newer("v0.2.0-beta.1", "0.1.0"));
+        assert!(!is_newer("v0.2.0-beta.1", "0.2.0"));
+        assert!(!is_newer("v0.2.0-beta.1", "0.2.0-beta.1"));
+    }
+
+    #[tokio::test]
+    async fn beta_channel_includes_prereleases() {
+        let server = MockServer::start().await;
+        let apk = serde_json::json!([{"name": "streamsofa-u-universal.apk", "browser_download_url": "https://dl/u.apk", "size": 1}]);
+        Mock::given(method("GET"))
+            .and(path(format!("/repos/{REPO}/releases")))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!([
+                {"tag_name": "v0.3.0-beta.2", "draft": true, "prerelease": true, "assets": apk},
+                {"tag_name": "v0.3.0-beta.1", "prerelease": true, "assets": apk},
+                {"tag_name": "v0.2.0", "assets": apk},
+            ])))
+            .mount(&server)
+            .await;
+        let http = crate::http::build_client("test").unwrap();
+        let update = check(&http, &server.uri(), "0.2.0", &[], true).await.unwrap().unwrap();
+        assert_eq!(update.version, "0.3.0-beta.1");
+        assert!(check(&http, &server.uri(), "0.3.0-beta.1", &[], true).await.unwrap().is_none());
     }
 
     #[test]
@@ -160,16 +208,16 @@ mod tests {
             .await;
         let http = crate::http::build_client("test").unwrap();
         let abis = vec!["arm64-v8a".to_string()];
-        let update = check(&http, &server.uri(), "0.1.0", &abis).await.unwrap().unwrap();
+        let update = check(&http, &server.uri(), "0.1.0", &abis, false).await.unwrap().unwrap();
         assert_eq!(update, AppUpdate { version: "0.2.0".into(), notes: "Nouveautés".into(), apk_url: "https://dl/u.apk".into(), apk_size: 42 });
-        assert!(check(&http, &server.uri(), "0.2.0", &abis).await.unwrap().is_none());
+        assert!(check(&http, &server.uri(), "0.2.0", &abis, false).await.unwrap().is_none());
     }
 
     #[tokio::test]
     async fn no_release_is_not_an_error() {
         let server = MockServer::start().await;
         Mock::given(method("GET")).respond_with(ResponseTemplate::new(404)).mount(&server).await;
-        assert!(check(&crate::http::build_client("test").unwrap(), &server.uri(), "0.1.0", &[]).await.unwrap().is_none());
+        assert!(check(&crate::http::build_client("test").unwrap(), &server.uri(), "0.1.0", &[], false).await.unwrap().is_none());
     }
 
     #[tokio::test]

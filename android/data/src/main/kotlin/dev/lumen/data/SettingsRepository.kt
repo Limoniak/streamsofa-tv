@@ -27,6 +27,10 @@ data class AppSettings(
     val accent: String = "violet",
     /** Recherche d'une nouvelle version au démarrage (builds de release uniquement). */
     val checkUpdates: Boolean = true,
+    /** Propose aussi les pré-versions (bêta). */
+    val betaUpdates: Boolean = false,
+    /** Journal de crash local ([CrashLog]), désactivé par défaut. */
+    val crashLog: Boolean = false,
     /** Émotes 7TV, BTTV et FFZ dans le chat. */
     val thirdPartyEmotes: Boolean = true,
     /** Heure affichée devant chaque message du chat. */
@@ -47,6 +51,8 @@ data class AppSettings(
         "low_latency" to lowLatency.toString(),
         "accent" to accent,
         "check_updates" to checkUpdates.toString(),
+        "beta_updates" to betaUpdates.toString(),
+        "crash_log" to crashLog.toString(),
         "third_party_emotes" to thirdPartyEmotes.toString(),
         "chat_timestamps" to chatTimestamps.toString(),
         "chat_hidden_words" to hiddenWords,
@@ -63,6 +69,8 @@ data class AppSettings(
                 lowLatency = map["low_latency"]?.toBooleanStrictOrNull() ?: d.lowLatency,
                 accent = map["accent"] ?: d.accent,
                 checkUpdates = map["check_updates"]?.toBooleanStrictOrNull() ?: d.checkUpdates,
+                betaUpdates = map["beta_updates"]?.toBooleanStrictOrNull() ?: d.betaUpdates,
+                crashLog = map["crash_log"]?.toBooleanStrictOrNull() ?: d.crashLog,
                 thirdPartyEmotes = map["third_party_emotes"]?.toBooleanStrictOrNull() ?: d.thirdPartyEmotes,
                 chatTimestamps = map["chat_timestamps"]?.toBooleanStrictOrNull() ?: d.chatTimestamps,
                 hiddenWords = map["chat_hidden_words"] ?: d.hiddenWords,

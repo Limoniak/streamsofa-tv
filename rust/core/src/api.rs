@@ -762,8 +762,8 @@ impl Core {
     }
 
     /// Release GitHub plus récente que `current_version`, avec l'APK de la première ABI de `abis`.
-    pub async fn check_update(&self, current_version: String, abis: Vec<String>) -> Result<Option<AppUpdate>, CoreError> {
-        update::check(&self.http, &self.github, &current_version, &abis).await
+    pub async fn check_update(&self, current_version: String, abis: Vec<String>, beta: bool) -> Result<Option<AppUpdate>, CoreError> {
+        update::check(&self.http, &self.github, &current_version, &abis, beta).await
     }
 
     /// Télécharge l'APK d'une mise à jour vers `dest_path` (remplacé s'il existe).

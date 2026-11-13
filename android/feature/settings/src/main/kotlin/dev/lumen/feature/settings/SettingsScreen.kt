@@ -26,6 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.Button
 import androidx.tv.material3.ExperimentalTvMaterial3Api
@@ -37,6 +38,7 @@ import androidx.tv.material3.SwitchDefaults
 import androidx.tv.material3.Text
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.lumen.data.AppSettings
+import dev.lumen.data.CrashLog
 import dev.lumen.data.SettingsRepository
 import dev.lumen.data.messageRes
 import dev.lumen.designsystem.AccentColor
@@ -44,12 +46,42 @@ import dev.lumen.designsystem.LumenColors
 import dev.lumen.designsystem.LumenInsets
 import dev.lumen.designsystem.requestWhenAttached
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 @HiltViewModel
-class SettingsViewModel @Inject constructor(private val repo: SettingsRepository) : ViewModel() {
+class SettingsViewModel @Inject constructor(
+    private val repo: SettingsRepository,
+    private val crashLog: CrashLog,
+) : ViewModel() {
     val state = repo.state
 
+    /** Résultat de la dernière action sur le journal de crash, affiché sous les boutons. */
+    private val _crashStatus = MutableStateFlow<CrashStatus?>(null)
+    val crashStatus = _crashStatus.asStateFlow()
+
     fun update(change: AppSettings.() -> AppSettings) = repo.update(change)
+
+    fun exportCrashLog() = viewModelScope.launch(Dispatchers.IO) {
+        _crashStatus.value = when {
+            !crashLog.hasEntries() -> CrashStatus.Empty
+            else -> runCatching { CrashStatus.Exported(crashLog.exportToDownloads()) }.getOrElse { CrashStatus.Failed }
+        }
+    }
+
+    fun clearCrashLog() = viewModelScope.launch(Dispatchers.IO) {
+        crashLog.clear()
+        _crashStatus.value = CrashStatus.Cleared
+    }
+}
+
+sealed interface CrashStatus {
+    data object Empty : CrashStatus
+    data object Cleared : CrashStatus
+    data object Failed : CrashStatus
+    data class Exported(val name: String) : CrashStatus
 }
 
 /** 0 = Auto. */
@@ -69,6 +101,7 @@ private val AccentColor.label
 fun SettingsRoute(viewModel: SettingsViewModel = hiltViewModel(), updates: UpdateViewModel = hiltViewModel()) {
     val settings by viewModel.state.collectAsStateWithLifecycle()
     val update by updates.state.collectAsStateWithLifecycle()
+    val crashStatus by viewModel.crashStatus.collectAsStateWithLifecycle()
     val firstFocus = remember { FocusRequester() }
     LaunchedEffect(Unit) { firstFocus.requestWhenAttached() }
     /** Liste en cours d'édition : `true` = mots, `false` = pseudos. */
@@ -162,6 +195,13 @@ fun SettingsRoute(viewModel: SettingsViewModel = hiltViewModel(), updates: Updat
             supportingContent = { Text(stringResource(R.string.settings_version, updates.currentVersion)) },
             trailingContent = { AccentSwitch(settings.checkUpdates) },
         )
+        ListItem(
+            selected = false,
+            onClick = { viewModel.update { copy(betaUpdates = !betaUpdates) } },
+            headlineContent = { Text(stringResource(R.string.settings_beta_updates)) },
+            supportingContent = { Text(stringResource(R.string.settings_beta_updates_hint)) },
+            trailingContent = { AccentSwitch(settings.betaUpdates) },
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
             when (val s = update) {
                 is UpdateState.Available -> Button(onClick = updates::install) {
@@ -178,6 +218,29 @@ fun SettingsRoute(viewModel: SettingsViewModel = hiltViewModel(), updates: Updat
                 is UpdateState.Downloading -> stringResource(R.string.update_downloading)
                 is UpdateState.Failed -> stringResource(s.error.messageRes)
                 UpdateState.Idle -> null
+            }
+            if (status != null) Text(status, color = LumenColors.OnSurfaceMuted)
+        }
+
+        Section(R.string.settings_crash_log)
+        ListItem(
+            selected = false,
+            onClick = { viewModel.update { copy(crashLog = !crashLog) } },
+            headlineContent = { Text(stringResource(R.string.settings_crash_log_enable)) },
+            supportingContent = { Text(stringResource(R.string.settings_crash_log_hint)) },
+            trailingContent = { AccentSwitch(settings.crashLog) },
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (CrashLog.canExport) {
+                Button(onClick = { viewModel.exportCrashLog() }) { Text(stringResource(R.string.settings_crash_log_export)) }
+            }
+            Button(onClick = { viewModel.clearCrashLog() }) { Text(stringResource(R.string.settings_crash_log_clear)) }
+            val status = when (val s = crashStatus) {
+                CrashStatus.Empty -> stringResource(R.string.settings_crash_log_empty)
+                CrashStatus.Cleared -> stringResource(R.string.settings_crash_log_cleared)
+                CrashStatus.Failed -> stringResource(R.string.settings_crash_log_failed)
+                is CrashStatus.Exported -> stringResource(R.string.settings_crash_log_exported, s.name)
+                null -> null
             }
             if (status != null) Text(status, color = LumenColors.OnSurfaceMuted)
         }

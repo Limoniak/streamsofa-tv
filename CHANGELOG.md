@@ -18,6 +18,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Recent searches, shown under the empty search field.
 - A QR code on each channel page opens the channel on your phone, to follow it there.
 - A dot on "Profiles" in the side menu when an account has to sign in again.
+- Optional crash log, kept on the device and exportable to Downloads (Settings > Crash log). Nothing is sent.
+- Beta versions: an option to also be offered pre-releases (Settings > Updates).
 
 ### Changed
 - Up / Down on a channel outside the zapping list now jumps to the first channel of the list.
