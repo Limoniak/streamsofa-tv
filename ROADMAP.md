@@ -10,8 +10,6 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 
 ## Playback
 
-- [ ] 🟢 Sleep timer "at the end of the stream", next to the fixed durations.
-- [ ] 🟢 Quality cap depending on the network connection.
 - [ ] 🟡 Multi-view: show the chat of the tile that has the sound.
 
 ## Chat

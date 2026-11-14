@@ -78,4 +78,7 @@
     <string name="settings_favorite_categories_hint">Halte OK auf einer Kategorie auf Start gedrückt, um sie hinzuzufügen. OK hier entfernt sie.</string>
     <string name="settings_constant_volume">Gleichmäßige Lautstärke</string>
     <string name="settings_constant_volume_hint">Gleicht die Lautstärke zwischen Kanälen an: leise Streamer lauter, laute leiser. Ab Android 9.</string>
+    <string name="settings_wifi_quality">Im WLAN höchstens</string>
+    <string name="settings_no_limit">Kein Limit</string>
+    <string name="settings_wifi_quality_hint">Für schwaches WLAN: Auto und die Startqualität bleiben darunter. Ethernet ist nicht begrenzt, eine von Hand gewählte Qualität bleibt.</string>
 </resources>

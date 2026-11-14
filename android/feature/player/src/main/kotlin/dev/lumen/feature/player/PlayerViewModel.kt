@@ -105,7 +105,10 @@ data class Ended(
 )
 
 /** Durées proposées par la minuterie, dans l'ordre où OK les fait défiler. */
-val SLEEP_OPTIONS = listOf(15, 30, 60, 90)
+val SLEEP_OPTIONS = listOf(15, 30, 60, 90, SLEEP_AT_END)
+
+/** « À la fin du live » : la lecture s'arrête quand le live se termine (ou part en raid). */
+const val SLEEP_AT_END = 10_000
 
 /** Chaîne voisine dans la liste, en boucle ; hors liste, la première (la dernière en reculant). `null` s'il n'y a rien d'autre. */
 fun zapTarget(logins: List<String>, current: String, delta: Int): String? {
@@ -302,7 +305,17 @@ class PlayerViewModel @Inject constructor(
         load(_state.value.login)
     }
 
+    /** Minuterie « à la fin du live » : on s'arrête au lieu d'enchaîner. */
+    private fun sleepAtEnd(): Boolean {
+        if (_state.value.sleepMinutes != SLEEP_AT_END) return false
+        setAudioOnly(false)
+        player.stop()
+        _state.update { it.copy(sleepMinutes = 0, sleeping = true, raid = null) }
+        return true
+    }
+
     private fun onRaid(raid: Raid) {
+        if (sleepAtEnd()) return
         lastRaid = raid
         _state.update { it.copy(raid = raid) }
         followJob?.cancel()
@@ -388,7 +401,7 @@ class PlayerViewModel @Inject constructor(
         val next = SLEEP_OPTIONS.firstOrNull { it > _state.value.sleepMinutes } ?: 0
         sleepJob?.cancel()
         _state.update { it.copy(sleepMinutes = next) }
-        if (next > 0) sleepJob = viewModelScope.launch {
+        if (next in 1 until SLEEP_AT_END) sleepJob = viewModelScope.launch {
             delay(next * 60_000L)
             setAudioOnly(false)
             player.stop()
@@ -520,7 +533,8 @@ class PlayerViewModel @Inject constructor(
                     // Sans flux audio seul sur la nouvelle chaîne, on revient à l'image.
                     if (audioUrl == null) setAudioOnly(false)
                     val variants = playback.variants.filter { !it.audioOnly }
-                    val maxQuality = settings.state.value.maxQuality
+                    val wifiCap = if (context.onWifi()) settings.state.value.wifiMaxQuality else 0
+                    val maxQuality = qualityCap(settings.state.value.maxQuality, wifiCap)
                     val default = if (qualityChosen || maxQuality == 0) null else pickVariant(variants, maxQuality)?.name
                     val remembered = settings.state.value.channelQuality[login]
                     _state.update { s ->
@@ -542,7 +556,7 @@ class PlayerViewModel @Inject constructor(
                 .onFailure { e ->
                     val error = e.toLoadError()
                     _state.update { it.copy(status = PlayerStatus.Failed(error)) }
-                    if (error == LoadError.Offline) _state.update { it.copy(ended = endedChoices(login)) }
+                    if (error == LoadError.Offline && !sleepAtEnd()) _state.update { it.copy(ended = endedChoices(login)) }
                 }
         }
     }
@@ -565,6 +579,11 @@ class PlayerViewModel @Inject constructor(
         val state = _state.value
         val url = (if (state.audioOnly) audioUrl else null)
             ?: state.variants.firstOrNull { it.name == state.quality }?.url ?: masterUrl ?: return
+        // Auto en Wi-Fi : l'adaptatif ne monte pas au-dessus du plafond choisi (une qualité fixe reste celle choisie).
+        val cap = if (state.quality == null && context.onWifi()) settings.state.value.wifiMaxQuality else 0
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon().apply {
+            if (cap > 0) setMaxVideoSize(Int.MAX_VALUE, cap) else clearVideoSizeConstraints()
+        }.build()
         player.setMediaSource(liveMediaSource(context, url, settings.state.value.lowLatency))
         player.prepare()
         player.play()

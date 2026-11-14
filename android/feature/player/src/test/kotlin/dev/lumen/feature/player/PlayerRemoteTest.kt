@@ -447,4 +447,13 @@ class PlayerRemoteTest {
         show(FakeActions())
         node(R.string.screen_time_up).assertExists()
     }
+
+    @Test
+    fun sleepTimerCanWaitForTheEndOfTheStream() {
+        state = live.copy(sleepMinutes = SLEEP_AT_END)
+        show(FakeActions())
+        press(Key.DirectionCenter)
+        node(R.string.player_sleep_end).assertExists()
+        assertEquals(SLEEP_AT_END, SLEEP_OPTIONS.last())
+    }
 }

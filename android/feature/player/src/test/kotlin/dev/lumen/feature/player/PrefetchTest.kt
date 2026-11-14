@@ -87,4 +87,11 @@ class PrefetchTest {
         long.put("carol", playback.copy(expiresAt = 70), null)
         assertEquals(30_000L, long.nextRefreshInMs())
     }
+
+    @Test
+    fun qualityCapIsTheLowestRealLimit() {
+        assertEquals(720, qualityCap(1080, 720))
+        assertEquals(480, qualityCap(0, 480))
+        assertEquals(0, qualityCap(0, 0))
+    }
 }

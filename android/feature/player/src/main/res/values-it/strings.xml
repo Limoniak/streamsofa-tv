@@ -79,4 +79,5 @@
     <string name="now_live_title">%1$s è in diretta</string>
     <string name="now_live_hint">OK per guardarlo · Indietro per restare</string>
     <string name="screen_time_up">Per oggi è tutto. Un genitore può aggiungere tempo: tieni premuto il profilo nella scelta del profilo.</string>
+    <string name="player_sleep_end">Timer di spegnimento: fine della diretta</string>
 </resources>

@@ -78,4 +78,7 @@
     <string name="settings_favorite_categories_hint">Mantén pulsada una categoría en Inicio para añadirla. OK aquí la quita.</string>
     <string name="settings_constant_volume">Volumen constante</string>
     <string name="settings_constant_volume_hint">Iguala el volumen entre canales: los streamers tranquilos más altos, los ruidosos más bajos. Android 9 o posterior.</string>
+    <string name="settings_wifi_quality">Con Wi-Fi, como máximo</string>
+    <string name="settings_no_limit">Sin límite</string>
+    <string name="settings_wifi_quality_hint">Para un Wi-Fi débil: Auto y la calidad inicial no la superan. Ethernet no se limita, y una calidad elegida a mano se mantiene.</string>
 </resources>

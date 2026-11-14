@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Added
+- Sleep timer "end of stream": playback stops when the live stream ends or raids, instead of moving on.
+- Quality cap on Wi-Fi (Settings > Playback): Auto and the starting quality stay at or below it; Ethernet is not limited.
 - Screen time for kids profiles: a daily limit (30 minutes to 3 hours) for live streams and past broadcasts together, and "+30 min today". Both are set from the profile's options (long press in the profile picker), behind the parent PIN.
 - Constant volume (Settings > Playback, Android 9 and later): a compressor on the live player's sound brings quiet and loud streamers closer, so zapping no longer makes you jump.
 - While you watch a live stream, a banner announces a followed channel that just went live: OK to switch to it, Back to stay (signed-in accounts; followed channels are checked every 2 minutes).

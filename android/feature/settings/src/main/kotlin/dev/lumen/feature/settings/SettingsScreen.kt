@@ -164,6 +164,18 @@ fun SettingsRoute(viewModel: SettingsViewModel = hiltViewModel(), updates: Updat
                 }
             }
         }
+        Label(R.string.settings_wifi_quality)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            QUALITIES.forEach { height ->
+                FilterChip(
+                    selected = settings.wifiMaxQuality == height,
+                    onClick = { viewModel.update { copy(wifiMaxQuality = height) } },
+                ) {
+                    Text(if (height == 0) stringResource(R.string.settings_no_limit) else "${height}p")
+                }
+            }
+        }
+        Text(stringResource(R.string.settings_wifi_quality_hint), color = LumenColors.OnSurfaceMuted, style = MaterialTheme.typography.bodySmall)
 
         Section(R.string.settings_chat)
         ListItem(

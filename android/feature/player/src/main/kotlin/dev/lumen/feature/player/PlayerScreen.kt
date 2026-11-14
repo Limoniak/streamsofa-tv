@@ -480,8 +480,11 @@ private fun InfoPanel(
                 }
                 Button(onClick = onSleep) {
                     Text(
-                        if (state.sleepMinutes == 0) stringResource(R.string.player_sleep_off)
-                        else stringResource(R.string.player_sleep, state.sleepMinutes),
+                        when (state.sleepMinutes) {
+                            0 -> stringResource(R.string.player_sleep_off)
+                            SLEEP_AT_END -> stringResource(R.string.player_sleep_end)
+                            else -> stringResource(R.string.player_sleep, state.sleepMinutes)
+                        },
                     )
                 }
                 // Retour, depuis la rediffusion, ramène ici, au direct.
