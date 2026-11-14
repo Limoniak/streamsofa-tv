@@ -232,7 +232,10 @@ class PlayerViewModel @Inject constructor(
                     _state.update { it.copy(status = PlayerStatus.Playing) }
                     // Historique du profil (« Regardé récemment » sur l'accueil) ; sans écriture si déjà en tête.
                     val login = _state.value.login
-                    settings.update { withRecentChannel(login) }
+                    val category = _state.value.stream
+                    settings.update {
+                        withRecentChannel(login).let { s -> category?.let { s.withRecentCategory(it.categoryId, it.categoryName) } ?: s }
+                    }
                     // L'image d'abord : les voisines ne lui disputent pas la bande passante du démarrage.
                     prefetchNeighbours()
                 }

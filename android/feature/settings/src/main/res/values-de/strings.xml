@@ -61,4 +61,19 @@
     <string name="settings_home">Start</string>
     <string name="settings_hidden_categories">Ausgeblendete Kategorien</string>
     <string name="settings_hidden_categories_hint">Halte OK auf einer Kategorie auf Start gedrückt, um sie auszublenden. OK hier zeigt alle wieder.</string>
+    <string name="settings_home_rows">Reihen</string>
+    <string name="settings_home_rows_hint">OK blendet eine Reihe ein oder aus, ◀ ▶ verschieben sie nach oben oder unten. Jedes Profil hat sein eigenes Layout.</string>
+    <string name="settings_row_shown">Sichtbar</string>
+    <string name="settings_row_hidden">Ausgeblendet</string>
+    <string name="home_row_followed">Deine Kanäle live</string>
+    <string name="home_row_continue">Weiterschauen</string>
+    <string name="home_row_recent">Zuletzt angesehen</string>
+    <string name="home_row_favorites">Lieblingskategorien</string>
+    <string name="home_row_for_you">Livestreams, die dir gefallen könnten</string>
+    <string name="home_row_recommended">Für dich empfohlen</string>
+    <string name="home_row_popular">Beliebte Livestreams</string>
+    <string name="home_row_language">Am meisten geschaut in deiner Sprache</string>
+    <string name="home_row_categories">Beliebte Kategorien</string>
+    <string name="settings_favorite_categories">Lieblingskategorien</string>
+    <string name="settings_favorite_categories_hint">Halte OK auf einer Kategorie auf Start gedrückt, um sie hinzuzufügen. OK hier entfernt sie.</string>
 </resources>

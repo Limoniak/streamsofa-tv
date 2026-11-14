@@ -61,4 +61,19 @@
     <string name="settings_home">Accueil</string>
     <string name="settings_hidden_categories">Catégories masquées</string>
     <string name="settings_hidden_categories_hint">Appui long sur une catégorie de l\'accueil pour la masquer. OK ici les fait toutes revenir.</string>
+    <string name="settings_home_rows">Rangées</string>
+    <string name="settings_home_rows_hint">OK affiche ou masque une rangée, ◀ ▶ la montent ou la descendent. Chaque profil a sa disposition.</string>
+    <string name="settings_row_shown">Affichée</string>
+    <string name="settings_row_hidden">Masquée</string>
+    <string name="home_row_followed">Vos chaînes en live</string>
+    <string name="home_row_continue">Continuer à regarder</string>
+    <string name="home_row_recent">Regardé récemment</string>
+    <string name="home_row_favorites">Catégories favorites</string>
+    <string name="home_row_for_you">Des lives qui pourraient vous plaire</string>
+    <string name="home_row_recommended">Recommandé pour vous</string>
+    <string name="home_row_popular">Lives populaires</string>
+    <string name="home_row_language">Les plus regardés dans votre langue</string>
+    <string name="home_row_categories">Catégories populaires</string>
+    <string name="settings_favorite_categories">Catégories favorites</string>
+    <string name="settings_favorite_categories_hint">Appui long sur une catégorie de l\'accueil pour l\'ajouter. OK ici la retire.</string>
 </resources>

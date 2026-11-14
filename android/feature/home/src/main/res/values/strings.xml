@@ -39,4 +39,10 @@
     <string name="channel_pin">Pin to the top</string>
     <string name="channel_unpin">Unpin</string>
     <string name="channel_pin_hint">Pinned channels come first among your live channels and when changing channel.</string>
+    <string name="home_continue">Continue watching</string>
+    <string name="home_for_you">Live channels you might like</string>
+    <string name="home_language">Most watched in %1$s</string>
+    <string name="home_favorite">Live in %1$s</string>
+    <string name="category_add_home">Add to Home</string>
+    <string name="category_remove_home">Remove from Home</string>
 </resources>

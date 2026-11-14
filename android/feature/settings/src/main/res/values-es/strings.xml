@@ -61,4 +61,19 @@
     <string name="settings_home">Inicio</string>
     <string name="settings_hidden_categories">Categorías ocultas</string>
     <string name="settings_hidden_categories_hint">Mantén pulsada una categoría en Inicio para ocultarla. OK aquí las vuelve a mostrar todas.</string>
+    <string name="settings_home_rows">Filas</string>
+    <string name="settings_home_rows_hint">OK muestra u oculta una fila, ◀ ▶ la suben o la bajan. Cada perfil tiene su disposición.</string>
+    <string name="settings_row_shown">Visible</string>
+    <string name="settings_row_hidden">Oculta</string>
+    <string name="home_row_followed">Tus canales en directo</string>
+    <string name="home_row_continue">Seguir viendo</string>
+    <string name="home_row_recent">Vistos recientemente</string>
+    <string name="home_row_favorites">Categorías favoritas</string>
+    <string name="home_row_for_you">Directos que te pueden gustar</string>
+    <string name="home_row_recommended">Recomendado para ti</string>
+    <string name="home_row_popular">Directos populares</string>
+    <string name="home_row_language">Lo más visto en tu idioma</string>
+    <string name="home_row_categories">Categorías populares</string>
+    <string name="settings_favorite_categories">Categorías favoritas</string>
+    <string name="settings_favorite_categories_hint">Mantén pulsada una categoría en Inicio para añadirla. OK aquí la quita.</string>
 </resources>

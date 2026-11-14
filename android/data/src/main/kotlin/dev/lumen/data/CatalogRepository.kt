@@ -86,6 +86,10 @@ interface CatalogRepository {
     suspend fun categoryStreams(categoryId: String, cursor: String?, language: String?): StreamPage
     /** Vide en invité. */
     suspend fun recommendedStreams(): List<LiveStream>
+    /** Lives les plus regardés dans [language] (code ISO 639-1), toutes catégories. */
+    suspend fun languageStreams(language: String): List<LiveStream>
+    /** VOD commencées et pas finies du profil, la plus récente d'abord. */
+    suspend fun continueWatching(limit: Int): List<Video>
     suspend fun search(query: String): SearchResults
     suspend fun topCategories(cursor: String?): CategoryPage
     suspend fun liveStream(login: String): LiveStream?
@@ -159,6 +163,10 @@ internal class RustCatalogRepository @Inject constructor(
         coreHolder.get().categoryStreams(categoryId, cursor, language)
 
     override suspend fun recommendedStreams() = coreHolder.get().recommendedStreams()
+
+    override suspend fun languageStreams(language: String) = coreHolder.get().languageStreams(language)
+
+    override suspend fun continueWatching(limit: Int) = coreHolder.get().continueWatching(limit.toUInt())
 
     override suspend fun search(query: String) = coreHolder.get().search(query)
 

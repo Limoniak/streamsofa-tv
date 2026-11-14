@@ -39,4 +39,10 @@
     <string name="channel_pin">Épingler en tête</string>
     <string name="channel_unpin">Désépingler</string>
     <string name="channel_pin_hint">Les chaînes épinglées passent en tête de vos chaînes en live et du zapping.</string>
+    <string name="home_continue">Continuer à regarder</string>
+    <string name="home_for_you">Des lives qui pourraient vous plaire</string>
+    <string name="home_language">Les plus regardés en %1$s</string>
+    <string name="home_favorite">En live dans %1$s</string>
+    <string name="category_add_home">Ajouter à l\'accueil</string>
+    <string name="category_remove_home">Retirer de l\'accueil</string>
 </resources>

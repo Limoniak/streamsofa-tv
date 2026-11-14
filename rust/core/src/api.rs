@@ -485,6 +485,27 @@ impl Core {
         self.kids_page(page).await
     }
 
+    /// Lives les plus regardés dans `language` (code ISO 639-1 : `fr`), toutes catégories : une page.
+    /// Rangée « Les plus regardés dans votre langue » de l'accueil.
+    pub async fn language_streams(&self, language: String) -> Result<Vec<LiveStream>, CoreError> {
+        let lang = language.to_lowercase();
+        if lang.len() != 2 || !lang.bytes().all(|b| b.is_ascii_lowercase()) {
+            return Err(CoreError::Internal { reason: format!("code de langue invalide : {language}") });
+        }
+        let lang = lang.as_str();
+        let helix = self
+            .with_helix(|token: Secret, _| async move {
+                let page = self.helix.streams(&token, None, Some(lang), None, PAGE_SIZE).await?;
+                Ok(self.with_avatars(&token, page.data).await)
+            })
+            .await?;
+        let streams = match helix {
+            Some(streams) => streams,
+            None => self.gql.language_streams(lang, PAGE_SIZE).await?.items,
+        };
+        self.kids_filter(streams, |s| &s.login).await
+    }
+
     /// `language` : code ISO 639-1 (`fr`) pour ne garder que cette langue, sinon toutes.
     pub async fn category_streams(
         &self,
@@ -766,6 +787,15 @@ impl Core {
 
     /// Mémorise où en est la VOD pour le profil actif (à appeler hors du thread principal).
     /// Renvoie `true` si elle compte désormais comme terminée.
+    /// Rangée « Continuer à regarder » de l'accueil : VOD commencées et pas finies du profil, la plus
+    /// récente d'abord, `limit` au plus (une requête chacune, en parallèle). Une VOD supprimée est ignorée.
+    pub async fn continue_watching(&self, limit: u32) -> Result<Vec<Video>, CoreError> {
+        let ids = self.accounts.db.unfinished_vods(&self.progress_scope()?, limit.min(20))?;
+        let found = futures_util::future::join_all(ids.into_iter().map(|id| self.video(id))).await;
+        let videos = found.into_iter().filter_map(|v| v.ok().flatten()).collect();
+        self.kids_filter(videos, |v: &Video| &v.channel_login).await
+    }
+
     pub fn save_vod_progress(&self, video_id: String, position_s: u32, duration_s: u32) -> Result<bool, CoreError> {
         let now = unix_now();
         self.accounts.db.save_vod_progress(&self.progress_scope()?, &video_id, position_s, duration_s, now)

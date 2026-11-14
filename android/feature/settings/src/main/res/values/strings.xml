@@ -61,4 +61,19 @@
     <string name="settings_home">Home</string>
     <string name="settings_hidden_categories">Hidden categories</string>
     <string name="settings_hidden_categories_hint">Long press a category on Home to hide it. OK here shows them all again.</string>
+    <string name="settings_home_rows">Rows</string>
+    <string name="settings_home_rows_hint">OK shows or hides a row, ◀ ▶ move it up or down. Each profile has its own layout.</string>
+    <string name="settings_row_shown">Shown</string>
+    <string name="settings_row_hidden">Hidden</string>
+    <string name="home_row_followed">Your live channels</string>
+    <string name="home_row_continue">Continue watching</string>
+    <string name="home_row_recent">Recently watched</string>
+    <string name="home_row_favorites">Favourite categories</string>
+    <string name="home_row_for_you">Live channels you might like</string>
+    <string name="home_row_recommended">Recommended for you</string>
+    <string name="home_row_popular">Popular live streams</string>
+    <string name="home_row_language">Most watched in your language</string>
+    <string name="home_row_categories">Popular categories</string>
+    <string name="settings_favorite_categories">Favourite categories</string>
+    <string name="settings_favorite_categories_hint">Long press a category on Home to add it. OK here removes it.</string>
 </resources>

@@ -39,4 +39,10 @@
     <string name="channel_pin">Oben anheften</string>
     <string name="channel_unpin">Nicht mehr anheften</string>
     <string name="channel_pin_hint">Angeheftete Kanäle stehen bei deinen Live-Kanälen und beim Kanalwechsel vorne.</string>
+    <string name="home_continue">Weiterschauen</string>
+    <string name="home_for_you">Livestreams, die dir gefallen könnten</string>
+    <string name="home_language">Am meisten geschaut auf %1$s</string>
+    <string name="home_favorite">Live in %1$s</string>
+    <string name="category_add_home">Zu Start hinzufügen</string>
+    <string name="category_remove_home">Von Start entfernen</string>
 </resources>

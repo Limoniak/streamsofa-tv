@@ -40,7 +40,7 @@
     "f.chat": "Chat", "f.chat2": "Lecture et envoi de messages, réponses et sélecteur d’émotes, badges, émotes 7TV / BTTV / FFZ (animées si l’appareil le permet), sondages et prédictions, citations mises en valeur, mots et pseudos masqués.",
     "f.acc": "Comptes", "f.acc2": "Connexion en scannant un QR code avec le téléphone, sans rien taper sur la TV. Plusieurs comptes et un mode invité, chacun avec ses réglages, un PIN en option et un profil enfants.",
     "f.vod": "Rediffusions", "f.vod2": "Reprise là où vous vous étiez arrêté, par profil, avec le chat rejoué en synchro. Et les clips.",
-    "f.disc": "Découvrir", "f.disc2": "Les suivis d’abord, les épinglés en tête, une rangée « Regardé récemment », des recommandations, les lives et catégories populaires (masquables), un filtre de langue, la recherche.",
+    "f.disc": "Découvrir", "f.disc2": "Un accueil à votre façon : suivis et épinglés, continuer à regarder, regardé récemment, catégories favorites, des lives pour vous, les plus regardés dans votre langue. Rangées affichables, masquables et réordonnables.",
     "f.tv": "Android TV", "f.tv2": "Rangées « Continuer à regarder » et « Chaînes suivies en live », recherche globale et vocale, et les liens twitch.tv s’ouvrent dans l’app.",
     "f.perf": "Léger sur les vieilles box", "f.perf2": "Cœur natif en Rust, Baseline Profile pour un démarrage rapide, effets lourds coupés sur les appareils à faible mémoire.",
     "f.priv": "Respect de la vie privée", "f.priv2": "Jetons chiffrés par le Keystore Android et jamais journalisés. Aucun traceur ; le journal de crash, optionnel, reste sur l’appareil.",

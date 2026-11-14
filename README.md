@@ -29,7 +29,7 @@
 | **Multi-view** | Two to four streams side by side, on devices that can decode them. Sound follows the focused tile; any tile can be replaced. |
 | **Chat** | Read and send messages, replies, an emote picker, badges, 7TV / BTTV / FFZ emotes (animated where the device allows), hidden words and users. Text size, width, or on top of the video. Polls and predictions, read-only. Chat replay on past broadcasts. |
 | **Accounts** | Sign in by entering a code on your phone, no typing on the TV. Several accounts, plus a guest mode that needs no account at all. Settings per profile, an optional PIN, and a kids profile. |
-| **Discover** | Followed channels first, with the ones you pin at the top. A "Recently watched" row, recommendations, popular streams and categories (hide the ones you never watch), a language filter, search. Top clips per category and from the channels you follow. |
+| **Discover** | A Home you arrange yourself: show, hide and reorder its rows in the settings. Followed channels first (pinned ones at the top), continue watching, recently watched, favourite categories, live channels you might like, the most watched in your language, recommendations, popular streams and categories (hide the ones you never watch). A language filter, search, top clips per category and from the channels you follow. |
 | **Android TV** | "Continue watching" and "Live channels you follow" rows, global and voice search, `twitch.tv` links open in the app. |
 | **Raids** | When the channel you watch raids, a banner offers to follow it. |
 

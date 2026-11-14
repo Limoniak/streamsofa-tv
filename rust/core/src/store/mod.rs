@@ -162,6 +162,17 @@ impl Db {
         Ok(finished)
     }
 
+    /// VOD commencées et pas finies du profil, la plus récemment regardée d'abord.
+    pub fn unfinished_vods(&self, scope: &str, limit: u32) -> Result<Vec<String>, CoreError> {
+        let conn = self.conn();
+        let mut stmt = conn.prepare_cached(
+            "SELECT video_id FROM vod_progress WHERE scope = ?1 AND finished = 0 AND position_s > 0
+             ORDER BY updated_at DESC LIMIT ?2",
+        )?;
+        let ids = stmt.query_map(params![scope, limit], |r| r.get(0))?.collect::<Result<Vec<String>, _>>()?;
+        Ok(ids)
+    }
+
     /// Position et fin de lecture de chaque VOD déjà vue parmi `video_ids`.
     pub fn vod_progress(&self, scope: &str, video_ids: &[&str]) -> Result<HashMap<String, (u32, bool)>, CoreError> {
         let conn = self.conn();
@@ -321,6 +332,18 @@ mod tests {
         db.upsert_account(&account("1"), "", 30).unwrap();
         let ids: Vec<_> = db.accounts().unwrap().into_iter().map(|a| (a.id, a.state)).collect();
         assert_eq!(ids, vec![("1".into(), AccountState::Ok), ("2".into(), AccountState::Ok)]);
+    }
+
+    #[test]
+    fn unfinished_vods_are_the_latest_started_ones() {
+        let db = Db::in_memory().unwrap();
+        db.save_vod_progress("guest", "old", 100, 1000, 1).unwrap();
+        db.save_vod_progress("guest", "done", 990, 1000, 2).unwrap();
+        db.save_vod_progress("guest", "new", 200, 1000, 3).unwrap();
+        db.save_vod_progress("guest", "zero", 0, 1000, 4).unwrap();
+        db.save_vod_progress("42", "other", 300, 1000, 5).unwrap();
+        assert_eq!(db.unfinished_vods("guest", 10).unwrap(), ["new", "old"]);
+        assert_eq!(db.unfinished_vods("guest", 1).unwrap(), ["new"]);
     }
 
     #[test]

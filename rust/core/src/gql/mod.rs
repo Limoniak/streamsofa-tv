@@ -722,6 +722,18 @@ impl GqlClient {
         Ok(stream_page(data.streams))
     }
 
+    /// Lives les plus regardés dans `language` (code ISO 639-1, `fr`), une seule page.
+    pub async fn language_streams(&self, language: &str, first: u32) -> Result<StreamPage, CoreError> {
+        #[derive(Deserialize)]
+        struct Data {
+            streams: Option<Connection<GStream>>,
+        }
+        let data: Data = self
+            .run("LanguageStreams", &queries::language_streams(), json!({ "first": first, "languages": [language] }))
+            .await?;
+        Ok(stream_page(data.streams))
+    }
+
     /// `language` : code ISO 639-1 (`fr`), sinon toutes les langues.
     pub async fn category_streams(
         &self,

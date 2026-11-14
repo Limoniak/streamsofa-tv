@@ -30,6 +30,14 @@ import androidx.tv.material3.Text
 import dev.lumen.core.Category
 import dev.lumen.core.LiveStream
 import dev.lumen.data.messageRes
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.background
+import androidx.tv.material3.OutlinedButton
+import androidx.compose.ui.window.Dialog
+import dev.lumen.designsystem.VideoCard
+import dev.lumen.data.HomeRow
 import dev.lumen.designsystem.CategoryCard
 import dev.lumen.designsystem.CategoryCardSkeleton
 import dev.lumen.designsystem.FocusMemory
@@ -53,13 +61,25 @@ fun HomeRoute(
     onOpenChannel: (login: String) -> Unit,
     onOpenCategory: (id: String, name: String) -> Unit,
     onReconnect: () -> Unit,
+    onOpenVideo: (id: String) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshIfStale() }
-    HomeScreen(state, onOpenStream, onOpenChannel, onOpenCategory, onReconnect, onRetry = viewModel::reload, onHideCategory = viewModel::hideCategory)
+    HomeScreen(
+        state, onOpenStream, onOpenChannel, onOpenCategory, onReconnect, onRetry = viewModel::reload,
+        onHideCategory = viewModel::hideCategory, onToggleFavorite = viewModel::toggleFavorite, onOpenVideo = onOpenVideo,
+    )
 }
 
+/** Une rangée prête à afficher : ses clés de focus (dans l'ordre) et son contenu. */
+private class HomeItem(val id: String, val keys: List<String>, val content: @Composable () -> Unit)
+
+/**
+ * Accueil : les rangées dans l'ordre choisi (Paramètres > Accueil). Les rangées principales (suivis,
+ * populaires, catégories) montrent leur chargement et leurs erreurs ; les autres n'apparaissent que si
+ * elles ont du contenu.
+ */
 @Composable
 fun HomeScreen(
     state: HomeUiState,
@@ -69,34 +89,21 @@ fun HomeScreen(
     onReconnect: () -> Unit,
     onRetry: () -> Unit,
     onHideCategory: (id: String, name: String) -> Unit = { _, _ -> },
+    onToggleFavorite: (id: String, name: String) -> Unit = { _, _ -> },
+    onOpenVideo: (id: String) -> Unit = {},
     memory: FocusMemory = rememberFocusMemory(),
 ) {
     val hidden = state.hiddenCategories
     // Les lives d'une catégorie masquée disparaissent aussi des rangées de découverte (pas des suivis).
     fun Section<LiveStream>.visible(): Section<LiveStream> =
         if (hidden.isEmpty() || this !is Section.Ready) this else Section.Ready(items.filter { it.categoryId !in hidden })
-    val recommendedSection = state.recommended.visible()
-    val popularSection = state.popular.visible()
-    val categoriesSection = state.categories.let { s ->
-        if (hidden.isEmpty() || s !is Section.Ready) s else Section.Ready(s.items.filter { it.id !in hidden })
-    }
-    // Focus initial : la dernière carte ouverte, sinon la première carte de la première rangée.
+    fun List<LiveStream>.visible() = if (hidden.isEmpty()) this else filter { it.categoryId !in hidden }
+    val visibleRows = state.rows.filter { it.visible }.map { it.row }
     val followed = (state.followed as? Section.Ready)?.items.orEmpty().takeIf { state.showFollowed }.orEmpty()
     val followedLogins = followed.map { it.login }.toSet()
-    val recent = state.recent.filter { it.login !in followedLogins }
-    val recommended = (recommendedSection as? Section.Ready)?.items.orEmpty().takeIf { state.showFollowed }.orEmpty()
-    val popular = (popularSection as? Section.Ready)?.items.orEmpty()
-    val categories = (categoriesSection as? Section.Ready)?.items.orEmpty()
-    val keys = followed.map { "f:${it.login}" } + recent.map { "h:${it.login}" } + recommended.map { "r:${it.login}" } +
-        popular.map { "p:${it.login}" } + categories.map { "c:${it.id}" }
-    /** Catégorie dont on confirme le masquage (appui long). */
+    /** Catégorie dont on montre les options (appui long), puis dont on confirme le masquage. */
+    var options by remember { mutableStateOf<Category?>(null) }
     var hiding by remember { mutableStateOf<Category?>(null) }
-    // On attend toutes les rangées : sinon le focus irait à la première arrivée, pas à la première affichée.
-    val settled = listOfNotNull(state.followed.takeIf { state.showFollowed }, state.popular, state.categories)
-        .none { it is Section.Loading }
-    val target = if (settled) memory.target(keys, keys.firstOrNull()) else null
-    // Une seule fois par entrée sur l'écran : une rangée chargée plus tard ne vole pas le focus.
-    LaunchedEffect(target != null) { if (target != null) memory.requester.requestWhenAttached() }
 
     val openStream = { prefix: String, stream: LiveStream ->
         memory.key = "$prefix:${stream.login}"
@@ -107,6 +114,96 @@ fun HomeScreen(
         onOpenChannel(stream.login)
     }
 
+    val items = ArrayList<HomeItem>()
+    // `target` n'est connu qu'une fois toutes les clés calculées : les rangées le lisent à l'affichage.
+    var target: String? = null
+    fun streamItem(id: String, title: String, section: Section<LiveStream>, prefix: String, emptyText: String? = null) {
+        val keys = (section as? Section.Ready)?.items.orEmpty().map { "$prefix:${it.login}" }
+        items += HomeItem(id, keys) {
+            StreamRow(title, section, prefix, emptyText, memory, target, openStream, openChannel, onRetry)
+        }
+    }
+    for (row in visibleRows) when (row) {
+        HomeRow.Followed -> if (state.showFollowed) {
+            streamItem("followed", stringResource(R.string.home_followed), state.followed, "f", stringResource(R.string.home_no_followed))
+        }
+        HomeRow.ContinueWatching -> if (state.continueWatching.isNotEmpty()) {
+            val videos = state.continueWatching
+            items += HomeItem("continue", videos.map { "w:${it.id}" }) {
+                RowScaffold(stringResource(R.string.home_continue)) {
+                    val viewsLabel = stringResource(R.string.video_views)
+                    CardRow(videos, key = { it.id }) { video ->
+                        val key = "w:${video.id}"
+                        VideoCard(
+                            video = video.toCard(viewsLabel),
+                            onClick = {
+                                memory.key = key
+                                onOpenVideo(video.id)
+                            },
+                            modifier = Modifier.restoreFocusHere(memory, key == target),
+                        )
+                    }
+                }
+            }
+        }
+        HomeRow.Recent -> state.recent.filter { it.login !in followedLogins }.takeIf { it.isNotEmpty() }?.let {
+            streamItem("recent", stringResource(R.string.home_recent), Section.Ready(it), "h")
+        }
+        HomeRow.FavoriteCategories -> state.favorites.filter { it.streams.isNotEmpty() }.forEach { favorite ->
+            streamItem("fav:${favorite.id}", stringResource(R.string.home_favorite, favorite.name), Section.Ready(favorite.streams), "k${favorite.id}")
+        }
+        HomeRow.ForYou -> state.forYou.visible().takeIf { it.isNotEmpty() }?.let {
+            streamItem("for_you", stringResource(R.string.home_for_you), Section.Ready(it), "y")
+        }
+        HomeRow.Recommended -> if (state.showFollowed) {
+            state.recommended.visible().takeIf { (it as? Section.Ready)?.items?.isNotEmpty() == true }?.let {
+                streamItem("recommended", stringResource(R.string.home_recommended), it, "r")
+            }
+        }
+        HomeRow.Popular -> streamItem("popular", stringResource(R.string.home_popular), state.popular.visible(), "p")
+        HomeRow.Language -> state.languageStreams.visible().takeIf { it.isNotEmpty() }?.let {
+            streamItem("language", stringResource(R.string.home_language, languageName(state.language)), Section.Ready(it), "l")
+        }
+        HomeRow.Categories -> {
+            val section = state.categories.let { s ->
+                if (hidden.isEmpty() || s !is Section.Ready) s else Section.Ready(s.items.filter { it.id !in hidden })
+            }
+            val keys = (section as? Section.Ready)?.items.orEmpty().map { "c:${it.id}" }
+            items += HomeItem("categories", keys) {
+                RowScaffold(stringResource(R.string.home_categories)) {
+                    when (section) {
+                        Section.Loading -> SkeletonRow { CategoryCardSkeleton() }
+                        is Section.Failed -> RowMessage(stringResource(section.error.messageRes), onRetry)
+                        is Section.Ready -> CardRow(section.items, key = { it.id }) { category ->
+                            val key = "c:${category.id}"
+                            CategoryCard(
+                                category = category.toCard(),
+                                onClick = {
+                                    memory.key = key
+                                    onOpenCategory(category.id, category.name)
+                                },
+                                onLongClick = { options = category },
+                                modifier = Modifier.restoreFocusHere(memory, key == target),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Focus initial : la dernière carte ouverte, sinon la première carte de la première rangée.
+    val keys = items.flatMap { it.keys }
+    // On attend les rangées principales : sinon le focus irait à la première arrivée, pas à la première affichée.
+    val settled = listOfNotNull(
+        state.followed.takeIf { state.showFollowed && HomeRow.Followed in visibleRows },
+        state.popular.takeIf { HomeRow.Popular in visibleRows },
+        state.categories.takeIf { HomeRow.Categories in visibleRows },
+    ).none { it is Section.Loading }
+    target = if (settled) memory.target(keys, keys.firstOrNull()) else null
+    // Une seule fois par entrée sur l'écran : une rangée chargée plus tard ne vole pas le focus.
+    LaunchedEffect(target != null) { if (target != null) memory.requester.requestWhenAttached() }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = LumenInsets.vertical),
@@ -115,85 +212,22 @@ fun HomeScreen(
         if (state.needsReauth) {
             item(key = "reauth") { ReauthBanner(state.account?.displayName.orEmpty(), onReconnect) }
         }
-        if (state.showFollowed) {
-            item(key = "followed") {
-                StreamRow(
-                    title = stringResource(R.string.home_followed),
-                    section = state.followed,
-                    prefix = "f",
-                    emptyText = stringResource(R.string.home_no_followed),
-                    memory = memory,
-                    target = target,
-                    onOpen = openStream,
-                    onOpenChannel = openChannel,
-                    onRetry = onRetry,
-                )
-            }
-        }
-        // Secondaires : ni chargement ni erreur affichés, la rangée apparaît si elle a du contenu.
-        if (recent.isNotEmpty()) {
-            item(key = "recent") {
-                StreamRow(
-                    title = stringResource(R.string.home_recent),
-                    section = Section.Ready(recent),
-                    prefix = "h",
-                    emptyText = null,
-                    memory = memory,
-                    target = target,
-                    onOpen = openStream,
-                    onOpenChannel = openChannel,
-                    onRetry = onRetry,
-                )
-            }
-        }
-        if (recommended.isNotEmpty()) {
-            item(key = "recommended") {
-                StreamRow(
-                    title = stringResource(R.string.home_recommended),
-                    section = recommendedSection,
-                    prefix = "r",
-                    emptyText = null,
-                    memory = memory,
-                    target = target,
-                    onOpen = openStream,
-                    onOpenChannel = openChannel,
-                    onRetry = onRetry,
-                )
-            }
-        }
-        item(key = "popular") {
-            StreamRow(
-                title = stringResource(R.string.home_popular),
-                section = popularSection,
-                prefix = "p",
-                emptyText = null,
-                memory = memory,
-                target = target,
-                onOpen = openStream,
-                onOpenChannel = openChannel,
-                onRetry = onRetry,
-            )
-        }
-        item(key = "categories") {
-            RowScaffold(stringResource(R.string.home_categories)) {
-                when (val section = categoriesSection) {
-                    Section.Loading -> SkeletonRow { CategoryCardSkeleton() }
-                    is Section.Failed -> RowMessage(stringResource(section.error.messageRes), onRetry)
-                    is Section.Ready -> CardRow(section.items, key = { it.id }) { category ->
-                        val key = "c:${category.id}"
-                        CategoryCard(
-                            category = category.toCard(),
-                            onClick = {
-                                memory.key = key
-                                onOpenCategory(category.id, category.name)
-                            },
-                            onLongClick = { hiding = category },
-                            modifier = Modifier.restoreFocusHere(memory, key == target),
-                        )
-                    }
-                }
-            }
-        }
+        items.forEach { row -> item(key = row.id) { row.content() } }
+    }
+    options?.let { category ->
+        CategoryOptionsDialog(
+            name = category.name,
+            favorite = category.id in state.favoriteIds,
+            onToggleFavorite = {
+                options = null
+                onToggleFavorite(category.id, category.name)
+            },
+            onHide = {
+                options = null
+                hiding = category
+            },
+            onDismiss = { options = null },
+        )
     }
     hiding?.let { category ->
         ConfirmDialog(
@@ -207,6 +241,35 @@ fun HomeScreen(
             },
             onDismiss = { hiding = null },
         )
+    }
+}
+
+/** « Français », dans la langue elle-même (c'est aussi celle de l'interface). */
+private fun languageName(code: String): String {
+    val locale = java.util.Locale(code)
+    return locale.getDisplayLanguage(locale).replaceFirstChar { it.titlecase(locale) }.ifEmpty { code }
+}
+
+/** Appui long sur une catégorie : l'ajouter à l'accueil (ou l'en retirer), ou la masquer. */
+@Composable
+private fun CategoryOptionsDialog(name: String, favorite: Boolean, onToggleFavorite: () -> Unit, onHide: () -> Unit, onDismiss: () -> Unit) {
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestWhenAttached() }
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .background(LumenColors.SurfaceRaised, RoundedCornerShape(24.dp))
+                .padding(32.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            Text(name, style = MaterialTheme.typography.headlineSmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Button(onClick = onToggleFavorite, modifier = Modifier.focusRequester(focus)) {
+                    Text(stringResource(if (favorite) R.string.category_remove_home else R.string.category_add_home))
+                }
+                OutlinedButton(onClick = onHide) { Text(stringResource(R.string.category_hide_confirm)) }
+            }
+        }
     }
 }
 

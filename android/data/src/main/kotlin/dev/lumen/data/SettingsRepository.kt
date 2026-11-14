@@ -21,6 +21,15 @@ const val MAX_RECENT_CHANNELS = 20
 
 private fun String?.lines(): List<String> = this?.split('\n')?.filter { it.isNotBlank() }.orEmpty()
 
+/** Lignes `id\tnom` (un nom de catégorie ne contient ni tabulation ni saut de ligne), ordre conservé. */
+private fun String?.idNames(): Map<String, String> = lines()
+    .mapNotNull { line -> line.split('\t', limit = 2).takeIf { it.size == 2 }?.let { it[0] to it[1] } }
+    .toMap(LinkedHashMap())
+
+private fun Map<String, String>.lines(): String = entries.joinToString("\n") { "${it.key}\t${it.value}" }
+
+const val MAX_RECENT_CATEGORIES = 5
+
 /** Épinglées d'abord, dans l'ordre d'épinglage, puis les autres dans leur ordre d'origine. */
 fun List<LiveStream>.pinnedFirst(pinned: List<String>): List<LiveStream> {
     if (pinned.isEmpty()) return this
@@ -72,7 +81,20 @@ data class AppSettings(
     val recentChannels: List<String> = emptyList(),
     /** Catégories masquées de l'accueil : id → nom (pour les lister dans les paramètres). */
     val hiddenCategories: Map<String, String> = emptyMap(),
+    /** Catégories favorites : une rangée « En live dans … » chacune sur l'accueil, id → nom. */
+    val favoriteCategories: Map<String, String> = emptyMap(),
+    /** Catégories des lives regardés, la plus récente en tête : base de « Pourrait vous plaire ». */
+    val recentCategories: Map<String, String> = emptyMap(),
+    /** Rangées de l'accueil, dans l'ordre choisi, avec leur visibilité. */
+    val homeRows: List<HomeRowSetting> = DEFAULT_HOME_ROWS,
 ) {
+    /** [id] en tête des catégories récentes, [MAX_RECENT_CATEGORIES] au plus. */
+    fun withRecentCategory(id: String, name: String): AppSettings {
+        if (id.isEmpty() || recentCategories.keys.firstOrNull() == id) return this
+        val merged = linkedMapOf(id to name).apply { putAll(recentCategories - id) }
+        return copy(recentCategories = merged.entries.take(MAX_RECENT_CATEGORIES).associate { it.key to it.value })
+    }
+
     /** [login] en tête des chaînes récentes, sans doublon. */
     fun withRecentChannel(login: String) =
         copy(recentChannels = (listOf(login) + recentChannels.filter { it != login }).take(MAX_RECENT_CHANNELS))
@@ -100,7 +122,10 @@ data class AppSettings(
         "pinned_channels" to pinnedChannels.joinToString("\n"),
         "recent_channels" to recentChannels.joinToString("\n"),
         // Un nom de catégorie ne contient ni tabulation ni saut de ligne.
-        "hidden_categories" to hiddenCategories.entries.joinToString("\n") { "${it.key}\t${it.value}" },
+        "hidden_categories" to hiddenCategories.lines(),
+        "favorite_categories" to favoriteCategories.lines(),
+        "recent_categories" to recentCategories.lines(),
+        "home_rows" to homeRows.toHomeRowsValue(),
     ) + channelQuality.mapKeys { QUALITY_PREFIX + it.key }
 
     internal companion object {
@@ -126,9 +151,10 @@ data class AppSettings(
                 kids = map["kids_profile"] == "true",
                 pinnedChannels = map["pinned_channels"].lines(),
                 recentChannels = map["recent_channels"].lines(),
-                hiddenCategories = map["hidden_categories"].lines()
-                    .mapNotNull { line -> line.split('\t', limit = 2).takeIf { it.size == 2 }?.let { it[0] to it[1] } }
-                    .toMap(),
+                hiddenCategories = map["hidden_categories"].idNames(),
+                favoriteCategories = map["favorite_categories"].idNames(),
+                recentCategories = map["recent_categories"].idNames(),
+                homeRows = parseHomeRows(map["home_rows"]),
             )
         }
     }

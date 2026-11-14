@@ -39,4 +39,10 @@
     <string name="channel_pin">Fijar arriba</string>
     <string name="channel_unpin">Dejar de fijar</string>
     <string name="channel_pin_hint">Los canales fijados van primero entre tus canales en directo y al cambiar de canal.</string>
+    <string name="home_continue">Seguir viendo</string>
+    <string name="home_for_you">Directos que te pueden gustar</string>
+    <string name="home_language">Lo más visto en %1$s</string>
+    <string name="home_favorite">En directo en %1$s</string>
+    <string name="category_add_home">Añadir a Inicio</string>
+    <string name="category_remove_home">Quitar de Inicio</string>
 </resources>

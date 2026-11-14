@@ -28,8 +28,6 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 ## Discover
 
 - [ ] 🟢 Reminder for a stream announced in a channel's schedule.
-- [ ] 🟢 Favourite categories, kept on the device (Twitch no longer lets apps follow categories).
-- [ ] 🟢 "Continue watching" row for past broadcasts inside the app, not only on the TV home screen.
 
 ## Comfort
 

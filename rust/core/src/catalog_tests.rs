@@ -186,6 +186,46 @@ async fn a_revoked_account_falls_back_to_the_guest_catalog() {
     assert_eq!(snapshot.accounts[0].state, crate::accounts::AccountState::NeedsReauth);
 }
 
+#[tokio::test]
+async fn guest_language_streams_ask_gql_for_that_language() {
+    let h = Harness::new().await;
+    Mock::given(method("POST"))
+        .and(path("/gql"))
+        .and(body_string_contains("\"operationName\":\"LanguageStreams\""))
+        .and(body_string_contains("\"languages\":[\"fr\"]"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": { "streams": {
+            "edges": [gql_stream("alpha", 900)], "pageInfo": { "hasNextPage": true } } } })))
+        .expect(1)
+        .mount(&h.server)
+        .await;
+
+    let streams = h.core.language_streams("FR".into()).await.unwrap();
+    assert_eq!(streams.iter().map(|s| s.login.as_str()).collect::<Vec<_>>(), ["alpha"]);
+}
+
+#[tokio::test]
+async fn signed_in_language_streams_use_helix_with_the_language() {
+    let h = Harness::new().await;
+    h.sign_in("42", "me").await;
+    Mock::given(method("GET"))
+        .and(path("/helix/streams"))
+        .and(query_param("language", "de"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": [helix_stream("alpha", 3)], "pagination": {} })))
+        .expect(1)
+        .mount(&h.server)
+        .await;
+    mock_avatars(&h).await;
+
+    let streams = h.core.language_streams("de".into()).await.unwrap();
+    assert_eq!(streams[0].login, "alpha");
+}
+
+#[tokio::test]
+async fn language_streams_refuse_an_invalid_code() {
+    let h = Harness::new().await;
+    assert!(h.core.language_streams("fr&x=1".into()).await.is_err());
+}
+
 // --- Lecture -----------------------------------------------------------------------------------
 
 async fn mock_playback_token(h: &Harness, token: Value) {

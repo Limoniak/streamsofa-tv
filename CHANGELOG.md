@@ -5,6 +5,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+- More rows on Home: "Continue watching" (past broadcasts you started), "Live channels you might like" (from the categories you watch, guest mode included), "Most watched in your language" (the app's language), and one row per favourite category.
+- Favourite categories: long press a category on Home, then "Add to Home". The same menu still hides a category.
+- Settings > Home: show, hide and reorder the Home rows (OK shows or hides, Left / Right move), per profile. Favourite categories are listed there and can be removed.
+
 ### Fixed
 - Live player: OK opened the chat along with the action bar on some remotes; it now only opens the action bar.
 

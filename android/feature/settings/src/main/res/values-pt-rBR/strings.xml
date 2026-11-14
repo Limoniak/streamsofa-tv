@@ -61,4 +61,19 @@
     <string name="settings_home">Início</string>
     <string name="settings_hidden_categories">Categorias ocultas</string>
     <string name="settings_hidden_categories_hint">Mantenha OK pressionado em uma categoria no Início para ocultá-la. OK aqui mostra todas de novo.</string>
+    <string name="settings_home_rows">Fileiras</string>
+    <string name="settings_home_rows_hint">OK mostra ou oculta uma fileira, ◀ ▶ movem para cima ou para baixo. Cada perfil tem seu próprio layout.</string>
+    <string name="settings_row_shown">Visível</string>
+    <string name="settings_row_hidden">Oculta</string>
+    <string name="home_row_followed">Seus canais ao vivo</string>
+    <string name="home_row_continue">Continuar assistindo</string>
+    <string name="home_row_recent">Assistidos recentemente</string>
+    <string name="home_row_favorites">Categorias favoritas</string>
+    <string name="home_row_for_you">Lives que você pode curtir</string>
+    <string name="home_row_recommended">Recomendados para você</string>
+    <string name="home_row_popular">Lives populares</string>
+    <string name="home_row_language">Os mais assistidos no seu idioma</string>
+    <string name="home_row_categories">Categorias populares</string>
+    <string name="settings_favorite_categories">Categorias favoritas</string>
+    <string name="settings_favorite_categories_hint">Mantenha OK pressionado em uma categoria no Início para adicioná-la. OK aqui a remove.</string>
 </resources>

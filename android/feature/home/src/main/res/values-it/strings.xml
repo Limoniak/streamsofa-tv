@@ -39,4 +39,10 @@
     <string name="channel_pin">Fissa in cima</string>
     <string name="channel_unpin">Non fissare più</string>
     <string name="channel_pin_hint">I canali fissati vengono prima tra i tuoi canali in diretta e quando cambi canale.</string>
+    <string name="home_continue">Continua a guardare</string>
+    <string name="home_for_you">Dirette che potrebbero piacerti</string>
+    <string name="home_language">I più visti in %1$s</string>
+    <string name="home_favorite">In diretta in %1$s</string>
+    <string name="category_add_home">Aggiungi alla Home</string>
+    <string name="category_remove_home">Rimuovi dalla Home</string>
 </resources>

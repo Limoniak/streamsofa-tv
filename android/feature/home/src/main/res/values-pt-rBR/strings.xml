@@ -39,4 +39,10 @@
     <string name="channel_pin">Fixar no topo</string>
     <string name="channel_unpin">Desafixar</string>
     <string name="channel_pin_hint">Canais fixados vêm primeiro entre seus canais ao vivo e na troca de canal.</string>
+    <string name="home_continue">Continuar assistindo</string>
+    <string name="home_for_you">Lives que você pode curtir</string>
+    <string name="home_language">Os mais assistidos em %1$s</string>
+    <string name="home_favorite">Ao vivo em %1$s</string>
+    <string name="category_add_home">Adicionar ao Início</string>
+    <string name="category_remove_home">Remover do Início</string>
 </resources>

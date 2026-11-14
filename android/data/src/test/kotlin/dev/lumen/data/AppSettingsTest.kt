@@ -52,4 +52,20 @@ class ChannelListsTest {
         org.junit.Assert.assertEquals(listOf("x"), back.recentChannels)
         org.junit.Assert.assertEquals(settings.hiddenCategories, back.hiddenCategories)
     }
+
+    @org.junit.Test
+    fun recentCategoriesAndHomeLayoutSurviveTheDatabaseRoundTrip() {
+        var settings = AppSettings()
+        listOf("1" to "A", "2" to "B", "1" to "A", "3" to "C", "4" to "D", "5" to "E", "6" to "F").forEach { (id, name) ->
+            settings = settings.withRecentCategory(id, name)
+        }
+        settings = settings.copy(
+            favoriteCategories = mapOf("9" to "Échecs"),
+            homeRows = DEFAULT_HOME_ROWS.toggled(HomeRow.Popular).moved(HomeRow.Categories, -2),
+        )
+        val back = AppSettings.fromMap(settings.toMap())
+        org.junit.Assert.assertEquals(listOf("6", "5", "4", "3", "1"), back.recentCategories.keys.toList())
+        org.junit.Assert.assertEquals(settings.favoriteCategories, back.favoriteCategories)
+        org.junit.Assert.assertEquals(settings.homeRows, back.homeRows)
+    }
 }

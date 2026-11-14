@@ -137,6 +137,7 @@ fun LumenNavHost(session: SessionViewModel = hiltViewModel()) {
                         onOpenChannel = navController::openChannel,
                         onOpenCategory = { id, name -> navController.navigate(Routes.category(id, name)) },
                         onReconnect = { navController.navigate(Routes.LOGIN) },
+                        onOpenVideo = { navController.navigate(Routes.vod(it)) },
                     )
                 }
                 UpdatePrompt()

@@ -1,5 +1,15 @@
 package dev.lumen.feature.settings
 
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.Key
+import androidx.compose.runtime.key
+import dev.lumen.data.toggled
+import dev.lumen.data.moved
+import dev.lumen.data.HomeRowSetting
+import dev.lumen.data.HomeRow
 import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -201,6 +211,31 @@ fun SettingsRoute(viewModel: SettingsViewModel = hiltViewModel(), updates: Updat
         Text(stringResource(R.string.settings_chat_hint), color = LumenColors.OnSurfaceMuted, style = MaterialTheme.typography.bodySmall)
 
         Section(R.string.settings_home)
+        Label(R.string.settings_home_rows)
+        settings.homeRows.forEach { setting ->
+            // Clé = la rangée : déplacée, elle garde sa place dans la composition, et donc le focus.
+            key(setting.row) {
+                HomeRowItem(
+                    setting = setting,
+                    onToggle = { viewModel.update { copy(homeRows = homeRows.toggled(setting.row)) } },
+                    onMove = { delta -> viewModel.update { copy(homeRows = homeRows.moved(setting.row, delta)) } },
+                )
+            }
+        }
+        Text(stringResource(R.string.settings_home_rows_hint), color = LumenColors.OnSurfaceMuted, style = MaterialTheme.typography.bodySmall)
+        if (settings.favoriteCategories.isNotEmpty()) {
+            Label(R.string.settings_favorite_categories)
+            settings.favoriteCategories.forEach { (id, name) ->
+                key(id) {
+                    ListItem(
+                        selected = false,
+                        onClick = { viewModel.update { copy(favoriteCategories = favoriteCategories - id) } },
+                        headlineContent = { Text(name) },
+                    )
+                }
+            }
+        }
+        Text(stringResource(R.string.settings_favorite_categories_hint), color = LumenColors.OnSurfaceMuted, style = MaterialTheme.typography.bodySmall)
         ListItem(
             selected = false,
             // OK les fait toutes réapparaître : la liste est courte et se refait d'un appui long.
@@ -301,6 +336,40 @@ fun SettingsRoute(viewModel: SettingsViewModel = hiltViewModel(), updates: Updat
 }
 
 /** Couleurs explicites : l'interrupteur TV ne suit pas l'accent du thème. */
+/** Une rangée de l'accueil : OK l'affiche ou la masque, ◀ ▶ la montent ou la descendent. */
+@Composable
+private fun HomeRowItem(setting: HomeRowSetting, onToggle: () -> Unit, onMove: (Int) -> Unit) {
+    ListItem(
+        selected = false,
+        onClick = onToggle,
+        headlineContent = { Text(stringResource(setting.row.label)) },
+        supportingContent = { Text(stringResource(if (setting.visible) R.string.settings_row_shown else R.string.settings_row_hidden)) },
+        trailingContent = { AccentSwitch(setting.visible) },
+        modifier = Modifier.onPreviewKeyEvent {
+            if (it.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+            when (it.key) {
+                Key.DirectionLeft -> onMove(-1)
+                Key.DirectionRight -> onMove(1)
+                else -> return@onPreviewKeyEvent false
+            }
+            true
+        },
+    )
+}
+
+private val HomeRow.label: Int
+    get() = when (this) {
+        HomeRow.Followed -> R.string.home_row_followed
+        HomeRow.ContinueWatching -> R.string.home_row_continue
+        HomeRow.Recent -> R.string.home_row_recent
+        HomeRow.FavoriteCategories -> R.string.home_row_favorites
+        HomeRow.ForYou -> R.string.home_row_for_you
+        HomeRow.Recommended -> R.string.home_row_recommended
+        HomeRow.Popular -> R.string.home_row_popular
+        HomeRow.Language -> R.string.home_row_language
+        HomeRow.Categories -> R.string.home_row_categories
+    }
+
 @Composable
 private fun AccentSwitch(checked: Boolean) {
     Switch(

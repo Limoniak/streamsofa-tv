@@ -61,4 +61,19 @@
     <string name="settings_home">Home</string>
     <string name="settings_hidden_categories">Categorie nascoste</string>
     <string name="settings_hidden_categories_hint">Tieni premuto su una categoria nella Home per nasconderla. OK qui le mostra di nuovo tutte.</string>
+    <string name="settings_home_rows">Righe</string>
+    <string name="settings_home_rows_hint">OK mostra o nasconde una riga, ◀ ▶ la spostano su o giù. Ogni profilo ha la sua disposizione.</string>
+    <string name="settings_row_shown">Visibile</string>
+    <string name="settings_row_hidden">Nascosta</string>
+    <string name="home_row_followed">I tuoi canali in diretta</string>
+    <string name="home_row_continue">Continua a guardare</string>
+    <string name="home_row_recent">Visti di recente</string>
+    <string name="home_row_favorites">Categorie preferite</string>
+    <string name="home_row_for_you">Dirette che potrebbero piacerti</string>
+    <string name="home_row_recommended">Consigliati per te</string>
+    <string name="home_row_popular">Dirette popolari</string>
+    <string name="home_row_language">I più visti nella tua lingua</string>
+    <string name="home_row_categories">Categorie popolari</string>
+    <string name="settings_favorite_categories">Categorie preferite</string>
+    <string name="settings_favorite_categories_hint">Tieni premuto su una categoria nella Home per aggiungerla. OK qui la rimuove.</string>
 </resources>

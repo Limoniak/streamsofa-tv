@@ -138,6 +138,13 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
   zapping, liste ◀, multi-view, rangée launcher). « Regardé récemment » : 10 `liveStream` en parallèle à chaque
   chargement de l'accueil, hors suivis en live. Une catégorie masquée retire aussi ses lives de Populaires et
   Recommandés, jamais des suivis.
+- Accueil personnalisable : `HomeLayout.kt` (`HomeRow`, préférence `home_rows` = `followed,-recent,…`, `-` = masquée ;
+  clé inconnue ignorée, rangée nouvelle ajoutée à la fin, visible). Seules les rangées visibles sont chargées.
+  Catégories favorites (`favorite_categories`, `id\tnom`, appui long sur une catégorie → Ajouter / Masquer), une rangée
+  chacune (`categoryStreams` + filtre de langue). « Continuer à regarder » : `continue_watching` (Rust, `vod_progress`
+  non finies, 10 au plus). « Pourrait vous plaire » : 2 dernières `recent_categories` (écrites par le lecteur), dans la
+  langue de l'interface, hors suivis et regardés. « Les plus regardés dans votre langue » : `language_streams` (Helix
+  `language`, GQL `streams(options: {languages})`). Paramètres > Accueil : OK = afficher/masquer, ◀ ▶ = déplacer.
 - Zapping rapide : `PlaybackCache` (`Prefetch.kt`) garde le jeton des chaînes de ▲ et ▼, préparé après `STATE_READY`,
   servi une seule fois, valable jusqu'au plus tôt de 5 min et de l'expiration du jeton (`Playback.expires_at`, champ
   `expires` du JSON signé, 0 si absent) moins 1 min ; renouvelé à mi-vie (30 s à 4 min). Une relance (`retried`) en redemande un.
