@@ -36,8 +36,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Optional 4-digit PIN on a profile (long press on it in the profile picker). A forgotten PIN: remove the profile and sign in again.
 - Kids profile: no chat, and channels marked mature or carrying content warnings are hidden and cannot be played. Only the PIN of a non-kids profile can turn it off.
 - Spanish, German, Italian and Brazilian Portuguese interface.
+- Faster channel zapping: while you watch, the channels above and below are prepared, so Up / Down skips the Twitch round trips.
+- TalkBack reads the side menu labels when it is folded, the viewer count with its unit, the channel or video being played, and the multi-view tiles.
 
 ### Changed
+- Live streams start sooner: playback begins after 1.5 s of video instead of 2.5 s.
+- Smoother chat on busy channels: only new messages are laid out, instead of every visible line ten times a second.
+- Smaller download: the app only ships the six languages of its interface.
 - Up / Down on a channel outside the zapping list now jumps to the first channel of the list.
 - Multi-view: a long press on OK opens a menu (replace or remove) instead of removing the tile at once.
 

@@ -7,4 +7,5 @@
     <string name="nav_profiles">Perfiles</string>
     <string name="nav_settings">Ajustes</string>
     <string name="search_global_hint">Canales y categorías de Twitch</string>
+    <string name="nav_needs_reauth">Hay que iniciar sesión</string>
 </resources>

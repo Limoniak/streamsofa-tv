@@ -24,6 +24,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -328,8 +331,11 @@ fun Avatar(url: String, name: String, size: Dp, modifier: Modifier = Modifier) {
 
 @Composable
 fun ViewerBadge(viewers: Int, modifier: Modifier = Modifier) {
+    val spoken = stringResource(R.string.a11y_viewers, formatViewers(viewers))
     Row(
         modifier = modifier
+            // TalkBack : « 1,2 k spectateurs » plutôt qu'un nombre seul.
+            .clearAndSetSemantics { contentDescription = spoken }
             .background(LumenColors.Background.copy(alpha = 0.8f), RoundedCornerShape(6.dp))
             .padding(horizontal = 8.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,

@@ -7,4 +7,5 @@
     <string name="nav_profiles">Profils</string>
     <string name="nav_settings">Paramètres</string>
     <string name="search_global_hint">Chaînes et catégories Twitch</string>
+    <string name="nav_needs_reauth">Reconnexion requise</string>
 </resources>

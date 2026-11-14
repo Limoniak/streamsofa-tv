@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
@@ -365,5 +366,14 @@ class PlayerRemoteTest {
         press(Key.DirectionLeft)
         press(Key.DirectionCenter)
         assertEquals(listOf("zap:1", "open:bob"), actions.calls)
+    }
+
+    @Test
+    fun talkBackAnnouncesTheChannel() {
+        show(FakeActions())
+        rule.onNodeWithContentDescription("Alice, Titre de alice").assertIsFocused()
+        state = live.copy(login = "bob", stream = stream("bob"))
+        rule.waitForIdle()
+        rule.onNodeWithContentDescription("Bob, Titre de bob").assertExists()
     }
 }

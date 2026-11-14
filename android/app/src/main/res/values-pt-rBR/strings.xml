@@ -7,4 +7,5 @@
     <string name="nav_profiles">Perfis</string>
     <string name="nav_settings">Configurações</string>
     <string name="search_global_hint">Canais e categorias da Twitch</string>
+    <string name="nav_needs_reauth">Login necessário</string>
 </resources>

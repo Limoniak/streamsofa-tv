@@ -21,6 +21,10 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
@@ -56,6 +60,8 @@ fun Shell(selected: ShellTab?, onTab: (ShellTab) -> Unit, content: @Composable (
             ) {
                 val needsReauth = LocalNeedsReauth.current
                 ShellTab.entries.forEach { tab ->
+                    val label = stringResource(tab.label)
+                    val reauth = stringResource(R.string.nav_needs_reauth)
                     NavigationDrawerItem(
                         selected = tab == selected,
                         onClick = { onTab(tab) },
@@ -72,9 +78,14 @@ fun Shell(selected: ShellTab?, onTab: (ShellTab) -> Unit, content: @Composable (
                                 }
                             }
                         },
-                        modifier = if (tab == selected) Modifier.focusRequester(selectedFocus) else Modifier,
+                        // Repliée, la barre n'affiche que les icônes : TalkBack lit le libellé dans les deux cas.
+                        modifier = (if (tab == selected) Modifier.focusRequester(selectedFocus) else Modifier)
+                            .semantics {
+                                contentDescription = label
+                                if (tab == ShellTab.Profiles && needsReauth) stateDescription = reauth
+                            },
                     ) {
-                        Text(stringResource(tab.label))
+                        Text(label, Modifier.clearAndSetSemantics { })
                     }
                 }
             }

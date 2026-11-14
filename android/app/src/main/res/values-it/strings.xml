@@ -7,4 +7,5 @@
     <string name="nav_profiles">Profili</string>
     <string name="nav_settings">Impostazioni</string>
     <string name="search_global_hint">Canali e categorie di Twitch</string>
+    <string name="nav_needs_reauth">Accesso richiesto</string>
 </resources>

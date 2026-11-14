@@ -31,6 +31,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -195,6 +196,8 @@ private fun Tile(
             .background(if (focused) LumenColors.Accent else Color.Black)
             .padding(4.dp)
             .onFocusChanged { if (it.isFocused) onFocus() }
+            // TalkBack lit le nom de la chaîne de la tuile focalisée.
+            .semantics(mergeDescendants = true) { }
             .onKeyEvent { event ->
                 val ok = event.key == Key.DirectionCenter || event.key == Key.Enter || event.key == Key.NumPadEnter
                 if (!ok) return@onKeyEvent false
