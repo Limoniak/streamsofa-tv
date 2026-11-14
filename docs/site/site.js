@@ -50,7 +50,7 @@
     "feat.note": "Les pubs insérées par Twitch passent normalement : StreamSofa ne les bloque jamais et ne cherche pas à obtenir les avantages abonné ou Turbo. Suivre une chaîne se fait sur le téléphone (un QR code sur chaque page de chaîne), car Twitch a fermé cette API aux apps tierces.",
     "prev.kicker": "Aperçu", "prev.title": "Conçu pour un écran à trois mètres.",
     "prev.lead": "Captures de l’émulateur Google TV en 1080p. Multi-view, votre accueil et le chat sont dessinés par l’interface de l’app, avec les images d’aperçu des lives à la place de la vidéo et des messages d’exemple.",
-    "prev.multi": "<b>Multi-view</b> : quatre lives à la fois ; les flèches déplacent le son, le chat le suit. Appui long sur OK pour remplacer une tuile.",
+    "prev.multi": "<b>Multi-view</b> : quatre lives à la fois ; les flèches font passer le son d’une tuile à l’autre. Appui long sur OK pour remplacer une tuile.",
     "prev.rows": "<b>Votre accueil</b> : continuer à regarder, catégories favorites, des lives pour vous ; rangées affichables, masquables et réordonnables.",
     "prev.chat": "<b>Chat</b> : message épinglé, Hype Train et modes du salon ; « Depuis le début » relance le live en cours d’enregistrement.",
     "prev.home": "<b>Accueil</b> : les suivis d’abord, puis les lives et catégories populaires.",

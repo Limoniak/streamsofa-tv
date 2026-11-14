@@ -47,8 +47,8 @@ What could come next is listed in the [roadmap](ROADMAP.md).
 | **Home**: followed channels first, then popular streams and categories. | **Player**: OK opens the action bar, Right shows the chat. |
 | ![List of live channels over the player](docs/screenshots/live-list.jpg) | ![Settings screen](docs/screenshots/settings.jpg) |
 | **Live list**: Left opens it, Up and Down change channel directly. | **Settings**: chat, quality, low latency, accent color, updates. |
-| ![Multi-view with four live streams and the chat](docs/screenshots/multiview.jpg) | ![Pinned message, Hype Train and room modes above the chat](docs/screenshots/player-chat.jpg) |
-| **Multi-view**: the arrows move the sound, the chat follows it. | **Chat**: pinned message, Hype Train and room modes. |
+| ![Multi-view with four live streams](docs/screenshots/multiview.jpg) | ![Pinned message, Hype Train and room modes above the chat](docs/screenshots/player-chat.jpg) |
+| **Multi-view**: the arrows move the sound from one tile to another. | **Chat**: pinned message, Hype Train and room modes. |
 
 The last two are drawn from the app's own interface, with live preview images in place of the video and sample chat messages.
 

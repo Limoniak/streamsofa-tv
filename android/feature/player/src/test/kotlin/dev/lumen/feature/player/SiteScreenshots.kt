@@ -92,7 +92,7 @@ class SiteScreenshots {
     fun multiView() {
         assumeTrue(input != null && output != null)
         val tiles = streams().filter { it.login in listOf("caedrel", "jynxzi", "ow_esports", "tubbo") }
-        val state = MultiUiState(tiles.map { TileUiState(it.login, it) }, focused = 0, chatVisible = true)
+        val state = MultiUiState(tiles.map { TileUiState(it.login, it) }, focused = 0)
         val frames = tiles.associate { it.login to frame(it.login) }
         val actions = object : MultiActions {
             override fun focus(index: Int) = Unit
