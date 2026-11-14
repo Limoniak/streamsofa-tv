@@ -9,10 +9,6 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 
 - [ ] 🟢 More interface languages (English, French, Spanish, German, Italian and Brazilian Portuguese today); translations and corrections welcome.
 
-## Quality and tooling
-
-- [ ] 🟡 Remote-only UI tests for the past broadcast player and multi-view, like the ones of the live player.
-
 ## Not planned
 
 - Blocking or skipping ads, or unlocking subscriber / Turbo perks.

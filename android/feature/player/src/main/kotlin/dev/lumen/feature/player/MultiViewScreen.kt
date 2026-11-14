@@ -40,7 +40,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.tv.material3.Button
 import androidx.tv.material3.MaterialTheme
@@ -52,15 +51,45 @@ import kotlinx.coroutines.delay
 
 private const val HINT_MS = 5_000L
 
-/**
- * Multi-view : les flèches déplacent le son d'une tuile à l'autre, OK passe la tuile en plein
- * écran, un appui long sur OK propose de la remplacer ou de la retirer. Retour quitte le multi-view.
- */
+/** Branche le ViewModel et les lecteurs des tuiles sur [MultiViewScreen]. */
+@OptIn(UnstableApi::class)
 @Composable
 fun MultiViewRoute(onOpenSingle: (login: String) -> Unit, viewModel: MultiViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onStop() }
+    MultiViewScreen(state, viewModel, onOpenSingle) { login ->
+        val player = viewModel.player(login)
+        if (player != null) {
+            AndroidView(
+                factory = { context ->
+                    PlayerView(context).apply {
+                        useController = false
+                        isFocusable = false
+                        keepScreenOn = true
+                        setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
+                    }
+                },
+                update = { it.player = player },
+                onRelease = { it.player = null },
+                modifier = Modifier.fillMaxSize().background(Color.Black),
+            )
+        }
+    }
+}
+
+/**
+ * Multi-view : les flèches déplacent le son d'une tuile à l'autre, OK passe la tuile en plein
+ * écran, un appui long sur OK propose de la remplacer ou de la retirer. Retour quitte le multi-view.
+ * Sans ViewModel ni ExoPlayer ([video] dessine la vidéo d'une tuile) : testable à la télécommande.
+ */
+@Composable
+internal fun MultiViewScreen(
+    state: MultiUiState,
+    actions: MultiActions,
+    onOpenSingle: (login: String) -> Unit,
+    video: @Composable (login: String) -> Unit,
+) {
     var hint by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) {
         delay(HINT_MS)
@@ -90,12 +119,12 @@ fun MultiViewRoute(onOpenSingle: (login: String) -> Unit, viewModel: MultiViewMo
                         val index = row * 2 + column
                         Tile(
                             tile = tile,
-                            player = viewModel.player(tile.login),
+                            video = { video(tile.login) },
                             focused = index == state.focused,
                             press = press,
-                            onFocus = { viewModel.focus(index) },
+                            onFocus = { actions.focus(index) },
                             onOpen = { onOpenSingle(tile.login) },
-                            onRetry = { viewModel.retry(tile.login) },
+                            onRetry = { actions.retry(tile.login) },
                             onMenu = { menu = tile.login },
                             modifier = Modifier
                                 .weight(1f)
@@ -110,10 +139,10 @@ fun MultiViewRoute(onOpenSingle: (login: String) -> Unit, viewModel: MultiViewMo
         }
         replacing?.let { old ->
             LiveList(
-                load = viewModel::replacements,
+                load = actions::replacements,
                 current = "",
                 onPick = { new ->
-                    viewModel.replace(old, new)
+                    actions.replace(old, new)
                     replacing = null
                 },
                 onDismiss = { replacing = null },
@@ -142,18 +171,17 @@ fun MultiViewRoute(onOpenSingle: (login: String) -> Unit, viewModel: MultiViewMo
             },
             onRemove = {
                 menu = null
-                if (!viewModel.remove(login)) onOpenSingle(login)
+                if (!actions.remove(login)) onOpenSingle(login)
             },
             onDismiss = { menu = null },
         )
     }
 }
 
-@OptIn(UnstableApi::class)
 @Composable
 private fun Tile(
     tile: TileUiState,
-    player: ExoPlayer?,
+    video: @Composable () -> Unit,
     focused: Boolean,
     press: OkPress,
     onFocus: () -> Unit,
@@ -188,21 +216,7 @@ private fun Tile(
             }
             .focusable(),
     ) {
-        if (player != null) {
-            AndroidView(
-                factory = { context ->
-                    PlayerView(context).apply {
-                        useController = false
-                        isFocusable = false
-                        keepScreenOn = true
-                        setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
-                    }
-                },
-                update = { it.player = player },
-                onRelease = { it.player = null },
-                modifier = Modifier.fillMaxSize().background(Color.Black),
-            )
-        }
+        video()
         val message = when (val status = tile.status) {
             is TileStatus.Failed -> stringResource(status.error.messageRes)
             TileStatus.DecoderBusy -> stringResource(R.string.multi_decoder_busy)

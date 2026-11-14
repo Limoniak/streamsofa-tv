@@ -124,8 +124,10 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
   Live terminé ou chaîne hors ligne (`LoadError.Offline`) : écran de fin (raid ignoré, live suivant, dernière VOD).
   Multi-view : appui long OK = menu Remplacer / Retirer.
 
-- Tests du lecteur à la télécommande : `PlayerScreen` (sans ViewModel ni ExoPlayer, actions derrière `PlayerActions`)
-  monté sous Robolectric dans `PlayerRemoteTest` ; tournent avec les tests unitaires, sans émulateur.
+- Tests à la télécommande : `PlayerScreen`, `VodPlayerScreen`, `MultiViewScreen` (sans ViewModel ni ExoPlayer,
+  actions derrière `PlayerActions` / `VodActions` / `MultiActions`, vidéo passée en lambda) montés sous Robolectric dans
+  `PlayerRemoteTest`, `VodRemoteTest`, `MultiViewRemoteTest` ; tournent avec les tests unitaires, sans émulateur.
+  Un dialogue (menu de tuile) est une seconde fenêtre : y envoyer les touches via `onAllNodes(isRoot()).onLast()`.
   Benchmarks (`:baselineprofile`, `Benchmarks.kt`) et régénération du Baseline Profile : workflow `benchmarks.yml`
   (émulateur Android TV x86_64, lundi ou à la demande, PR depuis `ci/baseline-profile`). Jamais exécuté avant le premier run en CI.
 

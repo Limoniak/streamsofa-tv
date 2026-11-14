@@ -61,25 +61,52 @@ private const val SEEK_STEP_MS = 10_000L
 private const val SEEK_FAST_MS = 60_000L
 private const val VOD_OVERLAY_TIMEOUT_MS = 4_000L
 
-/**
- * Lecteur de VOD. OK met en pause ou reprend, gauche/droite recule ou avance de 10 s
- * (1 min en maintenant), haut change la vitesse, bas affiche le replay du chat.
- * Les chapitres (changements de jeu) sont marqués sur la barre. La reprise est enregistrée en continu.
- */
+/** Branche le ViewModel et la vidéo sur [VodPlayerScreen]. */
 @OptIn(UnstableApi::class)
 @Composable
 fun VodPlayerRoute(viewModel: VodViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val clock by viewModel.clock.collectAsStateWithLifecycle()
     val chat by viewModel.chat.collectAsStateWithLifecycle()
-    var chatVisible by rememberSaveable { mutableStateOf(viewModel.chatByDefault) }
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onStop() }
+    VodPlayerScreen(state, clock, chat, viewModel) {
+        AndroidView(
+            factory = { context ->
+                PlayerView(context).apply {
+                    useController = false
+                    isFocusable = false
+                    keepScreenOn = true
+                    setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
+                    player = viewModel.player
+                }
+            },
+            onRelease = { it.player = null },
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
+}
+
+/**
+ * Lecteur de VOD. OK met en pause ou reprend, gauche/droite recule ou avance de 10 s
+ * (1 min en maintenant), haut change la vitesse, bas affiche le replay du chat.
+ * Les chapitres (changements de jeu) sont marqués sur la barre. La reprise est enregistrée en continu.
+ * Sans ViewModel ni ExoPlayer ([video] est fourni par l'appelant) : testable à la télécommande.
+ */
+@Composable
+internal fun VodPlayerScreen(
+    state: VodUiState,
+    clock: VodClock,
+    chat: ChatUiState,
+    actions: VodActions,
+    video: @Composable () -> Unit,
+) {
+    var chatVisible by rememberSaveable { mutableStateOf(actions.chatByDefault) }
     var overlay by remember { mutableStateOf(true) }
     var interactions by remember { mutableIntStateOf(0) }
     val rootFocus = remember { FocusRequester() }
 
-    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onStop() }
     LaunchedEffect(Unit) { rootFocus.requestWhenAttached() }
-    LaunchedEffect(chatVisible) { viewModel.setChatVisible(chatVisible) }
+    LaunchedEffect(chatVisible) { actions.setChatVisible(chatVisible) }
     // En pause, les infos restent affichées ; sinon elles s'effacent après quelques secondes.
     LaunchedEffect(overlay, interactions, clock.paused) {
         if (overlay && !clock.paused) {
@@ -97,23 +124,23 @@ fun VodPlayerRoute(viewModel: VodViewModel = hiltViewModel()) {
                 val step = if (event.nativeKeyEvent.repeatCount > 0) SEEK_FAST_MS else SEEK_STEP_MS
                 val handled = when (event.key) {
                     Key.DirectionCenter, Key.Enter, Key.NumPadEnter, Key.MediaPlayPause, Key.MediaPlay, Key.MediaPause -> {
-                        if (state.status is PlayerStatus.Failed) viewModel.retry() else viewModel.togglePause()
+                        if (state.status is PlayerStatus.Failed) actions.retry() else actions.togglePause()
                         true
                     }
                     Key.DirectionLeft, Key.MediaRewind -> {
-                        viewModel.seekBy(-step)
+                        actions.seekBy(-step)
                         true
                     }
                     Key.DirectionRight, Key.MediaFastForward -> {
-                        viewModel.seekBy(step)
+                        actions.seekBy(step)
                         true
                     }
                     Key.DirectionDown -> {
-                        if (viewModel.chatAllowed) chatVisible = !chatVisible
+                        if (actions.chatAllowed) chatVisible = !chatVisible
                         true
                     }
                     Key.DirectionUp -> {
-                        viewModel.cycleSpeed()
+                        actions.cycleSpeed()
                         true
                     }
                     else -> false
@@ -128,39 +155,27 @@ fun VodPlayerRoute(viewModel: VodViewModel = hiltViewModel()) {
             .focusable(),
     ) {
         Box(Modifier.weight(1f).fillMaxHeight()) {
-            AndroidView(
-                factory = { context ->
-                    PlayerView(context).apply {
-                        useController = false
-                        isFocusable = false
-                        keepScreenOn = true
-                        setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
-                        player = viewModel.player
-                    }
-                },
-                onRelease = { it.player = null },
-                modifier = Modifier.fillMaxSize(),
-            )
+            video()
 
             when (val status = state.status) {
                 is PlayerStatus.Failed -> MessageState(
                     text = state.detail ?: stringResource(status.error.messageRes),
                     actionLabel = stringResource(DataR.string.retry),
-                    onAction = viewModel::retry,
+                    onAction = actions::retry,
                     modifier = Modifier.align(Alignment.Center),
                 )
                 else -> Unit
             }
 
-            if (chatVisible && viewModel.chatLook.overlay) {
-                ChatPanel(chat, Modifier.align(Alignment.CenterEnd).width(viewModel.chatLook.width).fillMaxHeight(), look = viewModel.chatLook)
+            if (chatVisible && actions.chatLook.overlay) {
+                ChatPanel(chat, Modifier.align(Alignment.CenterEnd).width(actions.chatLook.width).fillMaxHeight(), look = actions.chatLook)
             }
             if (overlay) {
                 VodInfo(state, clock, Modifier.align(Alignment.BottomStart))
             }
         }
-        if (chatVisible && !viewModel.chatLook.overlay) {
-            ChatPanel(chat, Modifier.width(viewModel.chatLook.width).fillMaxHeight(), look = viewModel.chatLook)
+        if (chatVisible && !actions.chatLook.overlay) {
+            ChatPanel(chat, Modifier.width(actions.chatLook.width).fillMaxHeight(), look = actions.chatLook)
         }
     }
 }

@@ -71,6 +71,21 @@ private const val RESUME_REWIND_S = 5u
 /** Après un saut, les messages des dernières secondes s'affichent tout de suite, pour le contexte. */
 private const val CHAT_CONTEXT_S = 30u
 
+/** Ce que la télécommande du lecteur VOD déclenche : le ViewModel, ou un faux dans les tests. */
+interface VodActions {
+    /** Profil enfants : pas de replay du chat. */
+    val chatAllowed: Boolean
+    val chatByDefault: Boolean
+    val chatLook: ChatLook
+
+    fun retry()
+    fun togglePause()
+    /** Vitesse suivante de [VOD_SPEEDS]. */
+    fun cycleSpeed()
+    fun seekBy(deltaMs: Long)
+    fun setChatVisible(visible: Boolean)
+}
+
 @HiltViewModel
 class VodViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -78,10 +93,10 @@ class VodViewModel @Inject constructor(
     private val catalog: CatalogRepository,
     settings: SettingsRepository,
     private val watchNext: WatchNext,
-) : ViewModel() {
-    val chatAllowed = !settings.state.value.kids
-    val chatByDefault = settings.state.value.chatByDefault && chatAllowed
-    val chatLook = settings.state.value.chatLook()
+) : ViewModel(), VodActions {
+    override val chatAllowed = !settings.state.value.kids
+    override val chatByDefault = settings.state.value.chatByDefault && chatAllowed
+    override val chatLook = settings.state.value.chatLook()
     private val id: String = checkNotNull(savedState["id"])
     private val _state = MutableStateFlow(VodUiState(id))
     val state: StateFlow<VodUiState> = _state.asStateFlow()
@@ -124,26 +139,26 @@ class VodViewModel @Inject constructor(
         load()
     }
 
-    fun retry() = load()
+    override fun retry() = load()
 
-    fun togglePause() {
+    override fun togglePause() {
         if (player.playWhenReady) player.pause() else player.play()
     }
 
-    fun cycleSpeed() {
+    override fun cycleSpeed() {
         val speed = nextSpeed(_state.value.speed)
         player.playbackParameters = PlaybackParameters(speed)
         _state.update { it.copy(speed = speed) }
     }
 
-    fun seekBy(deltaMs: Long) {
+    override fun seekBy(deltaMs: Long) {
         val duration = player.duration.takeIf { it != C.TIME_UNSET } ?: Long.MAX_VALUE
         player.seekTo((player.currentPosition + deltaMs).coerceIn(0, duration))
         if (chatJob?.isActive == true) startChat()
     }
 
     /** Le chat n'est chargé que lorsqu'il est affiché : pas de requêtes pour rien. */
-    fun setChatVisible(visible: Boolean) {
+    override fun setChatVisible(visible: Boolean) {
         if (visible) startChat() else chatJob?.cancel()
     }
 

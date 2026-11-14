@@ -49,12 +49,25 @@ private fun PlaybackException.isDecoderError() = errorCode in 4000..4999
  * Chaque tuile lit une qualité fixe adaptée à sa taille ; si le décodeur refuse, elle descend
  * d'un cran, puis abandonne sans toucher aux autres.
  */
+/** Ce que la télécommande du multi-view déclenche : le ViewModel, ou un faux dans les tests. */
+interface MultiActions {
+    /** La tuile [index] prend le son. */
+    fun focus(index: Int)
+    /** `false` s'il ne reste qu'une tuile : l'écran bascule alors en lecteur simple. */
+    fun remove(login: String): Boolean
+    /** Remplace la tuile [old] par [new], à la même place : les autres tuiles continuent sans coupure. */
+    fun replace(old: String, new: String)
+    fun retry(login: String)
+    /** Chaînes proposées pour remplacer une tuile, hors celles affichées. */
+    suspend fun replacements(): List<LiveStream>
+}
+
 @HiltViewModel
 class MultiViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     savedState: SavedStateHandle,
     private val catalog: CatalogRepository,
-) : ViewModel() {
+) : ViewModel(), MultiActions {
     private val max = DecoderProbe.maxStreams(context).coerceAtLeast(1)
     private val initial = checkNotNull(savedState.get<String>("logins"))
         .split(',').map { it.trim().lowercase() }.filter { it.isNotEmpty() }.distinct().take(max)
@@ -78,14 +91,14 @@ class MultiViewModel @Inject constructor(
 
     fun player(login: String): ExoPlayer? = slots.firstOrNull { it.login == login }?.player
 
-    fun focus(index: Int) {
+    override fun focus(index: Int) {
         if (index == _state.value.focused || index !in slots.indices) return
         _state.update { it.copy(focused = index) }
         applyVolumes()
     }
 
     /** `false` s'il ne reste qu'une tuile : l'écran bascule alors en lecteur simple. */
-    fun remove(login: String): Boolean {
+    override fun remove(login: String): Boolean {
         if (slots.size <= 1) return false
         val index = slots.indexOfFirst { it.login == login }.takeIf { it >= 0 } ?: return true
         slots.removeAt(index).run {
@@ -107,14 +120,14 @@ class MultiViewModel @Inject constructor(
     }
 
     /** Chaînes proposées pour remplacer une tuile : les suivis en live (sinon les plus regardés), hors celles affichées. */
-    suspend fun replacements(): List<LiveStream> {
+    override suspend fun replacements(): List<LiveStream> {
         val shown = slots.map { it.login }.toSet()
         val lives = catalog.followed.value.ifEmpty { loadCatching { catalog.topStreams(null).items }.getOrDefault(emptyList()) }
         return lives.filter { it.login !in shown }
     }
 
     /** Remplace la tuile [old] par [new], à la même place : les autres tuiles continuent sans coupure. */
-    fun replace(old: String, new: String) {
+    override fun replace(old: String, new: String) {
         val index = slots.indexOfFirst { it.login == old }.takeIf { it >= 0 } ?: return
         if (slots.any { it.login == new }) return
         slots[index].run {
@@ -128,7 +141,7 @@ class MultiViewModel @Inject constructor(
         applyVolumes()
     }
 
-    fun retry(login: String) {
+    override fun retry(login: String) {
         slots.firstOrNull { it.login == login }?.let {
             it.retried = false
             load(it)
