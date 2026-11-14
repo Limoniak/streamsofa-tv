@@ -31,4 +31,12 @@
     <string name="channel_follow_qr">Scannen, um diesem Kanal auf dem Handy zu folgen</string>
     <string name="following_clips">Clips deiner gefolgten Kanäle</string>
     <string name="category_clips">Top-Clips der Woche</string>
+    <string name="home_recent">Zuletzt angesehen</string>
+    <string name="category_hide_title">%1$s ausblenden?</string>
+    <string name="category_hide_body">Sie verschwindet von Start, ihre Streams aus Beliebt und Empfohlen. Einstellungen > Start holt sie zurück.</string>
+    <string name="category_hide_confirm">Ausblenden</string>
+    <string name="category_hide_cancel">Abbrechen</string>
+    <string name="channel_pin">Oben anheften</string>
+    <string name="channel_unpin">Nicht mehr anheften</string>
+    <string name="channel_pin_hint">Angeheftete Kanäle stehen bei deinen Live-Kanälen und beim Kanalwechsel vorne.</string>
 </resources>

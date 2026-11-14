@@ -109,7 +109,7 @@ To iterate faster on a single device, build one ABI only: `./gradlew :app:assemb
 
 ```bash
 cd rust && cargo test
-cd android && ./gradlew :core-bridge:testDebugUnitTest :data:testDebugUnitTest :feature:auth:testDebugUnitTest :feature:player:testDebugUnitTest
+cd android && ./gradlew :core-bridge:testDebugUnitTest :data:testDebugUnitTest :feature:auth:testDebugUnitTest :feature:home:testDebugUnitTest :feature:player:testDebugUnitTest :designsystem:testDebugUnitTest
 ```
 
 The `core-bridge` tests load the Rust core built for the host machine, so they check the Kotlin ⇄ Rust bridge without a device.

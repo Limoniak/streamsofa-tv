@@ -222,6 +222,9 @@ class PlayerViewModel @Inject constructor(
                 if (playbackState == Player.STATE_READY) {
                     retried = false
                     _state.update { it.copy(status = PlayerStatus.Playing) }
+                    // Historique du profil (« Regardé récemment » sur l'accueil) ; sans écriture si déjà en tête.
+                    val login = _state.value.login
+                    settings.update { withRecentChannel(login) }
                     // L'image d'abord : les voisines ne lui disputent pas la bande passante du démarrage.
                     prefetchNeighbours()
                 }

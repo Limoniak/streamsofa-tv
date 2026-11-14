@@ -58,4 +58,7 @@
     <string name="settings_width_narrow">Narrow</string>
     <string name="settings_width_normal">Normal</string>
     <string name="settings_width_wide">Wide</string>
+    <string name="settings_home">Home</string>
+    <string name="settings_hidden_categories">Hidden categories</string>
+    <string name="settings_hidden_categories_hint">Long press a category on Home to hide it. OK here shows them all again.</string>
 </resources>

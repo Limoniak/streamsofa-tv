@@ -197,6 +197,21 @@ fun SettingsRoute(viewModel: SettingsViewModel = hiltViewModel(), updates: Updat
         )
         Text(stringResource(R.string.settings_chat_hint), color = LumenColors.OnSurfaceMuted, style = MaterialTheme.typography.bodySmall)
 
+        Section(R.string.settings_home)
+        ListItem(
+            selected = false,
+            // OK les fait toutes réapparaître : la liste est courte et se refait d'un appui long.
+            onClick = { viewModel.update { copy(hiddenCategories = emptyMap()) } },
+            headlineContent = { Text(stringResource(R.string.settings_hidden_categories)) },
+            supportingContent = {
+                Text(
+                    settings.hiddenCategories.values.sorted().joinToString(", ").ifEmpty { stringResource(R.string.settings_none) },
+                    maxLines = 1,
+                )
+            },
+        )
+        Text(stringResource(R.string.settings_hidden_categories_hint), color = LumenColors.OnSurfaceMuted, style = MaterialTheme.typography.bodySmall)
+
         Section(R.string.settings_theme)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             AccentColor.entries.forEach { accent ->

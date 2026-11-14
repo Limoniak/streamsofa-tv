@@ -31,4 +31,12 @@
     <string name="channel_follow_qr">Scan to follow this channel from your phone</string>
     <string name="following_clips">Clips from channels you follow</string>
     <string name="category_clips">Top clips this week</string>
+    <string name="home_recent">Recently watched</string>
+    <string name="category_hide_title">Hide %1$s?</string>
+    <string name="category_hide_body">It leaves Home, and its streams leave Popular and Recommended. Settings > Home brings it back.</string>
+    <string name="category_hide_confirm">Hide</string>
+    <string name="category_hide_cancel">Cancel</string>
+    <string name="channel_pin">Pin to the top</string>
+    <string name="channel_unpin">Unpin</string>
+    <string name="channel_pin_hint">Pinned channels come first among your live channels and when changing channel.</string>
 </resources>

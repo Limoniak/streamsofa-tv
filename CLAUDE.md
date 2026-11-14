@@ -131,6 +131,19 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
   Benchmarks (`:baselineprofile`, `Benchmarks.kt`) et régénération du Baseline Profile : workflow `benchmarks.yml`
   (émulateur Android TV x86_64, lundi ou à la demande, PR depuis `ci/baseline-profile`). Jamais exécuté avant le premier run en CI.
 
+- Épinglées (`pinned_channels`), regardées récemment (`recent_channels`, 20 max, écrit quand un live démarre),
+  catégories masquées (`hidden_categories`, lignes `id\tnom`) : préférences du profil, listes séparées par `\n`.
+  L'ordre « épinglées d'abord » est appliqué une seule fois, dans `RustCatalogRepository.followed` (accueil, Suivis,
+  zapping, liste ◀, multi-view, rangée launcher). « Regardé récemment » : 10 `liveStream` en parallèle à chaque
+  chargement de l'accueil, hors suivis en live. Une catégorie masquée retire aussi ses lives de Populaires et
+  Recommandés, jamais des suivis.
+- Zapping rapide : `PlaybackCache` (`Prefetch.kt`) garde le jeton des chaînes de ▲ et ▼, préparé après `STATE_READY`,
+  renouvelé toutes les 4 min, servi une seule fois et jamais au-delà de 5 min ; une relance (`retried`) en redemande un.
+  Tampon du live : 1,5 s avant la première image, 3 s après une coupure (`liveLoadControl`).
+- Chat : `LazyColumn` à clés (id, doublons écartés) + `requestScrollToItem(0)` à chaque nouveau message (`ChatPanelTest`).
+- APK : `localeFilters` = les six langues (écrites comme les dossiers, `pt-rBR`) ; `TranslationsTest` vérifie l'accord
+  avec `locales_config.xml`.
+
 Schéma SQLite (migrations dans `store/mod.rs`, clé `scope` = `global` | `guest` | id de compte) :
 `vod_progress` (migration 2), `settings` (migration 3, portée `global` pour les réglages de l'appareil, sinon le profil ; filtres du chat dans `chat_hidden_words`/`chat_hidden_users`), `meta_cache(key,body,fetched_at,ttl_s)` (migration 4 :
 badges et émotes, 24 h pour les globaux, 1 h par chaîne). Migration 5 : réglages copiés de `global` vers chaque profil.
@@ -139,7 +152,7 @@ badges et émotes, 24 h pour les globaux, 1 h par chaîne). Migration 5 : régla
 
 ```bash
 cd rust && cargo test
-cd android && ./gradlew :core-bridge:testDebugUnitTest :data:testDebugUnitTest :feature:auth:testDebugUnitTest :feature:player:testDebugUnitTest
+cd android && ./gradlew :core-bridge:testDebugUnitTest :data:testDebugUnitTest :feature:auth:testDebugUnitTest :feature:home:testDebugUnitTest :feature:player:testDebugUnitTest :designsystem:testDebugUnitTest
 cd android && ./gradlew :app:assembleDebug          # -Plumen.abis=arm64-v8a pour itérer vite
 adb install -r android/app/build/outputs/apk/debug/app-universal-debug.apk
 ```

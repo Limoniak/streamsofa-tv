@@ -15,6 +15,7 @@ import dev.lumen.core.Video
 import dev.lumen.data.AccountsRepository
 import dev.lumen.data.CatalogRepository
 import dev.lumen.data.LoadError
+import dev.lumen.data.SettingsRepository
 import dev.lumen.data.loadCatching
 import dev.lumen.data.toLoadError
 import dev.lumen.designsystem.CategoryCardModel
@@ -24,6 +25,8 @@ import dev.lumen.designsystem.VideoCardModel
 import dev.lumen.designsystem.formatViewers
 import javax.inject.Inject
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -50,10 +53,17 @@ data class HomeUiState(
     val recommended: Section<LiveStream> = Section.Loading,
     val popular: Section<LiveStream> = Section.Loading,
     val categories: Section<Category> = Section.Loading,
+    /** Chaînes regardées récemment et en live, hors suivis en live ; rangée masquée si vide. */
+    val recent: List<LiveStream> = emptyList(),
+    /** Catégories masquées par le profil : ni dans la rangée, ni leurs lives dans Populaires et Recommandés. */
+    val hiddenCategories: Set<String> = emptySet(),
 ) {
     val needsReauth get() = account?.state == AccountState.NEEDS_REAUTH
     val showFollowed get() = account != null && !needsReauth
 }
+
+/** Chaînes récentes interrogées à chaque chargement (une requête chacune, en parallèle). */
+private const val RECENT_LOOKUPS = 10
 
 /** Au-delà, revenir sur l'accueil recharge : les compteurs et les lives ont bougé. */
 private const val STALE_AFTER_MS = 60_000L
@@ -62,6 +72,7 @@ private const val STALE_AFTER_MS = 60_000L
 class HomeViewModel @Inject constructor(
     accounts: AccountsRepository,
     private val catalog: CatalogRepository,
+    private val settings: SettingsRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(HomeUiState())
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
@@ -82,6 +93,17 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    init {
+        viewModelScope.launch {
+            settings.state.map { it.hiddenCategories.keys }.distinctUntilChanged().collect { hidden ->
+                _state.update { it.copy(hiddenCategories = hidden) }
+            }
+        }
+    }
+
+    /** Masque [id] de l'accueil ; Paramètres > Accueil les fait réapparaître. */
+    fun hideCategory(id: String, name: String) = settings.update { copy(hiddenCategories = hiddenCategories + (id to name)) }
+
     fun refreshIfStale() {
         if (loadedAt != 0L && SystemClock.elapsedRealtime() - loadedAt > STALE_AFTER_MS) reload()
     }
@@ -92,11 +114,20 @@ class HomeViewModel @Inject constructor(
         val withFollowed = _state.value.showFollowed
         // Les sections déjà affichées restent visibles pendant le rechargement (pas de clignotement).
         job = viewModelScope.launch {
+            val followed = async {
+                if (!withFollowed) return@async emptyList()
+                val result = loadCatching { catalog.followedStreams() }.toSection()
+                _state.update { it.copy(followed = result) }
+                (result as? Section.Ready)?.items.orEmpty()
+            }
+            launch {
+                // Après les suivis : une chaîne suivie en live est déjà dans sa rangée, inutile de la redemander.
+                val skip = followed.await().map { it.login }.toSet()
+                val logins = settings.awaitLoaded().recentChannels.filter { it !in skip }.take(RECENT_LOOKUPS)
+                val live = logins.map { login -> async { loadCatching { catalog.liveStream(login) }.getOrNull() } }.awaitAll().filterNotNull()
+                _state.update { it.copy(recent = live) }
+            }
             if (withFollowed) {
-                launch {
-                    val result = loadCatching { catalog.followedStreams() }.toSection()
-                    _state.update { it.copy(followed = result) }
-                }
                 launch {
                     val result = loadCatching { catalog.recommendedStreams() }.toSection()
                     _state.update { it.copy(recommended = result) }

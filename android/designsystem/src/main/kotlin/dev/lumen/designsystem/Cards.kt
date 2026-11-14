@@ -267,12 +267,17 @@ fun ChannelCard(channel: ChannelCardModel, onClick: () -> Unit, modifier: Modifi
 data class CategoryCardModel(val key: String, val name: String, val viewers: Int, val boxArtTemplate: String)
 
 @Composable
-fun CategoryCard(category: CategoryCardModel, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun CategoryCard(
+    category: CategoryCardModel,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
+) {
     val width = LumenCardSize.categoryWidth
     val height = width * 4 / 3
     val url = rememberSizedUrl(category.boxArtTemplate, width, height, 0)
 
-    LumenCard(onClick = onClick, modifier = modifier.width(width)) {
+    LumenCard(onClick = onClick, onLongClick = onLongClick, modifier = modifier.width(width)) {
         Column {
             Box(
                 modifier = Modifier

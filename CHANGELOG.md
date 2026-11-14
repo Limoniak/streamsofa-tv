@@ -37,6 +37,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Kids profile: no chat, and channels marked mature or carrying content warnings are hidden and cannot be played. Only the PIN of a non-kids profile can turn it off.
 - Spanish, German, Italian and Brazilian Portuguese interface.
 - Faster channel zapping: while you watch, the channels above and below are prepared, so Up / Down skips the Twitch round trips.
+- Pin channels to the top (button on the channel page): they come first among your live channels, in Up / Down zapping and in the live list.
+- "Recently watched" row on Home: the channels you watched lately that are live now, guest mode included.
+- Hide a category from Home with a long press on it: its streams leave Popular and Recommended too. Settings > Home brings them back.
 - TalkBack reads the side menu labels when it is folded, the viewer count with its unit, the channel or video being played, and the multi-view tiles.
 
 ### Changed

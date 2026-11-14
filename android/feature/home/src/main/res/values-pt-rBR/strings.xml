@@ -31,4 +31,12 @@
     <string name="channel_follow_qr">Escaneie para seguir este canal pelo celular</string>
     <string name="following_clips">Clipes dos canais que você segue</string>
     <string name="category_clips">Melhores clipes da semana</string>
+    <string name="home_recent">Assistidos recentemente</string>
+    <string name="category_hide_title">Ocultar %1$s?</string>
+    <string name="category_hide_body">Ela sai do Início, e as lives dela saem de Populares e Recomendados. Configurações > Início traz de volta.</string>
+    <string name="category_hide_confirm">Ocultar</string>
+    <string name="category_hide_cancel">Cancelar</string>
+    <string name="channel_pin">Fixar no topo</string>
+    <string name="channel_unpin">Desafixar</string>
+    <string name="channel_pin_hint">Canais fixados vêm primeiro entre seus canais ao vivo e na troca de canal.</string>
 </resources>

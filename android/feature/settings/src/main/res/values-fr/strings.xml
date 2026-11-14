@@ -58,4 +58,7 @@
     <string name="settings_width_narrow">Étroit</string>
     <string name="settings_width_normal">Normal</string>
     <string name="settings_width_wide">Large</string>
+    <string name="settings_home">Accueil</string>
+    <string name="settings_hidden_categories">Catégories masquées</string>
+    <string name="settings_hidden_categories_hint">Appui long sur une catégorie de l\'accueil pour la masquer. OK ici les fait toutes revenir.</string>
 </resources>

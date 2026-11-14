@@ -58,4 +58,7 @@
     <string name="settings_width_narrow">Estreito</string>
     <string name="settings_width_normal">Normal</string>
     <string name="settings_width_wide">Largo</string>
+    <string name="settings_home">Início</string>
+    <string name="settings_hidden_categories">Categorias ocultas</string>
+    <string name="settings_hidden_categories_hint">Mantenha OK pressionado em uma categoria no Início para ocultá-la. OK aqui mostra todas de novo.</string>
 </resources>

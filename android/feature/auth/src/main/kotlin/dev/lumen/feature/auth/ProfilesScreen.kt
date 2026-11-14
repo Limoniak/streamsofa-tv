@@ -384,37 +384,12 @@ private fun ProfileOptionsDialog(
 }
 
 @Composable
-private fun ConfirmDialog(title: String, body: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss) {
-        // Le choix sans conséquence reçoit le focus : un appui réflexe ne retire rien.
-        val cancelFocus = remember { FocusRequester() }
-        LaunchedEffect(Unit) { runCatching { cancelFocus.requestFocus() } }
-        Column(
-            modifier = Modifier
-                .width(480.dp)
-                .background(LumenColors.SurfaceRaised, RoundedCornerShape(24.dp))
-                .padding(32.dp),
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Spacer(Modifier.height(12.dp))
-            Text(
-                text = body,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(28.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                OutlinedButton(onClick = onDismiss, modifier = Modifier.focusRequester(cancelFocus)) {
-                    Text(stringResource(R.string.profiles_remove_cancel))
-                }
-                Button(onClick = onConfirm) {
-                    Text(stringResource(R.string.profiles_remove_confirm))
-                }
-            }
-        }
-    }
-}
+private fun ConfirmDialog(title: String, body: String, onConfirm: () -> Unit, onDismiss: () -> Unit) =
+    dev.lumen.designsystem.ConfirmDialog(
+        title = title,
+        body = body,
+        confirm = stringResource(R.string.profiles_remove_confirm),
+        cancel = stringResource(R.string.profiles_remove_cancel),
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+    )

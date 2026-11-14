@@ -31,4 +31,12 @@
     <string name="channel_follow_qr">Scannez pour suivre cette chaîne depuis votre téléphone</string>
     <string name="following_clips">Clips des chaînes suivies</string>
     <string name="category_clips">Meilleurs clips de la semaine</string>
+    <string name="home_recent">Regardé récemment</string>
+    <string name="category_hide_title">Masquer %1$s ?</string>
+    <string name="category_hide_body">Elle quitte l\'accueil, et ses lives quittent Populaires et Recommandés. Paramètres > Accueil la fait revenir.</string>
+    <string name="category_hide_confirm">Masquer</string>
+    <string name="category_hide_cancel">Annuler</string>
+    <string name="channel_pin">Épingler en tête</string>
+    <string name="channel_unpin">Désépingler</string>
+    <string name="channel_pin_hint">Les chaînes épinglées passent en tête de vos chaînes en live et du zapping.</string>
 </resources>

@@ -58,4 +58,7 @@
     <string name="settings_width_narrow">Stretta</string>
     <string name="settings_width_normal">Normale</string>
     <string name="settings_width_wide">Larga</string>
+    <string name="settings_home">Home</string>
+    <string name="settings_hidden_categories">Categorie nascoste</string>
+    <string name="settings_hidden_categories_hint">Tieni premuto su una categoria nella Home per nasconderla. OK qui le mostra di nuovo tutte.</string>
 </resources>

@@ -31,4 +31,12 @@
     <string name="channel_follow_qr">Escanea para seguir este canal desde tu teléfono</string>
     <string name="following_clips">Clips de los canales que sigues</string>
     <string name="category_clips">Mejores clips de la semana</string>
+    <string name="home_recent">Vistos recientemente</string>
+    <string name="category_hide_title">¿Ocultar %1$s?</string>
+    <string name="category_hide_body">Desaparece de Inicio, y sus directos de Populares y Recomendados. Ajustes > Inicio la recupera.</string>
+    <string name="category_hide_confirm">Ocultar</string>
+    <string name="category_hide_cancel">Cancelar</string>
+    <string name="channel_pin">Fijar arriba</string>
+    <string name="channel_unpin">Dejar de fijar</string>
+    <string name="channel_pin_hint">Los canales fijados van primero entre tus canales en directo y al cambiar de canal.</string>
 </resources>

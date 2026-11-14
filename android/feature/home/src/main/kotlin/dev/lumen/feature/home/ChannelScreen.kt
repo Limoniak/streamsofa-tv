@@ -1,5 +1,9 @@
 package dev.lumen.feature.home
 
+import kotlinx.coroutines.flow.map
+import androidx.tv.material3.Button
+import dev.lumen.data.AccountsRepository
+import dev.lumen.data.SettingsRepository
 import android.text.format.DateUtils
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -95,8 +99,18 @@ data class ChannelUiState(
 class ChannelViewModel @Inject constructor(
     savedState: SavedStateHandle,
     private val catalog: CatalogRepository,
+    private val settings: SettingsRepository,
+    accounts: AccountsRepository,
 ) : ViewModel() {
     private val login: String = checkNotNull(savedState["login"])
+
+    /** Épingler n'a d'effet que sur les suivis en live : seulement avec un compte. */
+    val canPin: StateFlow<Boolean> = accounts.snapshot.map { it?.activeId != null }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val pinned: StateFlow<Boolean> = settings.state.map { login in it.pinnedChannels }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    fun togglePin() = settings.update { withPinned(login, login !in pinnedChannels) }
     private val _state = MutableStateFlow(ChannelUiState())
 
     /** Les reprises enregistrées par le lecteur s'appliquent sans recharger la page. */
@@ -162,7 +176,12 @@ fun ChannelRoute(
     viewModel: ChannelViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    ChannelScreen(state, onOpenStream, onOpenVideo, onOpenClip, onRetry = viewModel::reload, onNearEnd = viewModel::loadMore)
+    val canPin by viewModel.canPin.collectAsStateWithLifecycle()
+    val pinned by viewModel.pinned.collectAsStateWithLifecycle()
+    ChannelScreen(
+        state, onOpenStream, onOpenVideo, onOpenClip, onRetry = viewModel::reload, onNearEnd = viewModel::loadMore,
+        pinned = pinned.takeIf { canPin }, onTogglePin = viewModel::togglePin,
+    )
 }
 
 @Composable
@@ -173,6 +192,9 @@ fun ChannelScreen(
     onOpenClip: (slug: String, title: String) -> Unit,
     onRetry: () -> Unit,
     onNearEnd: () -> Unit,
+    /** `null` : pas de bouton (invité). */
+    pinned: Boolean? = null,
+    onTogglePin: () -> Unit = {},
 ) {
     val memory = rememberFocusMemory()
     val live = state.live
@@ -195,6 +217,21 @@ fun ChannelScreen(
                 horizontalArrangement = Arrangement.spacedBy(20.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
+                // En tête de grille : ▲ depuis le live ou la première vidéo y mène.
+                if (pinned != null && state.channel != null) {
+                    fullWidth {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Button(onClick = onTogglePin) {
+                                Text(stringResource(if (pinned) R.string.channel_unpin else R.string.channel_pin))
+                            }
+                            Text(
+                                stringResource(R.string.channel_pin_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = LumenColors.OnSurfaceMuted,
+                            )
+                        }
+                    }
+                }
                 if (live != null) {
                     fullWidth { SectionTitle(stringResource(R.string.channel_live)) }
                     item(key = "live") {

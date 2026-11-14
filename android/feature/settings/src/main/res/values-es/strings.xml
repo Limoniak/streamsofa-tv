@@ -58,4 +58,7 @@
     <string name="settings_width_narrow">Estrecho</string>
     <string name="settings_width_normal">Normal</string>
     <string name="settings_width_wide">Ancho</string>
+    <string name="settings_home">Inicio</string>
+    <string name="settings_hidden_categories">Categorías ocultas</string>
+    <string name="settings_hidden_categories_hint">Mantén pulsada una categoría en Inicio para ocultarla. OK aquí las vuelve a mostrar todas.</string>
 </resources>

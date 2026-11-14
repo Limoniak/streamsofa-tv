@@ -1,5 +1,6 @@
 package dev.lumen.data
 
+import dev.lumen.core.LiveStream
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CompletableDeferred
@@ -16,6 +17,16 @@ import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.launch
 
 private const val QUALITY_PREFIX = "quality:"
+const val MAX_RECENT_CHANNELS = 20
+
+private fun String?.lines(): List<String> = this?.split('\n')?.filter { it.isNotBlank() }.orEmpty()
+
+/** Épinglées d'abord, dans l'ordre d'épinglage, puis les autres dans leur ordre d'origine. */
+fun List<LiveStream>.pinnedFirst(pinned: List<String>): List<LiveStream> {
+    if (pinned.isEmpty()) return this
+    val rank = pinned.withIndex().associate { it.value to it.index }
+    return sortedBy { rank[it.login] ?: Int.MAX_VALUE }
+}
 const val QUALITY_AUTO = "auto"
 
 /** Préférences du profil actif, et celles de l'appareil (mises à jour, journal de crash). */
@@ -55,7 +66,20 @@ data class AppSettings(
     val channelQuality: Map<String, String> = emptyMap(),
     /** Profil enfants : lu seulement, il se change depuis l'écran des profils (avec PIN parent). */
     val kids: Boolean = false,
+    /** Chaînes épinglées (logins), dans l'ordre d'épinglage : en tête des suivis en live et du zapping. */
+    val pinnedChannels: List<String> = emptyList(),
+    /** Chaînes regardées en live, la plus récente en tête ([MAX_RECENT_CHANNELS] au plus). */
+    val recentChannels: List<String> = emptyList(),
+    /** Catégories masquées de l'accueil : id → nom (pour les lister dans les paramètres). */
+    val hiddenCategories: Map<String, String> = emptyMap(),
 ) {
+    /** [login] en tête des chaînes récentes, sans doublon. */
+    fun withRecentChannel(login: String) =
+        copy(recentChannels = (listOf(login) + recentChannels.filter { it != login }).take(MAX_RECENT_CHANNELS))
+
+    fun withPinned(login: String, pinned: Boolean) =
+        copy(pinnedChannels = if (pinned) (pinnedChannels.filter { it != login } + login) else pinnedChannels.filter { it != login })
+
     internal fun toMap() = mapOf(
         "chat_by_default" to chatByDefault.toString(),
         "max_quality" to maxQuality.toString(),
@@ -73,6 +97,10 @@ data class AppSettings(
         "chat_hidden_users" to hiddenUsers,
         "stream_language" to streamLanguage,
         "recent_searches" to recentSearches.joinToString("\n"),
+        "pinned_channels" to pinnedChannels.joinToString("\n"),
+        "recent_channels" to recentChannels.joinToString("\n"),
+        // Un nom de catégorie ne contient ni tabulation ni saut de ligne.
+        "hidden_categories" to hiddenCategories.entries.joinToString("\n") { "${it.key}\t${it.value}" },
     ) + channelQuality.mapKeys { QUALITY_PREFIX + it.key }
 
     internal companion object {
@@ -96,6 +124,11 @@ data class AppSettings(
                 recentSearches = map["recent_searches"]?.split('\n')?.filter { it.isNotBlank() } ?: d.recentSearches,
                 channelQuality = map.filterKeys { it.startsWith(QUALITY_PREFIX) }.mapKeys { it.key.removePrefix(QUALITY_PREFIX) },
                 kids = map["kids_profile"] == "true",
+                pinnedChannels = map["pinned_channels"].lines(),
+                recentChannels = map["recent_channels"].lines(),
+                hiddenCategories = map["hidden_categories"].lines()
+                    .mapNotNull { line -> line.split('\t', limit = 2).takeIf { it.size == 2 }?.let { it[0] to it[1] } }
+                    .toMap(),
             )
         }
     }

@@ -66,7 +66,7 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon :core-bridge:testDebugUnitTest :data:testDebugUnitTest :feature:auth:testDebugUnitTest :feature:player:testDebugUnitTest -Plumen.abis=x86_64
+          ./gradlew --no-daemon :core-bridge:testDebugUnitTest :data:testDebugUnitTest :feature:auth:testDebugUnitTest :feature:home:testDebugUnitTest :feature:player:testDebugUnitTest :designsystem:testDebugUnitTest -Plumen.abis=x86_64
 
       - name: Keystore de release
         if: startsWith(github.ref, 'refs/tags/v')

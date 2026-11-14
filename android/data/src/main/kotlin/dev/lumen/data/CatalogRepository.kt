@@ -25,6 +25,11 @@ import dev.lumen.core.VideoPage
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -117,16 +122,32 @@ interface CatalogRepository {
 internal class RustCatalogRepository @Inject constructor(
     private val coreHolder: CoreHolder,
     private val launcher: LauncherChannel,
+    private val settings: SettingsRepository,
 ) : CatalogRepository {
+    /** Ordre de Twitch ; [followed] le présente épinglées d'abord. */
+    private var raw: List<LiveStream> = emptyList()
     private val _followed = MutableStateFlow<List<LiveStream>>(emptyList())
     override val followed: StateFlow<List<LiveStream>> = _followed.asStateFlow()
 
+    init {
+        // Épingler ou désépingler réordonne tout de suite l'accueil, le zapping et la liste des lives.
+        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
+            settings.state.map { it.pinnedChannels }.distinctUntilChanged().collect { pinned ->
+                _followed.value = raw.pinnedFirst(pinned)
+            }
+        }
+    }
+
     override suspend fun followedStreams(): List<LiveStream> = try {
-        coreHolder.get().followedStreams().also {
-            _followed.value = it
-            launcher.publish(it)
+        coreHolder.get().followedStreams().let { streams ->
+            raw = streams
+            streams.pinnedFirst(settings.state.value.pinnedChannels).also {
+                _followed.value = it
+                launcher.publish(it)
+            }
         }
     } catch (e: CoreException.NotSignedIn) {
+        raw = emptyList()
         _followed.value = emptyList()
         launcher.publish(emptyList())
         throw e

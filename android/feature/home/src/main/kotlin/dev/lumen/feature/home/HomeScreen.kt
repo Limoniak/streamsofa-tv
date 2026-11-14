@@ -38,6 +38,10 @@ import dev.lumen.designsystem.LumenInsets
 import dev.lumen.designsystem.MessageState
 import dev.lumen.designsystem.StreamCard
 import dev.lumen.designsystem.StreamCardSkeleton
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import dev.lumen.designsystem.ConfirmDialog
 import dev.lumen.designsystem.rememberFocusMemory
 import dev.lumen.designsystem.requestWhenAttached
 import dev.lumen.designsystem.restoreFocusHere
@@ -53,7 +57,7 @@ fun HomeRoute(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshIfStale() }
-    HomeScreen(state, onOpenStream, onOpenChannel, onOpenCategory, onReconnect, onRetry = viewModel::reload)
+    HomeScreen(state, onOpenStream, onOpenChannel, onOpenCategory, onReconnect, onRetry = viewModel::reload, onHideCategory = viewModel::hideCategory)
 }
 
 @Composable
@@ -64,14 +68,29 @@ fun HomeScreen(
     onOpenCategory: (id: String, name: String) -> Unit,
     onReconnect: () -> Unit,
     onRetry: () -> Unit,
+    onHideCategory: (id: String, name: String) -> Unit = { _, _ -> },
     memory: FocusMemory = rememberFocusMemory(),
 ) {
+    val hidden = state.hiddenCategories
+    // Les lives d'une catégorie masquée disparaissent aussi des rangées de découverte (pas des suivis).
+    fun Section<LiveStream>.visible(): Section<LiveStream> =
+        if (hidden.isEmpty() || this !is Section.Ready) this else Section.Ready(items.filter { it.categoryId !in hidden })
+    val recommendedSection = state.recommended.visible()
+    val popularSection = state.popular.visible()
+    val categoriesSection = state.categories.let { s ->
+        if (hidden.isEmpty() || s !is Section.Ready) s else Section.Ready(s.items.filter { it.id !in hidden })
+    }
     // Focus initial : la dernière carte ouverte, sinon la première carte de la première rangée.
     val followed = (state.followed as? Section.Ready)?.items.orEmpty().takeIf { state.showFollowed }.orEmpty()
-    val recommended = (state.recommended as? Section.Ready)?.items.orEmpty().takeIf { state.showFollowed }.orEmpty()
-    val popular = (state.popular as? Section.Ready)?.items.orEmpty()
-    val categories = (state.categories as? Section.Ready)?.items.orEmpty()
-    val keys = followed.map { "f:${it.login}" } + recommended.map { "r:${it.login}" } + popular.map { "p:${it.login}" } + categories.map { "c:${it.id}" }
+    val followedLogins = followed.map { it.login }.toSet()
+    val recent = state.recent.filter { it.login !in followedLogins }
+    val recommended = (recommendedSection as? Section.Ready)?.items.orEmpty().takeIf { state.showFollowed }.orEmpty()
+    val popular = (popularSection as? Section.Ready)?.items.orEmpty()
+    val categories = (categoriesSection as? Section.Ready)?.items.orEmpty()
+    val keys = followed.map { "f:${it.login}" } + recent.map { "h:${it.login}" } + recommended.map { "r:${it.login}" } +
+        popular.map { "p:${it.login}" } + categories.map { "c:${it.id}" }
+    /** Catégorie dont on confirme le masquage (appui long). */
+    var hiding by remember { mutableStateOf<Category?>(null) }
     // On attend toutes les rangées : sinon le focus irait à la première arrivée, pas à la première affichée.
     val settled = listOfNotNull(state.followed.takeIf { state.showFollowed }, state.popular, state.categories)
         .none { it is Section.Loading }
@@ -111,12 +130,27 @@ fun HomeScreen(
                 )
             }
         }
-        // Secondaire : ni chargement ni erreur affichés, la rangée apparaît si elle a du contenu.
+        // Secondaires : ni chargement ni erreur affichés, la rangée apparaît si elle a du contenu.
+        if (recent.isNotEmpty()) {
+            item(key = "recent") {
+                StreamRow(
+                    title = stringResource(R.string.home_recent),
+                    section = Section.Ready(recent),
+                    prefix = "h",
+                    emptyText = null,
+                    memory = memory,
+                    target = target,
+                    onOpen = openStream,
+                    onOpenChannel = openChannel,
+                    onRetry = onRetry,
+                )
+            }
+        }
         if (recommended.isNotEmpty()) {
             item(key = "recommended") {
                 StreamRow(
                     title = stringResource(R.string.home_recommended),
-                    section = state.recommended,
+                    section = recommendedSection,
                     prefix = "r",
                     emptyText = null,
                     memory = memory,
@@ -130,7 +164,7 @@ fun HomeScreen(
         item(key = "popular") {
             StreamRow(
                 title = stringResource(R.string.home_popular),
-                section = state.popular,
+                section = popularSection,
                 prefix = "p",
                 emptyText = null,
                 memory = memory,
@@ -142,7 +176,7 @@ fun HomeScreen(
         }
         item(key = "categories") {
             RowScaffold(stringResource(R.string.home_categories)) {
-                when (val section = state.categories) {
+                when (val section = categoriesSection) {
                     Section.Loading -> SkeletonRow { CategoryCardSkeleton() }
                     is Section.Failed -> RowMessage(stringResource(section.error.messageRes), onRetry)
                     is Section.Ready -> CardRow(section.items, key = { it.id }) { category ->
@@ -153,12 +187,26 @@ fun HomeScreen(
                                 memory.key = key
                                 onOpenCategory(category.id, category.name)
                             },
+                            onLongClick = { hiding = category },
                             modifier = Modifier.restoreFocusHere(memory, key == target),
                         )
                     }
                 }
             }
         }
+    }
+    hiding?.let { category ->
+        ConfirmDialog(
+            title = stringResource(R.string.category_hide_title, category.name),
+            body = stringResource(R.string.category_hide_body),
+            confirm = stringResource(R.string.category_hide_confirm),
+            cancel = stringResource(R.string.category_hide_cancel),
+            onConfirm = {
+                hiding = null
+                onHideCategory(category.id, category.name)
+            },
+            onDismiss = { hiding = null },
+        )
     }
 }
 

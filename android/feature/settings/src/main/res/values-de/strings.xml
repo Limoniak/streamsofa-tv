@@ -58,4 +58,7 @@
     <string name="settings_width_narrow">Schmal</string>
     <string name="settings_width_normal">Normal</string>
     <string name="settings_width_wide">Breit</string>
+    <string name="settings_home">Start</string>
+    <string name="settings_hidden_categories">Ausgeblendete Kategorien</string>
+    <string name="settings_hidden_categories_hint">Halte OK auf einer Kategorie auf Start gedrückt, um sie auszublenden. OK hier zeigt alle wieder.</string>
 </resources>

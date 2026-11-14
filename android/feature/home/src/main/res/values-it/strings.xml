@@ -31,4 +31,12 @@
     <string name="channel_follow_qr">Scansiona per seguire questo canale dal telefono</string>
     <string name="following_clips">Clip dei canali che segui</string>
     <string name="category_clips">Migliori clip della settimana</string>
+    <string name="home_recent">Visti di recente</string>
+    <string name="category_hide_title">Nascondere %1$s?</string>
+    <string name="category_hide_body">Sparisce dalla Home, e le sue dirette da Popolari e Consigliati. Impostazioni > Home la fa tornare.</string>
+    <string name="category_hide_confirm">Nascondi</string>
+    <string name="category_hide_cancel">Annulla</string>
+    <string name="channel_pin">Fissa in cima</string>
+    <string name="channel_unpin">Non fissare più</string>
+    <string name="channel_pin_hint">I canali fissati vengono prima tra i tuoi canali in diretta e quando cambi canale.</string>
 </resources>
