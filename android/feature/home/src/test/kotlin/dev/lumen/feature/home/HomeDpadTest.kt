@@ -83,12 +83,13 @@ class HomeDpadTest {
         onOpen: (String) -> Unit = {},
         onFavorite: (String, String) -> Unit = { _, _ -> },
         onVideo: (String) -> Unit = {},
+        onWatchReminder: (String) -> Unit = {},
     ) {
         rule.setContent {
             LumenTheme {
                 HomeScreen(
                     state, onOpenStream = onOpen, onOpenChannel = {}, onOpenCategory = { _, _ -> }, onReconnect = {}, onRetry = {},
-                    onHideCategory = onHide, onToggleFavorite = onFavorite, onOpenVideo = onVideo,
+                    onHideCategory = onHide, onToggleFavorite = onFavorite, onOpenVideo = onVideo, onWatchReminder = onWatchReminder,
                 )
             }
         }
@@ -193,5 +194,16 @@ class HomeDpadTest {
         rule.onAllNodesWithText("Chaine1").assertCountEquals(1)
         press(Key.DirectionDown)
         rule.onNodeWithText("Chaine7").assertIsFocused()
+    }
+
+    @Test
+    fun reminderBannerWatchesTheChannel() {
+        var watched: String? = null
+        show(state.copy(reminderLive = stream(9)), onWatchReminder = { watched = it })
+        rule.onNodeWithText("Chaine0").assertIsFocused()
+        // Le bandeau est au-dessus des rangées : ▲ y mène.
+        press(Key.DirectionUp)
+        press(Key.DirectionCenter)
+        assertEquals("chaine9", watched)
     }
 }

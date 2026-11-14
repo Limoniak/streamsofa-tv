@@ -45,4 +45,9 @@
     <string name="home_favorite">En live dans %1$s</string>
     <string name="category_add_home">Ajouter à l\'accueil</string>
     <string name="category_remove_home">Retirer de l\'accueil</string>
+    <string name="channel_remind">Me le rappeler</string>
+    <string name="channel_reminded">Rappel activé · OK pour annuler</string>
+    <string name="home_reminder_live">%1$s est en live (rappel)</string>
+    <string name="home_reminder_watch">Regarder</string>
+    <string name="home_reminder_dismiss">Ignorer</string>
 </resources>

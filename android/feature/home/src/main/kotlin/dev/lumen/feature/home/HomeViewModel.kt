@@ -15,6 +15,8 @@ import dev.lumen.core.Video
 import dev.lumen.data.AccountsRepository
 import dev.lumen.data.CatalogRepository
 import dev.lumen.data.LoadError
+import dev.lumen.data.withoutReminder
+import dev.lumen.data.dueReminders
 import dev.lumen.data.DEFAULT_HOME_ROWS
 import dev.lumen.data.HomeRowSetting
 import dev.lumen.data.HomeRow
@@ -72,6 +74,8 @@ data class HomeUiState(
     /** Une rangée par catégorie favorite, dans l'ordre d'ajout. */
     val favorites: List<FavoriteRow> = emptyList(),
     val favoriteIds: Set<String> = emptySet(),
+    /** Chaîne rappelée (planning) qui vient de passer en live : bandeau en tête de l'accueil. */
+    val reminderLive: LiveStream? = null,
 ) {
     val needsReauth get() = account?.state == AccountState.NEEDS_REAUTH
     val showFollowed get() = account != null && !needsReauth
@@ -82,6 +86,8 @@ data class FavoriteRow(val id: String, val name: String, val streams: List<LiveS
 
 /** Chaînes récentes interrogées à chaque chargement (une requête chacune, en parallèle). */
 private const val RECENT_LOOKUPS = 10
+/** Rappels vérifiés à chaque chargement de l'accueil (une requête chacun). */
+private const val REMINDER_LOOKUPS = 5
 /** Rediffusions de « Continuer à regarder » (une requête chacune). */
 private const val CONTINUE_LOOKUPS = 10
 /** Catégories récentes qui nourrissent « Pourrait vous plaire ». */
@@ -146,6 +152,13 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    /** Le rappel a servi (regardé ou ignoré) : il est retiré. */
+    fun clearReminder() {
+        val login = _state.value.reminderLive?.login ?: return
+        settings.update { withoutReminder(login) }
+        _state.update { it.copy(reminderLive = null) }
+    }
+
     /** Masque [id] de l'accueil ; Paramètres > Accueil les fait réapparaître. */
     fun hideCategory(id: String, name: String) = settings.update { copy(hiddenCategories = hiddenCategories + (id to name)) }
 
@@ -175,6 +188,11 @@ class HomeViewModel @Inject constructor(
                 val result = loadCatching { catalog.followedStreams() }.toSection()
                 _state.update { it.copy(followed = result) }
                 (result as? Section.Ready)?.items.orEmpty()
+            }
+            launch {
+                val due = prefs.dueReminders(System.currentTimeMillis() / 1000).take(REMINDER_LOOKUPS)
+                val live = due.map { login -> async { loadCatching { catalog.liveStream(login) }.getOrNull() } }.awaitAll().firstOrNull { it != null }
+                _state.update { it.copy(reminderLive = live) }
             }
             if (shown(HomeRow.Recent)) launch {
                 // Après les suivis : une chaîne suivie en live est déjà dans sa rangée, inutile de la redemander.

@@ -18,6 +18,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRestorer
+import androidx.compose.foundation.focusGroup
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -69,6 +71,11 @@ fun HomeRoute(
     HomeScreen(
         state, onOpenStream, onOpenChannel, onOpenCategory, onReconnect, onRetry = viewModel::reload,
         onHideCategory = viewModel::hideCategory, onToggleFavorite = viewModel::toggleFavorite, onOpenVideo = onOpenVideo,
+        onWatchReminder = {
+            viewModel.clearReminder()
+            onOpenStream(it)
+        },
+        onDismissReminder = viewModel::clearReminder,
     )
 }
 
@@ -91,6 +98,8 @@ fun HomeScreen(
     onHideCategory: (id: String, name: String) -> Unit = { _, _ -> },
     onToggleFavorite: (id: String, name: String) -> Unit = { _, _ -> },
     onOpenVideo: (id: String) -> Unit = {},
+    onWatchReminder: (login: String) -> Unit = {},
+    onDismissReminder: () -> Unit = {},
     memory: FocusMemory = rememberFocusMemory(),
 ) {
     val hidden = state.hiddenCategories
@@ -211,6 +220,9 @@ fun HomeScreen(
     ) {
         if (state.needsReauth) {
             item(key = "reauth") { ReauthBanner(state.account?.displayName.orEmpty(), onReconnect) }
+        }
+        state.reminderLive?.let { stream ->
+            item(key = "reminder") { ReminderBanner(stream.displayName, { onWatchReminder(stream.login) }, onDismissReminder) }
         }
         items.forEach { row -> item(key = row.id) { row.content() } }
     }
@@ -370,5 +382,24 @@ private fun ReauthBanner(name: String, onReconnect: () -> Unit) {
             color = LumenColors.Error,
         )
         Button(onClick = onReconnect) { Text(stringResource(R.string.home_reconnect)) }
+    }
+}
+
+/** Une chaîne rappelée depuis son planning vient de lancer son live. */
+@Composable
+private fun ReminderBanner(name: String, onWatch: () -> Unit, onDismiss: () -> Unit) {
+    val watch = remember { FocusRequester() }
+    Row(
+        // On entre dans le bandeau par « Regarder », d'où que vienne le focus.
+        modifier = Modifier
+            .padding(horizontal = LumenInsets.horizontal)
+            .focusProperties { onEnter = { watch.requestFocus() } }
+            .focusGroup(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text(stringResource(R.string.home_reminder_live, name), style = MaterialTheme.typography.titleMedium, color = LumenColors.Accent)
+        Button(onClick = onWatch, modifier = Modifier.focusRequester(watch)) { Text(stringResource(R.string.home_reminder_watch)) }
+        OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.home_reminder_dismiss)) }
     }
 }

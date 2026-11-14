@@ -29,6 +29,8 @@ import dev.lumen.data.ChatRepository
 import dev.lumen.data.LoadError
 import dev.lumen.data.QUALITY_AUTO
 import dev.lumen.data.SettingsRepository
+import dev.lumen.data.withoutReminder
+import dev.lumen.data.dueReminders
 import dev.lumen.data.loadCatching
 import dev.lumen.data.messageRes
 import dev.lumen.data.toLoadError
@@ -285,9 +287,17 @@ class PlayerViewModel @Inject constructor(
             var previous = catalog.followed.value
             while (true) {
                 delay(FOLLOWED_REFRESH_MS)
+                // Rappels du planning (invité compris) : la chaîne rappelée passe avant les suivis.
+                val watching = _state.value.login
+                val due = settings.state.value.dueReminders(System.currentTimeMillis() / 1000).filter { it != watching }.take(3)
+                val reminded = due.firstNotNullOfOrNull { loadCatching { catalog.liveStream(it) }.getOrNull() }
+                if (reminded != null) {
+                    settings.update { withoutReminder(reminded.login) }
+                    showNowLive(reminded)
+                }
                 if (accounts.snapshot.value?.activeId == null) continue
                 val current = loadCatching { catalog.followedStreams() }.getOrNull() ?: continue
-                newlyLive(previous, current, _state.value.login).firstOrNull()?.let(::showNowLive)
+                if (reminded == null) newlyLive(previous, current, watching).firstOrNull()?.let(::showNowLive)
                 previous = current
             }
         }

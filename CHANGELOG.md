@@ -6,6 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Added
+- Reminders: "Remind me" on a channel page with an announced schedule. When that stream starts, Home shows a banner (Watch / Dismiss), and the live player announces it if you are watching another channel. Guest mode included.
 - Interface size (Settings, next to the accent colour): small, medium or large, for a big room or tired eyes.
 - What's new: after an update, the new version's notes are shown once.
 - "Chat messages" in the live player's action bar: the latest messages, browsable with the remote; OK on one shows its author's card (badges and their recent messages). Guest mode included.

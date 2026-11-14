@@ -45,4 +45,9 @@
     <string name="home_favorite">Live in %1$s</string>
     <string name="category_add_home">Add to Home</string>
     <string name="category_remove_home">Remove from Home</string>
+    <string name="channel_remind">Remind me</string>
+    <string name="channel_reminded">Reminder set · OK to cancel</string>
+    <string name="home_reminder_live">%1$s is live (reminder)</string>
+    <string name="home_reminder_watch">Watch</string>
+    <string name="home_reminder_dismiss">Dismiss</string>
 </resources>

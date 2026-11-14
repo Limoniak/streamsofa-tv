@@ -45,4 +45,9 @@
     <string name="home_favorite">Ao vivo em %1$s</string>
     <string name="category_add_home">Adicionar ao Início</string>
     <string name="category_remove_home">Remover do Início</string>
+    <string name="channel_remind">Me lembrar</string>
+    <string name="channel_reminded">Lembrete ativado · OK para cancelar</string>
+    <string name="home_reminder_live">%1$s está ao vivo (lembrete)</string>
+    <string name="home_reminder_watch">Assistir</string>
+    <string name="home_reminder_dismiss">Dispensar</string>
 </resources>

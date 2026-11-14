@@ -96,6 +96,8 @@ data class AppSettings(
     val favoriteCategories: Map<String, String> = emptyMap(),
     /** Catégories des lives regardés, la plus récente en tête : base de « Pourrait vous plaire ». */
     val recentCategories: Map<String, String> = emptyMap(),
+    /** Rappels de lives annoncés au planning : login → début du créneau (secondes Unix). */
+    val reminders: Map<String, Long> = emptyMap(),
     /** Rangées de l'accueil, dans l'ordre choisi, avec leur visibilité. */
     val homeRows: List<HomeRowSetting> = DEFAULT_HOME_ROWS,
     /** Profil enfants : temps d'écran par jour, en minutes (0 = sans limite). Lu seulement, réglé avec le PIN parent. */
@@ -147,6 +149,7 @@ data class AppSettings(
         "favorite_categories" to favoriteCategories.lines(),
         "recent_categories" to recentCategories.lines(),
         "home_rows" to homeRows.toHomeRowsValue(),
+        "reminders" to reminders.entries.joinToString("\n") { "${it.key}\t${it.value}" },
     ) + listOfNotNull(screenTime?.let { "screen_time" to "${it.first}\t${it.second}" }) + channelQuality.mapKeys { QUALITY_PREFIX + it.key }
 
     internal companion object {
@@ -180,6 +183,7 @@ data class AppSettings(
                 favoriteCategories = map["favorite_categories"].idNames(),
                 recentCategories = map["recent_categories"].idNames(),
                 homeRows = parseHomeRows(map["home_rows"]),
+                reminders = map["reminders"].idNames().mapNotNull { (login, start) -> start.toLongOrNull()?.let { login to it } }.toMap(),
                 kidsDailyMinutes = map["kids_daily_minutes"]?.toIntOrNull() ?: 0,
                 kidsExtra = map["kids_extra"].dayValue()?.let { (day, v) -> v.toIntOrNull()?.let { day to it } },
                 screenTime = map["screen_time"].dayValue()?.let { (day, v) -> v.toLongOrNull()?.let { day to it } },

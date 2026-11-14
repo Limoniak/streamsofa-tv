@@ -45,4 +45,9 @@
     <string name="home_favorite">In diretta in %1$s</string>
     <string name="category_add_home">Aggiungi alla Home</string>
     <string name="category_remove_home">Rimuovi dalla Home</string>
+    <string name="channel_remind">Ricordamelo</string>
+    <string name="channel_reminded">Promemoria attivo · OK per annullare</string>
+    <string name="home_reminder_live">%1$s è in diretta (promemoria)</string>
+    <string name="home_reminder_watch">Guarda</string>
+    <string name="home_reminder_dismiss">Ignora</string>
 </resources>

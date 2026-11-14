@@ -1,5 +1,7 @@
 package dev.lumen.feature.home
 
+import dev.lumen.data.withoutReminder
+import dev.lumen.data.withReminder
 import kotlinx.coroutines.flow.map
 import androidx.tv.material3.Button
 import dev.lumen.data.AccountsRepository
@@ -111,6 +113,16 @@ class ChannelViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     fun togglePin() = settings.update { withPinned(login, login !in pinnedChannels) }
+
+    val reminded: StateFlow<Boolean> = settings.state.map { login in it.reminders }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    /** Rappel du prochain live annoncé au planning ; à nouveau, il est retiré. */
+    fun toggleReminder() {
+        val next = _state.value.about?.schedule?.firstOrNull() ?: return
+        val now = System.currentTimeMillis() / 1000
+        settings.update { if (login in reminders) withoutReminder(login) else withReminder(login, next.startAt, now) }
+    }
     private val _state = MutableStateFlow(ChannelUiState())
 
     /** Les reprises enregistrées par le lecteur s'appliquent sans recharger la page. */
@@ -178,9 +190,11 @@ fun ChannelRoute(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val canPin by viewModel.canPin.collectAsStateWithLifecycle()
     val pinned by viewModel.pinned.collectAsStateWithLifecycle()
+    val reminded by viewModel.reminded.collectAsStateWithLifecycle()
     ChannelScreen(
         state, onOpenStream, onOpenVideo, onOpenClip, onRetry = viewModel::reload, onNearEnd = viewModel::loadMore,
         pinned = pinned.takeIf { canPin }, onTogglePin = viewModel::togglePin,
+        reminded = reminded, onToggleReminder = viewModel::toggleReminder,
     )
 }
 
@@ -195,6 +209,8 @@ fun ChannelScreen(
     /** `null` : pas de bouton (invité). */
     pinned: Boolean? = null,
     onTogglePin: () -> Unit = {},
+    reminded: Boolean = false,
+    onToggleReminder: () -> Unit = {},
 ) {
     val memory = rememberFocusMemory()
     val live = state.live
@@ -248,6 +264,16 @@ fun ChannelScreen(
                 val schedule = state.about?.schedule.orEmpty()
                 if (schedule.isNotEmpty()) {
                     fullWidth { SectionTitle(stringResource(R.string.channel_schedule)) }
+                    // Hors live : être prévenu quand le prochain créneau commence.
+                    if (live == null) {
+                        fullWidth {
+                            Row {
+                                Button(onClick = onToggleReminder) {
+                                    Text(stringResource(if (reminded) R.string.channel_reminded else R.string.channel_remind))
+                                }
+                            }
+                        }
+                    }
                     fullWidth { ScheduleList(schedule.take(SCHEDULE_SHOWN)) }
                 }
                 if (state.clips.isNotEmpty()) {
