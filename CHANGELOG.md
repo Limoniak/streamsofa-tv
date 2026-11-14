@@ -50,6 +50,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Multi-view: a long press on OK opens a menu (replace or remove) instead of removing the tile at once.
 
 ### Fixed
+- On Android 12 and later, app data (accounts, profile PINs, settings) is no longer copied to a new device during a device-to-device transfer.
+- Only the system search can query the app's search suggestions; other apps can no longer run Twitch searches through your account.
 - Multi-view: after replacing a tile, the sound no longer jumps to the first tile for a moment.
 - Left in the empty search field now leaves it, instead of being stuck there.
 - Multi-view channel picker: the Start and Cancel buttons could be pushed off screen by a long list.

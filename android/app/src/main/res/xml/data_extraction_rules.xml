@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ : allowBackup="false" n'empêche plus le transfert d'un appareil à l'autre.
+  Rien ne part, ni en sauvegarde cloud ni en transfert : les jetons sont chiffrés par une clé Keystore
+  propre à cet appareil (illisibles ailleurs), et la base porte les PIN des profils.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>

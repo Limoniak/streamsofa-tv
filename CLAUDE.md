@@ -141,6 +141,8 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
   renouvelé toutes les 4 min, servi une seule fois et jamais au-delà de 5 min ; une relance (`retried`) en redemande un.
   Tampon du live : 1,5 s avant la première image, 3 s après une coupure (`liveLoadControl`).
 - Chat : `LazyColumn` à clés (id, doublons écartés) + `requestScrollToItem(0)` à chaque nouveau message (`ChatPanelTest`).
+- Sauvegarde : `allowBackup=false` + `data_extraction_rules.xml` (rien en cloud ni en transfert d'appareil, Android 12+).
+  `SearchProvider` protégé par `readPermission` `GLOBAL_SEARCH`.
 - APK : `localeFilters` = les six langues (écrites comme les dossiers, `pt-rBR`) ; `TranslationsTest` vérifie l'accord
   avec `locales_config.xml`.
 
