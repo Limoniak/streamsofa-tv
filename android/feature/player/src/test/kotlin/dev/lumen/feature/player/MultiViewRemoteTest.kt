@@ -151,7 +151,8 @@ class MultiViewRemoteTest {
         press(Key.DirectionCenter)
         rule.onNodeWithText("Erin").assertIsFocused()
         press(Key.DirectionCenter)
-        assertEquals(listOf("replace:bob>erin"), actions.calls.filter { it.startsWith("replace") })
+        // Le son reste sur la tuile remplacée : il ne passe pas par la première en refermant la liste.
+        assertEquals(listOf("focus:1", "replace:bob>erin"), actions.calls)
         assertEquals(listOf("alice", "erin", "carol", "dave"), state.tiles.map { it.login })
         // La liste fermée, la télécommande revient sur la tuile qui a le son.
         press(Key.DirectionCenter)

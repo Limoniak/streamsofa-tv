@@ -50,6 +50,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Multi-view: a long press on OK opens a menu (replace or remove) instead of removing the tile at once.
 
 ### Fixed
+- Multi-view: after replacing a tile, the sound no longer jumps to the first tile for a moment.
 - Left in the empty search field now leaves it, instead of being stuck there.
 - Multi-view channel picker: the Start and Cancel buttons could be pushed off screen by a long list.
 

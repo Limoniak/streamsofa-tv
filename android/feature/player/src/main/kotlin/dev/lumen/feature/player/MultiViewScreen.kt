@@ -105,10 +105,22 @@ internal fun MultiViewScreen(
     var menu by remember { mutableStateOf<String?>(null) }
     /** Tuile en cours de remplacement : la liste des lives est affichée. */
     var replacing by remember { mutableStateOf<String?>(null) }
-    BackHandler(enabled = replacing != null) { replacing = null }
+    /**
+     * Menu ou liste en train de se fermer : Compose pose d'abord le focus sur la première tuile, avant
+     * qu'on le rende à celle qui a le son. Ce passage ne doit pas lui donner le son, même un instant.
+     */
+    var settling by remember { mutableStateOf(false) }
+    fun closeReplacing() {
+        settling = true
+        replacing = null
+    }
+    BackHandler(enabled = replacing != null) { closeReplacing() }
     // Menu ou liste fermés : la télécommande revient sur la tuile qui a le son.
     LaunchedEffect(menu, replacing) {
-        if (menu == null && replacing == null) tileFocus[state.focused.coerceIn(0, 3)].requestWhenAttached()
+        if (menu == null && replacing == null) {
+            tileFocus[state.focused.coerceIn(0, 3)].requestWhenAttached()
+            settling = false
+        }
     }
 
     Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
@@ -123,7 +135,7 @@ internal fun MultiViewScreen(
                             video = { video(tile.login) },
                             focused = index == state.focused,
                             press = press,
-                            onFocus = { actions.focus(index) },
+                            onFocus = { if (!settling) actions.focus(index) },
                             onOpen = { onOpenSingle(tile.login) },
                             onRetry = { actions.retry(tile.login) },
                             onMenu = { menu = tile.login },
@@ -144,9 +156,9 @@ internal fun MultiViewScreen(
                 current = "",
                 onPick = { new ->
                     actions.replace(old, new)
-                    replacing = null
+                    closeReplacing()
                 },
-                onDismiss = { replacing = null },
+                onDismiss = { closeReplacing() },
                 modifier = Modifier.align(Alignment.CenterStart),
             )
         }
