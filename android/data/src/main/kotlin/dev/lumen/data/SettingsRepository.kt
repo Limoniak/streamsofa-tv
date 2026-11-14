@@ -49,6 +49,10 @@ data class AppSettings(
     val maxQuality: Int = 0,
     /** En Wi-Fi, hauteur maximale d'un live (qualité de départ et mode Auto) ; 0 = sans plafond. */
     val wifiMaxQuality: Int = 0,
+    /** Taille de l'interface : 0 petite, 1 normale, 2 grande. */
+    val uiSize: Int = 1,
+    /** Dernière version dont les nouveautés ont été vues (réglage de l'appareil). */
+    val lastSeenVersion: String = "",
     /** Lecture des segments en cours d'encodage (expérimental). */
     val lowLatency: Boolean = false,
     /** Compresseur sur le son du lecteur live : volume semblable d'une chaîne à l'autre. */
@@ -119,6 +123,8 @@ data class AppSettings(
         "chat_by_default" to chatByDefault.toString(),
         "max_quality" to maxQuality.toString(),
         "low_latency" to lowLatency.toString(),
+        "ui_size" to uiSize.toString(),
+        "last_seen_version" to lastSeenVersion,
         "wifi_max_quality" to wifiMaxQuality.toString(),
         "constant_volume" to constantVolume.toString(),
         "accent" to accent,
@@ -149,6 +155,8 @@ data class AppSettings(
                 chatByDefault = map["chat_by_default"]?.toBooleanStrictOrNull() ?: d.chatByDefault,
                 maxQuality = map["max_quality"]?.toIntOrNull() ?: d.maxQuality,
                 lowLatency = map["low_latency"]?.toBooleanStrictOrNull() ?: d.lowLatency,
+                uiSize = map["ui_size"]?.toIntOrNull()?.coerceIn(0, 2) ?: d.uiSize,
+                lastSeenVersion = map["last_seen_version"] ?: d.lastSeenVersion,
                 wifiMaxQuality = map["wifi_max_quality"]?.toIntOrNull() ?: d.wifiMaxQuality,
                 constantVolume = map["constant_volume"]?.toBooleanStrictOrNull() ?: d.constantVolume,
                 accent = map["accent"] ?: d.accent,

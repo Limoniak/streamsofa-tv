@@ -947,6 +947,11 @@ impl Core {
     }
 
     /// Release GitHub plus récente que `current_version`, avec l'APK de la première ABI de `abis`.
+    /// Notes de la release de `version` (Markdown brut), pour « Nouveautés » au premier lancement d'une mise à jour.
+    pub async fn release_notes(&self, version: String) -> Result<Option<String>, CoreError> {
+        update::release_notes(&self.http, &self.github, &version).await
+    }
+
     pub async fn check_update(&self, current_version: String, abis: Vec<String>, beta: bool) -> Result<Option<AppUpdate>, CoreError> {
         update::check(&self.http, &self.github, &current_version, &abis, beta).await
     }

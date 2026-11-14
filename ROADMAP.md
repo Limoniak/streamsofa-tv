@@ -14,8 +14,6 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 
 ## Comfort
 
-- [ ] 🟢 Adjustable interface size, for large rooms or tired eyes.
-- [ ] 🟢 What's new, shown once after an update.
 - [ ] 🟡 Move a profile's settings to another TV with a QR code (accounts excluded).
 - [ ] 🟢 More interface languages (English, French, Spanish, German, Italian and Brazilian Portuguese today); translations and corrections welcome.
 

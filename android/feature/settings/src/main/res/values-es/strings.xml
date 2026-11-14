@@ -81,4 +81,7 @@
     <string name="settings_wifi_quality">Con Wi-Fi, como máximo</string>
     <string name="settings_no_limit">Sin límite</string>
     <string name="settings_wifi_quality_hint">Para un Wi-Fi débil: Auto y la calidad inicial no la superan. Ethernet no se limita, y una calidad elegida a mano se mantiene.</string>
+    <string name="settings_ui_size">Tamaño de la interfaz</string>
+    <string name="whats_new_title">Novedades de la %1$s</string>
+    <string name="whats_new_ok">Entendido</string>
 </resources>

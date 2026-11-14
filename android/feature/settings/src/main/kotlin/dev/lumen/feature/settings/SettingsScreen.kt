@@ -269,6 +269,14 @@ fun SettingsRoute(viewModel: SettingsViewModel = hiltViewModel(), updates: Updat
         )
         Text(stringResource(R.string.settings_hidden_categories_hint), color = LumenColors.OnSurfaceMuted, style = MaterialTheme.typography.bodySmall)
 
+        Label(R.string.settings_ui_size)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            listOf(R.string.settings_size_small, R.string.settings_size_medium, R.string.settings_size_large).forEachIndexed { index, label ->
+                FilterChip(selected = settings.uiSize == index, onClick = { viewModel.update { copy(uiSize = index) } }) {
+                    Text(stringResource(label))
+                }
+            }
+        }
         Section(R.string.settings_theme)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             AccentColor.entries.forEach { accent ->

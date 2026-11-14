@@ -11,6 +11,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.lumen.core.AppUpdate
 import dev.lumen.data.LoadError
 import dev.lumen.data.SettingsRepository
+import dev.lumen.data.plainNotes
 import dev.lumen.data.UpdateRepository
 import dev.lumen.data.loadCatching
 import dev.lumen.data.toLoadError
@@ -44,7 +45,29 @@ class UpdateViewModel @Inject constructor(
      * Proposition automatique, une fois par lancement. Jamais sur une build de debug : sa signature
      * diffère de celle des releases, Android refuserait la mise à jour.
      */
+    private val _whatsNew = MutableStateFlow<String?>(null)
+    /** Notes de la version installée, une fois, au premier lancement après une mise à jour. */
+    val whatsNew: StateFlow<String?> = _whatsNew.asStateFlow()
+
+    fun dismissWhatsNew() {
+        _whatsNew.value = null
+    }
+
+    /** Version installée différente de la dernière vue : on retient la nouvelle et on montre ses notes (pas à la première installation). */
+    private suspend fun showWhatsNew() {
+        val current = updates.currentVersion
+        val seen = settings.awaitLoaded().lastSeenVersion
+        if (seen == current) return
+        settings.update { copy(lastSeenVersion = current) }
+        val info = runCatching { context.packageManager.getPackageInfo(context.packageName, 0) }.getOrNull()
+        // Rien de retenu encore : une première installation ne montre rien, une mise à jour depuis une version d'avant cette option, si.
+        val updated = seen.isNotEmpty() || (info != null && info.lastUpdateTime > info.firstInstallTime)
+        if (!updated) return
+        _whatsNew.value = loadCatching { updates.releaseNotes() }.getOrNull()?.let(::plainNotes)
+    }
+
     fun checkOnLaunch() {
+        viewModelScope.launch { showWhatsNew() }
         val debuggable = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
         if (debuggable || updates.promptedThisLaunch) return
         updates.promptedThisLaunch = true
@@ -92,3 +115,4 @@ class UpdateViewModel @Inject constructor(
         runCatching { context.startActivity(intent) }.onFailure { _state.value = UpdateState.Failed(LoadError.Other) }
     }
 }
+

@@ -9,6 +9,9 @@ import dev.lumen.data.SettingsRepository
 import dev.lumen.designsystem.AccentColor
 import dev.lumen.designsystem.LumenColors
 import dev.lumen.designsystem.LumenTheme
+import dev.lumen.designsystem.uiScale
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 
@@ -24,7 +27,8 @@ class MainActivity : ComponentActivity() {
             settings.state.collect { LumenColors.accent = AccentColor.of(it.accent) }
         }
         setContent {
-            LumenTheme { LumenNavHost() }
+            val prefs by settings.state.collectAsState()
+            LumenTheme(scale = uiScale(prefs.uiSize)) { LumenNavHost() }
         }
     }
 }

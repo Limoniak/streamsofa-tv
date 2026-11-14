@@ -1,5 +1,7 @@
 package dev.lumen.designsystem
 
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -64,11 +66,19 @@ private fun darkScheme(): ColorScheme = darkColorScheme(
 )
 
 @Composable
-fun LumenTheme(content: @Composable () -> Unit) {
+fun LumenTheme(scale: Float = 1f, content: @Composable () -> Unit) {
     val accent = LumenColors.accent
     val scheme = remember(accent) { darkScheme() }
-    MaterialTheme(colorScheme = scheme) {
-        // Texte clair par défaut hors Surface (titres de rangées, écrans plein cadre).
-        CompositionLocalProvider(LocalContentColor provides LumenColors.OnSurface, content = content)
+    val density = LocalDensity.current
+    // Taille de l'interface : tout ce qui est en dp et sp grandit ou rétrécit ensemble.
+    val scaled = remember(density, scale) { Density(density.density * scale, density.fontScale) }
+    CompositionLocalProvider(LocalDensity provides scaled) {
+        MaterialTheme(colorScheme = scheme) {
+            // Texte clair par défaut hors Surface (titres de rangées, écrans plein cadre).
+            CompositionLocalProvider(LocalContentColor provides LumenColors.OnSurface, content = content)
+        }
     }
 }
+
+/** Échelle de l'interface pour le réglage « Taille » (petite, normale, grande). */
+fun uiScale(size: Int): Float = listOf(0.9f, 1f, 1.15f)[size.coerceIn(0, 2)]

@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Added
+- Interface size (Settings, next to the accent colour): small, medium or large, for a big room or tired eyes.
+- What's new: after an update, the new version's notes are shown once.
 - "Chat messages" in the live player's action bar: the latest messages, browsable with the remote; OK on one shows its author's card (badges and their recent messages). Guest mode included.
 - Chat: the message pinned by the channel and the Hype Train progress appear at the top, next to polls and predictions; emote-only, slow, followers-only and subscribers-only modes are shown above the messages.
 - Multi-view chat: "Show chat" in a tile's menu (long press on OK) shows the chat of the tile that has the sound, read-only, and follows it.

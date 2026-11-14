@@ -81,4 +81,7 @@
     <string name="settings_wifi_quality">Im WLAN höchstens</string>
     <string name="settings_no_limit">Kein Limit</string>
     <string name="settings_wifi_quality_hint">Für schwaches WLAN: Auto und die Startqualität bleiben darunter. Ethernet ist nicht begrenzt, eine von Hand gewählte Qualität bleibt.</string>
+    <string name="settings_ui_size">Größe der Oberfläche</string>
+    <string name="whats_new_title">Neu in %1$s</string>
+    <string name="whats_new_ok">Verstanden</string>
 </resources>

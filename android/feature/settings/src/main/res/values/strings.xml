@@ -81,4 +81,7 @@
     <string name="settings_wifi_quality">On Wi-Fi, at most</string>
     <string name="settings_no_limit">No limit</string>
     <string name="settings_wifi_quality_hint">For a weak Wi-Fi: Auto and the starting quality stay at or below it. Ethernet is not limited, and a quality you pick by hand is kept.</string>
+    <string name="settings_ui_size">Interface size</string>
+    <string name="whats_new_title">What\'s new in %1$s</string>
+    <string name="whats_new_ok">Got it</string>
 </resources>

@@ -81,4 +81,7 @@
     <string name="settings_wifi_quality">No Wi-Fi, no máximo</string>
     <string name="settings_no_limit">Sem limite</string>
     <string name="settings_wifi_quality_hint">Para um Wi-Fi fraco: Auto e a qualidade inicial não passam dela. Ethernet não é limitado, e uma qualidade escolhida à mão é mantida.</string>
+    <string name="settings_ui_size">Tamanho da interface</string>
+    <string name="whats_new_title">Novidades da %1$s</string>
+    <string name="whats_new_ok">Entendi</string>
 </resources>

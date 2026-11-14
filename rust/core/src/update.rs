@@ -114,6 +114,23 @@ pub(crate) async fn check(http: &reqwest::Client, api: &str, current_version: &s
     }))
 }
 
+/// Notes (Markdown brut) de la release `version` (sans le `v`), pour « Nouveautés » après une mise à jour ;
+/// `None` si cette version n'a pas de release (build locale) ou pas de notes.
+pub(crate) async fn release_notes(http: &reqwest::Client, api: &str, version: &str) -> Result<Option<String>, CoreError> {
+    if version.is_empty() || !version.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'.' || b == b'-') {
+        return Ok(None);
+    }
+    let url = format!("{api}/repos/{REPO}/releases/tags/v{version}");
+    let response = http.get(url).header("Accept", "application/vnd.github+json").send().await?;
+    match response.status().as_u16() {
+        200..=299 => {}
+        404 => return Ok(None),
+        status => return Err(CoreError::Api { status, detail: "release GitHub".into() }),
+    }
+    let release: GithubRelease = response.json().await?;
+    Ok(release.body.map(|b| b.trim().to_owned()).filter(|b| !b.is_empty()))
+}
+
 /// Télécharge `url` dans `dest` via un fichier temporaire : un APK tronqué n'est jamais proposé.
 pub(crate) async fn download(http: &reqwest::Client, url: &str, dest: &Path) -> Result<(), CoreError> {
     let storage = |e: std::io::Error| CoreError::Storage { reason: e.to_string() };
@@ -229,5 +246,21 @@ mod tests {
         download(&crate::http::build_client("test").unwrap(), &format!("{}/a.apk", server.uri()), &dest).await.unwrap();
         assert_eq!(std::fs::read(&dest).unwrap().len(), 100_000);
         assert!(!dest.with_extension("part").exists());
+    }
+
+    #[tokio::test]
+    async fn release_notes_of_the_installed_version() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/repos/Limoniak/streamsofa-tv/releases/tags/v0.4.0"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "tag_name": "v0.4.0", "body": "\n### Added\n- Accueil\n", "draft": false, "prerelease": false, "assets": [] })))
+            .mount(&server)
+            .await;
+        let http = crate::http::build_client("test").unwrap();
+        let notes = release_notes(&http, &server.uri(), "0.4.0").await.unwrap();
+        assert_eq!(notes.as_deref(), Some("### Added\n- Accueil"));
+        assert_eq!(release_notes(&http, &server.uri(), "9.9.9").await.unwrap(), None);
+        assert_eq!(release_notes(&http, &server.uri(), "../x").await.unwrap(), None);
     }
 }

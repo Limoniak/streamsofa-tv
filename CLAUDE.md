@@ -165,6 +165,9 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
 - Chat : `LazyColumn` à clés (id, doublons écartés) + `requestScrollToItem(0)` à chaque nouveau message (`ChatPanelTest`).
 - Sauvegarde : `allowBackup=false` + `data_extraction_rules.xml` (rien en cloud ni en transfert d'appareil, Android 12+).
   `SearchProvider` protégé par `readPermission` `GLOBAL_SEARCH`.
+- Taille de l'interface (`ui_size` 0/1/2 → ×0,9 / ×1 / ×1,15) : `LumenTheme(scale)` remplace `LocalDensity` à la racine.
+  Nouveautés : `last_seen_version` (portée `global`) ; version installée différente → `release_notes` (GitHub
+  `releases/tags/vX`), affichées une fois via `UpdatePrompt` ; rien à la première installation.
 - Clippy : zéro remarque, `-D warnings` en CI (`ChatEvent` garde `allow(large_enum_variant)` : pas de `Box` en UniFFI).
 - Lint : zéro erreur dans tous les modules, vérifié en CI (étape « Lint Android ») ; API Media3 instable derrière
   `@OptIn(UnstableApi::class)` (`newLivePlayer`, `liveLoadControl`), textes lus au clic via `LocalResources`.

@@ -21,6 +21,9 @@ class UpdateRepository @Inject constructor(
     /** Une seule proposition automatique par lancement de l'app. */
     var promptedThisLaunch = false
 
+    /** Notes de la version installée, pour « Nouveautés » ; `null` sans release (build locale). */
+    suspend fun releaseNotes(): String? = coreHolder.get().releaseNotes(coreSettings.appVersion)
+
     suspend fun check(): AppUpdate? =
         coreHolder.get().checkUpdate(coreSettings.appVersion, Build.SUPPORTED_ABIS.toList(), settings.awaitLoaded().betaUpdates)
 

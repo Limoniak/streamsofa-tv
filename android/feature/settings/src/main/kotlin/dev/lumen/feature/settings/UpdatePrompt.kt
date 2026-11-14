@@ -35,6 +35,11 @@ import dev.lumen.designsystem.requestWhenAttached
 fun UpdatePrompt(viewModel: UpdateViewModel = hiltViewModel()) {
     LaunchedEffect(Unit) { viewModel.checkOnLaunch() }
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val whatsNew by viewModel.whatsNew.collectAsStateWithLifecycle()
+    whatsNew?.let { notes ->
+        WhatsNewDialog(viewModel.currentVersion, notes, viewModel::dismissWhatsNew)
+        return
+    }
     val update = when (val s = state) {
         is UpdateState.Available -> s.update
         is UpdateState.Downloading -> s.update
@@ -81,6 +86,31 @@ fun UpdatePrompt(viewModel: UpdateViewModel = hiltViewModel()) {
                     modifier = if (update == null) Modifier.focusRequester(focus) else Modifier,
                 ) { Text(stringResource(R.string.update_later)) }
             }
+        }
+    }
+}
+
+/** Nouveautés de la version installée, une fois après la mise à jour. */
+@Composable
+private fun WhatsNewDialog(version: String, notes: String, onDismiss: () -> Unit) {
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestWhenAttached() }
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Column(
+            modifier = Modifier
+                .width(760.dp)
+                .background(LumenColors.Surface, RoundedCornerShape(16.dp))
+                .padding(28.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(stringResource(R.string.whats_new_title, version), style = MaterialTheme.typography.headlineSmall)
+            // Le bouton prend le focus ; ▲ ▼ font défiler les notes par le conteneur défilant.
+            Text(
+                text = notes,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.heightIn(max = 340.dp).verticalScroll(rememberScrollState()),
+            )
+            Button(onClick = onDismiss, modifier = Modifier.focusRequester(focus)) { Text(stringResource(R.string.whats_new_ok)) }
         }
     }
 }

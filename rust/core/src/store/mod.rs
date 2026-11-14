@@ -62,7 +62,7 @@ const MIGRATIONS: &[&str] = &["
 "];
 
 /// Préférences de l'appareil, communes à tous les profils (les autres sont propres à chacun).
-pub const GLOBAL_SETTINGS: &[&str] = &["check_updates", "beta_updates", "crash_log"];
+pub const GLOBAL_SETTINGS: &[&str] = &["check_updates", "beta_updates", "crash_log", "last_seen_version"];
 pub const PIN_HASH: &str = "pin_hash";
 pub const KIDS_PROFILE: &str = "kids_profile";
 /// Temps d'écran quotidien d'un profil enfants, en minutes (absent = sans limite).
