@@ -5,9 +5,6 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 
 **Legend**: 🟢 small · 🟡 medium · 🔴 large · ⚠️ depends on Twitch APIs that may not allow it
 
-## Next up
-
-
 ## Comfort
 
 - [ ] 🟢 More interface languages (English, French, Spanish, German, Italian and Brazilian Portuguese today); translations and corrections welcome.

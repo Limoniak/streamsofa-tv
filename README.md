@@ -25,15 +25,15 @@
 
 | | |
 |---|---|
-| **Watch** | Live streams with quality selection and fast channel zapping (the channels above and below are prepared while you watch), an experimental low-latency mode, audio only, a sleep timer, picture-in-picture. Past broadcasts that remember where you stopped, with chapters and playback speed. Clips. |
-| **Multi-view** | Two to four streams side by side, on devices that can decode them. Sound follows the focused tile; any tile can be replaced. |
-| **Chat** | Read and send messages, replies, an emote picker, badges, 7TV / BTTV / FFZ emotes (animated where the device allows), hidden words and users. Text size, width, or on top of the video. Polls and predictions, read-only. Chat replay on past broadcasts. |
-| **Accounts** | Sign in by entering a code on your phone, no typing on the TV. Several accounts, plus a guest mode that needs no account at all. Settings per profile, an optional PIN, and a kids profile. |
-| **Discover** | A Home you arrange yourself: show, hide and reorder its rows in the settings. Followed channels first (pinned ones at the top), continue watching, recently watched, favourite categories, live channels you might like, the most watched in your language, recommendations, popular streams and categories (hide the ones you never watch). A language filter, search, top clips per category and from the channels you follow. |
+| **Watch** | Live streams with quality selection and fast channel zapping (the channels above and below are prepared while you watch), an experimental low-latency mode, audio only, a sleep timer (or "end of stream"), picture-in-picture, "From the start" on streams the channel records, constant volume between channels, a quality cap on Wi-Fi. Past broadcasts that remember where you stopped, with chapters and playback speed. Clips. |
+| **Multi-view** | Two to four streams side by side, on devices that can decode them. Sound follows the focused tile; any tile can be replaced, and its chat shown. |
+| **Chat** | Read and send messages, replies, an emote picker, badges, 7TV / BTTV / FFZ emotes (animated where the device allows), hidden words and users. Text size, width, or on top of the video. Polls, predictions, the pinned message, Hype Train and room modes, read-only. Browse recent messages and open a user card. Chat replay on past broadcasts. |
+| **Accounts** | Sign in by entering a code on your phone, no typing on the TV. Several accounts, plus a guest mode that needs no account at all. Settings per profile, an optional PIN, and a kids profile with a daily screen time limit. |
+| **Discover** | A Home you arrange yourself: show, hide and reorder its rows in the settings. Followed channels first (pinned ones at the top), continue watching, recently watched, favourite categories, live channels you might like, the most watched in your language, recommendations, popular streams and categories (hide the ones you never watch). A language filter, search, top clips per category and from the channels you follow. Reminders for scheduled streams, and a banner when a followed channel goes live. |
 | **Android TV** | "Continue watching" and "Live channels you follow" rows, global and voice search, `twitch.tv` links open in the app. |
 | **Raids** | When the channel you watch raids, a banner offers to follow it. |
 
-The interface is in English, French, Spanish, German, Italian and Brazilian Portuguese, and follows the system language. On Android 13 and later it can also be set for the app alone in the Android settings. Screens are labelled for TalkBack.
+The interface is in English, French, Spanish, German, Italian and Brazilian Portuguese, and follows the system language. On Android 13 and later it can also be set for the app alone in the Android settings. Screens are labelled for TalkBack, and the interface size can be changed.
 
 Ads inserted by Twitch play as usual: StreamSofa never blocks them and never tries to unlock subscriber or Turbo perks.
 
