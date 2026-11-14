@@ -37,3 +37,10 @@ dependencies {
 
     debugImplementation(libs.compose.ui.test.manifest)
 }
+
+// Captures du site (SiteScreenshots) : dossiers passés en `-Dstreamsofa.shots.in=… -Dstreamsofa.shots.out=…`.
+tasks.withType<Test>().configureEach {
+    listOf("streamsofa.shots.in", "streamsofa.shots.out").forEach { key ->
+        providers.systemProperty(key).orNull?.let { systemProperty(key, it) }
+    }
+}

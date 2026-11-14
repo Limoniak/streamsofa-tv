@@ -117,7 +117,7 @@ private fun Share(label: String, share: Float, highlight: Boolean) {
     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
         Row(Modifier.fillMaxWidth()) {
             Text(
-                text = (if (highlight) "✓ " else "") + label,
+                text = (if (highlight && label.isNotEmpty()) "✓ " else "") + label,
                 color = if (highlight) LumenColors.Accent else LumenColors.OnSurface,
                 fontSize = 14.sp,
                 maxLines = 1,

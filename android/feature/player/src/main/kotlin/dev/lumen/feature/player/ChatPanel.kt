@@ -92,7 +92,10 @@ fun ChatPanel(
         lastNewest[0] = newest
         listState.requestScrollToItem(0)
     }
-    Box(modifier.background(if (look.overlay) Color.Black.copy(alpha = 0.45f) else LumenColors.Background)) {
+    Column(modifier.background(if (look.overlay) Color.Black.copy(alpha = 0.45f) else LumenColors.Background)) {
+    // Modes du salon au-dessus de la liste, pas par-dessus : aucun message n'est masqué.
+    if (chat.room.any) RoomBanner(chat.room)
+    Box(Modifier.weight(1f).fillMaxWidth()) {
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
@@ -107,7 +110,6 @@ fun ChatPanel(
                 ChatLine(line, mention, timestamps, look.scale)
             }
         }
-        if (chat.room.any) RoomBanner(chat.room, Modifier.align(Alignment.TopCenter))
         if (chat.state != ChatState.JOINED && chat.lines.isEmpty()) {
             Text(
                 text = stringResource(R.string.chat_connecting),
@@ -116,6 +118,7 @@ fun ChatPanel(
                 modifier = Modifier.align(Alignment.Center),
             )
         }
+    }
     }
 }
 

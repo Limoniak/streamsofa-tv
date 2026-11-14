@@ -113,7 +113,8 @@
             <ul>
               <li data-i18n="f.live3">Experimental low-latency mode: about 3.7 s behind the streamer instead of 7.2 s, on channels that allow it.</li>
               <li data-i18n="f.live4">Audio only, which keeps playing in the background.</li>
-              <li data-i18n="f.live5">Sleep timer (15, 30, 60 or 90 minutes).</li>
+              <li data-i18n="f.live5">Sleep timer (15, 30, 60 or 90 minutes, or at the end of the stream).</li>
+              <li data-i18n="f.live8">“From the start” on streams the channel records, a banner when a followed channel goes live, and constant volume between channels.</li>
               <li data-i18n="f.live6">Stream stats: resolution, bitrate, delay, dropped frames.</li>
               <li data-i18n="f.live7">Animated preview after a moment of focus on a card.</li>
             </ul>
@@ -121,18 +122,18 @@
           <article class="card wide reveal">
             <div class="badge"><i data-lucide="layout-grid" class="icon"></i></div>
             <h3 data-i18n="f.multi">Multi-view</h3>
-            <p data-i18n="f.multi2">Two to four streams side by side, on devices that can decode them. Sound follows the focused tile, and any tile can be replaced.</p>
+            <p data-i18n="f.multi2">Two to four streams side by side, on devices that can decode them. Sound follows the focused tile, the chat can follow it too, and any tile can be replaced.</p>
             <div class="tiles" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
           </article>
           <article class="card wide reveal">
             <div class="badge"><i data-lucide="message-square-text" class="icon"></i></div>
             <h3 data-i18n="f.chat">Chat</h3>
-            <p data-i18n="f.chat2">Read and send messages, replies and an emote picker, badges, 7TV / BTTV / FFZ emotes (animated where the device allows), polls and predictions, highlighted mentions, hidden words and users.</p>
+            <p data-i18n="f.chat2">Read and send messages, replies and an emote picker, badges, 7TV / BTTV / FFZ emotes (animated where the device allows), polls, predictions, the pinned message and the Hype Train, room modes, a card for each chatter, highlighted mentions, hidden words and users.</p>
           </article>
           <article class="card peach reveal">
             <div class="badge"><i data-lucide="users" class="icon"></i></div>
             <h3 data-i18n="f.acc">Accounts</h3>
-            <p data-i18n="f.acc2">Sign in by scanning a QR code with your phone, no typing on the TV. Several accounts and a guest mode, each with its own settings, an optional PIN and a kids profile.</p>
+            <p data-i18n="f.acc2">Sign in by scanning a QR code with your phone, no typing on the TV. Several accounts and a guest mode, each with its own settings, an optional PIN and a kids profile with a daily screen time limit.</p>
           </article>
           <article class="card reveal">
             <div class="badge"><i data-lucide="history" class="icon"></i></div>
@@ -142,7 +143,7 @@
           <article class="card reveal">
             <div class="badge"><i data-lucide="compass" class="icon"></i></div>
             <h3 data-i18n="f.disc">Discover</h3>
-            <p data-i18n="f.disc2">A Home you arrange yourself: followed and pinned channels, continue watching, recently watched, favourite categories, picks for you, the most watched in your language. Show, hide and reorder the rows.</p>
+            <p data-i18n="f.disc2">A Home you arrange yourself: followed and pinned channels, continue watching, recently watched, favourite categories, picks for you, the most watched in your language. Show, hide and reorder the rows. Reminders for scheduled streams.</p>
           </article>
           <article class="card reveal">
             <div class="badge"><i data-lucide="monitor-play" class="icon"></i></div>
@@ -167,7 +168,7 @@
           <article class="card wide reveal">
             <div class="badge"><i data-lucide="languages" class="icon"></i></div>
             <h3 data-i18n="f.lang">Six languages</h3>
-            <p data-i18n="f.lang2">English, French, Spanish, German, Italian and Brazilian Portuguese. The interface follows the system language, or the app’s own setting on Android 13+.</p>
+            <p data-i18n="f.lang2">English, French, Spanish, German, Italian and Brazilian Portuguese. The interface follows the system language, or the app’s own setting on Android 13+, and its size can be changed.</p>
           </article>
         </div>
         <p class="note reveal"><i data-lucide="info" class="icon"></i><span data-i18n="feat.note">Ads inserted by Twitch play as usual: StreamSofa never blocks them and never tries to unlock subscriber or Turbo perks. Following a channel happens on your phone (a QR code on each channel page), because Twitch closed that API to third-party apps.</span></p>
@@ -179,16 +180,28 @@
         <div class="head reveal">
           <p class="kicker" data-i18n="prev.kicker">Preview</p>
           <h2 data-i18n="prev.title">Built for a 10-foot screen.</h2>
-          <p data-i18n="prev.lead">Screenshots from the Google TV emulator at 1080p.</p>
+          <p data-i18n="prev.lead">Screenshots from the Google TV emulator at 1080p. Multi-view, your Home and the chat are drawn from the app's own interface, with live preview images in place of the video and sample chat messages.</p>
         </div>
         <div class="gallery">
+          <figure class="shot wide reveal">
+            <button type="button" data-full="screenshots/multiview.jpg"><img src="screenshots/multiview.jpg" alt="Multi-view with four live streams and the chat of the tile that has the sound" loading="lazy" width="1920" height="1080"></button>
+            <figcaption data-i18n="prev.multi"><b>Multi-view</b>: four streams at once; the arrows move the sound, the chat follows it. Long press OK to replace a tile.</figcaption>
+          </figure>
           <figure class="shot reveal">
             <button type="button" data-full="screenshots/home.jpg"><img src="screenshots/home.jpg" alt="Home with popular live streams and categories" loading="lazy" width="1920" height="1080"></button>
             <figcaption data-i18n="prev.home"><b>Home</b>: followed channels first, then popular streams and categories.</figcaption>
           </figure>
           <figure class="shot reveal">
+            <button type="button" data-full="screenshots/home-rows.jpg"><img src="screenshots/home-rows.jpg" alt="Home rows: live followed channels and past broadcasts to continue" loading="lazy" width="1920" height="1080"></button>
+            <figcaption data-i18n="prev.rows"><b>Your Home</b>: continue watching, favourite categories, picks for you; show, hide and reorder the rows.</figcaption>
+          </figure>
+          <figure class="shot reveal">
             <button type="button" data-full="screenshots/player.jpg"><img src="screenshots/player.jpg" alt="Live player with the action bar and the chat" loading="lazy" width="1920" height="1080"></button>
             <figcaption data-i18n="prev.player"><b>Player</b>: OK opens the action bar, Right shows the chat.</figcaption>
+          </figure>
+          <figure class="shot reveal">
+            <button type="button" data-full="screenshots/player-chat.jpg"><img src="screenshots/player-chat.jpg" alt="Player with the pinned message, the Hype Train and slow mode above the chat" loading="lazy" width="1920" height="1080"></button>
+            <figcaption data-i18n="prev.chat"><b>Chat</b>: pinned message, Hype Train and room modes; "From the start" replays the stream being recorded.</figcaption>
           </figure>
           <figure class="shot reveal">
             <button type="button" data-full="screenshots/live-list.jpg"><img src="screenshots/live-list.jpg" alt="List of live channels over the player" loading="lazy" width="1920" height="1080"></button>
@@ -239,7 +252,7 @@
             <li><strong data-i18n="pc.s2">Turn on network debugging on the TV</strong><p data-i18n="pc.s2b">Settings → System → About → press “Android TV OS build” 7 times, then Developer options → USB / network debugging.</p></li>
             <li><strong data-i18n="pc.s3">Install with adb</strong><p data-i18n="pc.s3b">Replace the address with your TV’s IP (Settings → Network).</p>
               <div class="code"><pre id="adb-cmd">adb connect 192.168.1.42
-adb install streamsofa-0.4.0-universal.apk</pre><button class="copy" type="button" aria-label="Copy"><i data-lucide="copy" class="icon"></i></button></div>
+adb install streamsofa-0.5.0-universal.apk</pre><button class="copy" type="button" aria-label="Copy"><i data-lucide="copy" class="icon"></i></button></div>
             </li>
           </ol>
         </div>

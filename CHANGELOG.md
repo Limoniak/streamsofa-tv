@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-14
+
 ### Added
 - Reminders: "Remind me" on a channel page with an announced schedule. When that stream starts, Home shows a banner (Watch / Dismiss), and the live player announces it if you are watching another channel. Guest mode included.
 - Interface size (Settings, next to the accent colour): small, medium or large, for a big room or tired eyes.
@@ -109,7 +111,8 @@ First public release.
 - Settings: chat at launch, default quality, accent color, update check at startup.
 - In-app updates from GitHub Releases, with the APK matching the device's architecture.
 
-[Unreleased]: https://github.com/Limoniak/streamsofa-tv/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Limoniak/streamsofa-tv/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Limoniak/streamsofa-tv/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Limoniak/streamsofa-tv/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Limoniak/streamsofa-tv/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Limoniak/streamsofa-tv/compare/v0.1.0...v0.2.0

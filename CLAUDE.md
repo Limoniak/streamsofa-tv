@@ -171,6 +171,9 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
 - Taille de l'interface (`ui_size` 0/1/2 → ×0,9 / ×1 / ×1,15) : `LumenTheme(scale)` remplace `LocalDensity` à la racine.
   Nouveautés : `last_seen_version` (portée `global`) ; version installée différente → `release_notes` (GitHub
   `releases/tags/vX`), affichées une fois via `UpdatePrompt` ; rien à la première installation.
+- Captures du site : `SiteScreenshots` (`:feature:player`, `:feature:home`, Robolectric `GraphicsMode.NATIVE`), lancées à la main
+  avec `-Dstreamsofa.shots.in=<aperçus + streams.json> -Dstreamsofa.shots.out=<dossier> --rerun` ; vidéo remplacée par l'aperçu du live,
+  vrais titres de live, chat et message épinglé d'exemple (dit sur le site). Sans ces propriétés, les tests sont ignorés.
 - Clippy : zéro remarque, `-D warnings` en CI (`ChatEvent` garde `allow(large_enum_variant)` : pas de `Box` en UniFFI).
 - Lint : zéro erreur dans tous les modules, vérifié en CI (étape « Lint Android ») ; API Media3 instable derrière
   `@OptIn(UnstableApi::class)` (`newLivePlayer`, `liveLoadControl`), textes lus au clic via `LocalResources`.

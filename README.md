@@ -47,6 +47,10 @@ What could come next is listed in the [roadmap](ROADMAP.md).
 | **Home**: followed channels first, then popular streams and categories. | **Player**: OK opens the action bar, Right shows the chat. |
 | ![List of live channels over the player](docs/screenshots/live-list.jpg) | ![Settings screen](docs/screenshots/settings.jpg) |
 | **Live list**: Left opens it, Up and Down change channel directly. | **Settings**: chat, quality, low latency, accent color, updates. |
+| ![Multi-view with four live streams and the chat](docs/screenshots/multiview.jpg) | ![Pinned message, Hype Train and room modes above the chat](docs/screenshots/player-chat.jpg) |
+| **Multi-view**: the arrows move the sound, the chat follows it. | **Chat**: pinned message, Hype Train and room modes. |
+
+The last two are drawn from the app's own interface, with live preview images in place of the video and sample chat messages.
 
 ## Install
 
@@ -127,8 +131,8 @@ CI (`.github/workflows/ci.yml`) runs the tests on every push. Pushing a `vX.Y.Z`
 2. Add the repository secrets (Settings → Secrets and variables → Actions):
    `TWITCH_CLIENT_ID`, `LUMEN_KEYSTORE_BASE64` (output of `base64 -w0 streamsofa-release.jks`),
    `LUMEN_KEYSTORE_PASSWORD`, `LUMEN_KEY_ALIAS`, `LUMEN_KEY_PASSWORD`.
-3. Move the `Unreleased` entries of the changelog under the new version, then tag: `git tag v0.4.0 && git push origin v0.4.0`.
-   Without a computer, create the release on GitHub instead (Releases → Draft a new release → new tag `v0.4.0` on `main` → Publish): CI then attaches the APKs and the changelog notes to it.
+3. Move the `Unreleased` entries of the changelog under the new version, then tag: `git tag v0.5.0 && git push origin v0.5.0`.
+   Without a computer, create the release on GitHub instead (Releases → Draft a new release → new tag `v0.5.0` on `main` → Publish): CI then attaches the APKs and the changelog notes to it.
 
 Locally, an `android/keystore.properties` file (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`) signs `assembleRelease` with the same key; without it, release builds use the debug key.
 

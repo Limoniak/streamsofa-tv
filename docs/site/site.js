@@ -33,22 +33,26 @@
     "f.live": "Lives", "f.live2": "Zapping rapide, les chaînes voisines étant préparées pendant que vous regardez, et qualité retenue pour chaque chaîne.",
     "f.live3": "Mode faible latence expérimental : environ 3,7 s de retard sur le streamer au lieu de 7,2 s, sur les chaînes qui le permettent.",
     "f.live4": "Son seul, qui continue en arrière-plan.",
-    "f.live5": "Mise en veille (15, 30, 60 ou 90 minutes).",
+    "f.live5": "Mise en veille (15, 30, 60 ou 90 minutes, ou à la fin du live).",
+    "f.live8": "« Depuis le début » sur les lives que la chaîne enregistre, un bandeau quand une chaîne suivie démarre, et un volume constant d’une chaîne à l’autre.",
     "f.live6": "Statistiques du flux : résolution, débit, retard, images perdues.",
     "f.live7": "Aperçu animé après un instant de focus sur une carte.",
-    "f.multi": "Multi-view", "f.multi2": "Deux à quatre flux côte à côte, sur les appareils capables de les décoder. Le son suit la tuile sélectionnée, et chaque tuile peut être remplacée.",
-    "f.chat": "Chat", "f.chat2": "Lecture et envoi de messages, réponses et sélecteur d’émotes, badges, émotes 7TV / BTTV / FFZ (animées si l’appareil le permet), sondages et prédictions, citations mises en valeur, mots et pseudos masqués.",
-    "f.acc": "Comptes", "f.acc2": "Connexion en scannant un QR code avec le téléphone, sans rien taper sur la TV. Plusieurs comptes et un mode invité, chacun avec ses réglages, un PIN en option et un profil enfants.",
+    "f.multi": "Multi-view", "f.multi2": "Deux à quatre flux côte à côte, sur les appareils capables de les décoder. Le son suit la tuile sélectionnée, le chat peut la suivre aussi, et chaque tuile peut être remplacée.",
+    "f.chat": "Chat", "f.chat2": "Lecture et envoi de messages, réponses et sélecteur d’émotes, badges, émotes 7TV / BTTV / FFZ (animées si l’appareil le permet), sondages, prédictions, message épinglé et Hype Train, modes du salon, une fiche par spectateur, citations mises en valeur, mots et pseudos masqués.",
+    "f.acc": "Comptes", "f.acc2": "Connexion en scannant un QR code avec le téléphone, sans rien taper sur la TV. Plusieurs comptes et un mode invité, chacun avec ses réglages, un PIN en option et un profil enfants avec un temps d’écran par jour.",
     "f.vod": "Rediffusions", "f.vod2": "Reprise là où vous vous étiez arrêté, par profil, avec le chat rejoué en synchro. Et les clips.",
-    "f.disc": "Découvrir", "f.disc2": "Un accueil à votre façon : suivis et épinglés, continuer à regarder, regardé récemment, catégories favorites, des lives pour vous, les plus regardés dans votre langue. Rangées affichables, masquables et réordonnables.",
+    "f.disc": "Découvrir", "f.disc2": "Un accueil à votre façon : suivis et épinglés, continuer à regarder, regardé récemment, catégories favorites, des lives pour vous, les plus regardés dans votre langue. Rangées affichables, masquables et réordonnables. Rappels des lives annoncés au planning.",
     "f.tv": "Android TV", "f.tv2": "Rangées « Continuer à regarder » et « Chaînes suivies en live », recherche globale et vocale, et les liens twitch.tv s’ouvrent dans l’app.",
     "f.perf": "Léger sur les vieilles box", "f.perf2": "Cœur natif en Rust, Baseline Profile pour un démarrage rapide, effets lourds coupés sur les appareils à faible mémoire.",
     "f.priv": "Respect de la vie privée", "f.priv2": "Jetons chiffrés par le Keystore Android et jamais journalisés. Aucun traceur ; le journal de crash, optionnel, reste sur l’appareil.",
     "f.upd": "Mises à jour intégrées", "f.upd2": "Les nouvelles versions arrivent des GitHub Releases et sont proposées au lancement. Les bêtas sont en option.",
-    "f.lang": "Six langues", "f.lang2": "Anglais, français, espagnol, allemand, italien et portugais du Brésil. L’interface suit la langue du système, ou le réglage propre à l’app sur Android 13+.",
+    "f.lang": "Six langues", "f.lang2": "Anglais, français, espagnol, allemand, italien et portugais du Brésil. L’interface suit la langue du système, ou le réglage propre à l’app sur Android 13+, et sa taille se règle.",
     "feat.note": "Les pubs insérées par Twitch passent normalement : StreamSofa ne les bloque jamais et ne cherche pas à obtenir les avantages abonné ou Turbo. Suivre une chaîne se fait sur le téléphone (un QR code sur chaque page de chaîne), car Twitch a fermé cette API aux apps tierces.",
     "prev.kicker": "Aperçu", "prev.title": "Conçu pour un écran à trois mètres.",
-    "prev.lead": "Captures de l’émulateur Google TV en 1080p.",
+    "prev.lead": "Captures de l’émulateur Google TV en 1080p. Multi-view, votre accueil et le chat sont dessinés par l’interface de l’app, avec les images d’aperçu des lives à la place de la vidéo et des messages d’exemple.",
+    "prev.multi": "<b>Multi-view</b> : quatre lives à la fois ; les flèches déplacent le son, le chat le suit. Appui long sur OK pour remplacer une tuile.",
+    "prev.rows": "<b>Votre accueil</b> : continuer à regarder, catégories favorites, des lives pour vous ; rangées affichables, masquables et réordonnables.",
+    "prev.chat": "<b>Chat</b> : message épinglé, Hype Train et modes du salon ; « Depuis le début » relance le live en cours d’enregistrement.",
     "prev.home": "<b>Accueil</b> : les suivis d’abord, puis les lives et catégories populaires.",
     "prev.player": "<b>Lecteur</b> : OK ouvre la barre d’actions, ▶ affiche le chat.",
     "prev.list": "<b>Liste des lives</b> : ◀ l’ouvre, ▲ et ▼ changent directement de chaîne.",
@@ -180,6 +184,6 @@
     if (!release) return;
     $("#tag").textContent = release.tag_name;
     const cmd = $("#adb-cmd");
-    cmd.textContent = cmd.textContent.replace("0.4.0", release.tag_name.replace(/^v/, ""));
+    cmd.textContent = cmd.textContent.replace("0.5.0", release.tag_name.replace(/^v/, ""));
   }).catch(() => {});
 })();

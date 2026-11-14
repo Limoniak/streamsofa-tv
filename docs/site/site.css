@@ -204,6 +204,7 @@ h2 { font-size: clamp(32px, 4vw, 48px); line-height: 1.08; }
 /* Galerie */
 .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
 .shot { margin: 0; }
+.shot.wide { grid-column: 1 / -1; }
 .shot button {
   display: block; width: 100%; padding: 0; border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
   background: #000; cursor: zoom-in; transition: border-color .2s, transform .25s;
