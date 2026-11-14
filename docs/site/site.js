@@ -180,6 +180,6 @@
     if (!release) return;
     $("#tag").textContent = release.tag_name;
     const cmd = $("#adb-cmd");
-    cmd.textContent = cmd.textContent.replace("0.3.0", release.tag_name.replace(/^v/, ""));
+    cmd.textContent = cmd.textContent.replace("0.4.0", release.tag_name.replace(/^v/, ""));
   }).catch(() => {});
 })();

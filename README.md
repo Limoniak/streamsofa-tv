@@ -127,8 +127,8 @@ CI (`.github/workflows/ci.yml`) runs the tests on every push. Pushing a `vX.Y.Z`
 2. Add the repository secrets (Settings → Secrets and variables → Actions):
    `TWITCH_CLIENT_ID`, `LUMEN_KEYSTORE_BASE64` (output of `base64 -w0 streamsofa-release.jks`),
    `LUMEN_KEYSTORE_PASSWORD`, `LUMEN_KEY_ALIAS`, `LUMEN_KEY_PASSWORD`.
-3. Move the `Unreleased` entries of the changelog under the new version, then tag: `git tag v0.3.0 && git push origin v0.3.0`.
-   Without a computer, create the release on GitHub instead (Releases → Draft a new release → new tag `v0.3.0` on `main` → Publish): CI then attaches the APKs and the changelog notes to it.
+3. Move the `Unreleased` entries of the changelog under the new version, then tag: `git tag v0.4.0 && git push origin v0.4.0`.
+   Without a computer, create the release on GitHub instead (Releases → Draft a new release → new tag `v0.4.0` on `main` → Publish): CI then attaches the APKs and the changelog notes to it.
 
 Locally, an `android/keystore.properties` file (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`) signs `assembleRelease` with the same key; without it, release builds use the debug key.
 
