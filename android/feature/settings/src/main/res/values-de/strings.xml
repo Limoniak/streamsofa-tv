@@ -76,4 +76,6 @@
     <string name="home_row_categories">Beliebte Kategorien</string>
     <string name="settings_favorite_categories">Lieblingskategorien</string>
     <string name="settings_favorite_categories_hint">Halte OK auf einer Kategorie auf Start gedrückt, um sie hinzuzufügen. OK hier entfernt sie.</string>
+    <string name="settings_constant_volume">Gleichmäßige Lautstärke</string>
+    <string name="settings_constant_volume_hint">Gleicht die Lautstärke zwischen Kanälen an: leise Streamer lauter, laute leiser. Ab Android 9.</string>
 </resources>

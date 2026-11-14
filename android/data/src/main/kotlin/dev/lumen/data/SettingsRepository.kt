@@ -46,6 +46,8 @@ data class AppSettings(
     val maxQuality: Int = 0,
     /** Lecture des segments en cours d'encodage (expérimental). */
     val lowLatency: Boolean = false,
+    /** Compresseur sur le son du lecteur live : volume semblable d'une chaîne à l'autre. */
+    val constantVolume: Boolean = false,
     /** Clé d'`AccentColor` (design system). */
     val accent: String = "violet",
     /** Recherche d'une nouvelle version au démarrage (builds de release uniquement). */
@@ -106,6 +108,7 @@ data class AppSettings(
         "chat_by_default" to chatByDefault.toString(),
         "max_quality" to maxQuality.toString(),
         "low_latency" to lowLatency.toString(),
+        "constant_volume" to constantVolume.toString(),
         "accent" to accent,
         "check_updates" to checkUpdates.toString(),
         "beta_updates" to betaUpdates.toString(),
@@ -134,6 +137,7 @@ data class AppSettings(
                 chatByDefault = map["chat_by_default"]?.toBooleanStrictOrNull() ?: d.chatByDefault,
                 maxQuality = map["max_quality"]?.toIntOrNull() ?: d.maxQuality,
                 lowLatency = map["low_latency"]?.toBooleanStrictOrNull() ?: d.lowLatency,
+                constantVolume = map["constant_volume"]?.toBooleanStrictOrNull() ?: d.constantVolume,
                 accent = map["accent"] ?: d.accent,
                 checkUpdates = map["check_updates"]?.toBooleanStrictOrNull() ?: d.checkUpdates,
                 betaUpdates = map["beta_updates"]?.toBooleanStrictOrNull() ?: d.betaUpdates,

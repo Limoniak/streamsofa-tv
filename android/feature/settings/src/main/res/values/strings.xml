@@ -76,4 +76,6 @@
     <string name="home_row_categories">Popular categories</string>
     <string name="settings_favorite_categories">Favourite categories</string>
     <string name="settings_favorite_categories_hint">Long press a category on Home to add it. OK here removes it.</string>
+    <string name="settings_constant_volume">Constant volume</string>
+    <string name="settings_constant_volume_hint">Evens out loudness between channels: quiet streamers louder, loud ones softer. Android 9 and later.</string>
 </resources>

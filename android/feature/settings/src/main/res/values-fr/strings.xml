@@ -76,4 +76,6 @@
     <string name="home_row_categories">Catégories populaires</string>
     <string name="settings_favorite_categories">Catégories favorites</string>
     <string name="settings_favorite_categories_hint">Appui long sur une catégorie de l\'accueil pour l\'ajouter. OK ici la retire.</string>
+    <string name="settings_constant_volume">Volume constant</string>
+    <string name="settings_constant_volume_hint">Rapproche le volume d\'une chaîne à l\'autre : les streamers calmes plus forts, les bruyants moins. Android 9 et plus.</string>
 </resources>

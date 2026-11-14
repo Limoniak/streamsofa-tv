@@ -6,6 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Added
+- Constant volume (Settings > Playback, Android 9 and later): a compressor on the live player's sound brings quiet and loud streamers closer, so zapping no longer makes you jump.
 - While you watch a live stream, a banner announces a followed channel that just went live: OK to switch to it, Back to stay (signed-in accounts; followed channels are checked every 2 minutes).
 - "From the start" in the live player's action bar, when the channel records its streams: it plays the broadcast being recorded from its beginning; Back returns to the live stream.
 

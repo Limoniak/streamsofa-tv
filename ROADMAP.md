@@ -7,7 +7,6 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 
 ## Next up
 
-- [ ] 🟡 Constant volume: even out loudness between channels when zapping.
 - [ ] 🟢 Daily screen time limit for kids profiles, lifted with the parent PIN.
 
 ## Playback

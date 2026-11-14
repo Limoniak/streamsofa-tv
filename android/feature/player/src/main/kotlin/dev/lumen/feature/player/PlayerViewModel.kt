@@ -232,6 +232,7 @@ class PlayerViewModel @Inject constructor(
     private var followJob: Job? = null
 
     private val prefetch = PlaybackCache()
+    private val leveler = AudioLeveler(player)
     private var prefetchJob: Job? = null
 
     private var masterUrl: String? = null
@@ -262,6 +263,9 @@ class PlayerViewModel @Inject constructor(
         })
         viewModelScope.launch {
             catalog.followed.collect { refreshCanZap() }
+        }
+        viewModelScope.launch {
+            settings.state.map { it.constantVolume }.distinctUntilChanged().collect(leveler::setEnabled)
         }
         // Compte connecté : les suivis sont relus de temps en temps ; une chaîne qui démarre est annoncée.
         viewModelScope.launch {
@@ -575,6 +579,7 @@ class PlayerViewModel @Inject constructor(
 
     override fun onCleared() {
         AudioOnlyService.stop(context)
+        leveler.release()
         player.release()
     }
 }

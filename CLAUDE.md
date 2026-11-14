@@ -145,6 +145,9 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
   non finies, 10 au plus). « Pourrait vous plaire » : 2 dernières `recent_categories` (écrites par le lecteur), dans la
   langue de l'interface, hors suivis et regardés. « Les plus regardés dans votre langue » : `language_streams` (Helix
   `language`, GQL `streams(options: {languages})`). Paramètres > Accueil : OK = afficher/masquer, ◀ ▶ = déplacer.
+- Volume constant (`constant_volume`, désactivé par défaut) : `AudioLeveler`, `DynamicsProcessing` (API 28+) sur la session
+  audio du lecteur live, une bande de compression (−28 dB, 4:1, +9 dB) et un limiteur ; refusé par l'appareil = sans effet.
+  Non écouté sur un vrai appareil.
 - Bandeau « X est en live » : le lecteur live relit `followedStreams()` toutes les 2 min (compte connecté),
   `newlyLive()` compare avec le relevé précédent ; 10 s, OK = y aller, Retour = rester, un raid passe avant.
 - « Depuis le début » : GQL `user.stream.archiveVideo` (`live_archive`), lu après le démarrage ; ouvre le lecteur VOD.

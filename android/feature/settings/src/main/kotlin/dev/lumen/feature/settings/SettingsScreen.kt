@@ -146,6 +146,13 @@ fun SettingsRoute(viewModel: SettingsViewModel = hiltViewModel(), updates: Updat
             supportingContent = { Text(stringResource(R.string.settings_low_latency_hint)) },
             trailingContent = { AccentSwitch(settings.lowLatency) },
         )
+        ListItem(
+            selected = false,
+            onClick = { viewModel.update { copy(constantVolume = !constantVolume) } },
+            headlineContent = { Text(stringResource(R.string.settings_constant_volume)) },
+            supportingContent = { Text(stringResource(R.string.settings_constant_volume_hint)) },
+            trailingContent = { AccentSwitch(settings.constantVolume) },
+        )
         Label(R.string.settings_quality)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             QUALITIES.forEach { height ->
