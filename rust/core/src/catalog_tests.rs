@@ -192,7 +192,7 @@ async fn guest_language_streams_ask_gql_for_that_language() {
     Mock::given(method("POST"))
         .and(path("/gql"))
         .and(body_string_contains("\"operationName\":\"LanguageStreams\""))
-        .and(body_string_contains("\"languages\":[\"fr\"]"))
+        .and(body_string_contains("\"languages\":[\"FR\"]"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": { "streams": {
             "edges": [gql_stream("alpha", 900)], "pageInfo": { "hasNextPage": true } } } })))
         .expect(1)

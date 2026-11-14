@@ -28,7 +28,7 @@ pub fn top_streams() -> String {
 /// Lives les plus regardés d'une langue, toutes catégories confondues.
 pub fn language_streams() -> String {
     format!(
-        "query LanguageStreams($first: Int, $languages: [String!]) {{ streams(first: $first, options: {{ languages: $languages }}) {{ \
+        "query LanguageStreams($first: Int, $languages: [Language!]) {{ streams(first: $first, options: {{ languages: $languages }}) {{ \
          edges {{ cursor node {{ {STREAM_FIELDS} }} }} pageInfo {{ hasNextPage }} }} }}"
     )
 }

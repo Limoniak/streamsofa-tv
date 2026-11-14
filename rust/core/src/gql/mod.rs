@@ -839,7 +839,8 @@ impl GqlClient {
             streams: Option<Connection<GStream>>,
         }
         let data: Data = self
-            .run("LanguageStreams", &queries::language_streams(), json!({ "first": first, "languages": [language] }))
+            // Ici `languages` est l'énumération `Language` de Twitch (`FR`), pas une chaîne comme dans `game.streams`.
+            .run("LanguageStreams", &queries::language_streams(), json!({ "first": first, "languages": [language.to_uppercase()] }))
             .await?;
         Ok(stream_page(data.streams))
     }
