@@ -33,6 +33,16 @@ pub struct PlaybackToken {
     pub authorization: Option<Authorization>,
 }
 
+impl PlaybackToken {
+    /// Champ `expires` du jeton (un JSON signé, en texte) ; 0 s'il manque ou ne se lit pas.
+    pub fn expires_at(&self) -> i64 {
+        serde_json::from_str::<serde_json::Value>(&self.value)
+            .ok()
+            .and_then(|v| v.get("expires")?.as_i64())
+            .unwrap_or(0)
+    }
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Authorization {
@@ -1028,4 +1038,25 @@ struct GBadge {
 
 fn badge_map(badges: Vec<Option<GBadge>>) -> HashMap<String, String> {
     badges.into_iter().flatten().map(|b| (format!("{}/{}", b.set_id, b.version), b.image_url)).collect()
+}
+
+#[cfg(test)]
+mod token_tests {
+    use super::PlaybackToken;
+
+    fn token(value: &str) -> PlaybackToken {
+        PlaybackToken { value: value.into(), signature: "s".into(), authorization: None }
+    }
+
+    #[test]
+    fn expiry_is_read_from_the_signed_value() {
+        assert_eq!(token(r#"{"channel":"zerator","expires":1763100000,"user_id":null}"#).expires_at(), 1763100000);
+    }
+
+    #[test]
+    fn unknown_expiry_is_zero() {
+        assert_eq!(token("{}").expires_at(), 0);
+        assert_eq!(token("pas du json").expires_at(), 0);
+        assert_eq!(token(r#"{"expires":"bientôt"}"#).expires_at(), 0);
+    }
 }

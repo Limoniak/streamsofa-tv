@@ -408,7 +408,7 @@ class PlayerViewModel @Inject constructor(
                         }
                     }
                 }
-                delay(PREFETCH_REFRESH_MS)
+                delay(prefetch.nextRefreshInMs())
             }
         }
     }

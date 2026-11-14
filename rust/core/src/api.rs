@@ -353,7 +353,7 @@ impl Core {
     }
 
     /// Télécharge une playlist maîtresse d'usher ; `missing` est l'erreur d'un 404.
-    async fn master_playlist(&self, master_url: String, missing: CoreError) -> Result<Playback, CoreError> {
+    async fn master_playlist(&self, master_url: String, expires_at: i64, missing: CoreError) -> Result<Playback, CoreError> {
         let response = self.http.get(&master_url).send().await?;
         match response.status().as_u16() {
             200..=299 => {}
@@ -369,7 +369,7 @@ impl Core {
         if variants.is_empty() {
             return Err(CoreError::GqlChanged { operation: "usher".into(), detail: "playlist sans qualité".into() });
         }
-        Ok(Playback { master_url, variants })
+        Ok(Playback { master_url, variants, expires_at })
     }
 }
 
@@ -737,7 +737,7 @@ impl Core {
         }
         let nonce = u32::from_str_radix(&random_hex(6), 16).unwrap_or(0);
         let master_url = hls::live_master_url(&self.usher, &login, &token.value, &token.signature, nonce);
-        self.master_playlist(master_url, CoreError::Offline).await
+        self.master_playlist(master_url, token.expires_at(), CoreError::Offline).await
     }
 
     /// Playlist d'une VOD, en anonyme comme le live : une VOD réservée aux abonnés reste refusée.
@@ -761,7 +761,7 @@ impl Core {
         let token = self.gql.vod_playback_token(&video_id).await?.ok_or_else(missing)?;
         let nonce = u32::from_str_radix(&random_hex(6), 16).unwrap_or(0);
         let master_url = hls::vod_master_url(&self.usher, &video_id, &token.value, &token.signature, nonce);
-        self.master_playlist(master_url, missing()).await
+        self.master_playlist(master_url, token.expires_at(), missing()).await
     }
 
     /// Mémorise où en est la VOD pour le profil actif (à appeler hors du thread principal).

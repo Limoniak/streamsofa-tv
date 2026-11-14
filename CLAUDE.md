@@ -139,7 +139,8 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
   chargement de l'accueil, hors suivis en live. Une catégorie masquée retire aussi ses lives de Populaires et
   Recommandés, jamais des suivis.
 - Zapping rapide : `PlaybackCache` (`Prefetch.kt`) garde le jeton des chaînes de ▲ et ▼, préparé après `STATE_READY`,
-  renouvelé toutes les 4 min, servi une seule fois et jamais au-delà de 5 min ; une relance (`retried`) en redemande un.
+  servi une seule fois, valable jusqu'au plus tôt de 5 min et de l'expiration du jeton (`Playback.expires_at`, champ
+  `expires` du JSON signé, 0 si absent) moins 1 min ; renouvelé à mi-vie (30 s à 4 min). Une relance (`retried`) en redemande un.
   Tampon du live : 1,5 s avant la première image, 3 s après une coupure (`liveLoadControl`).
 - Chat : `LazyColumn` à clés (id, doublons écartés) + `requestScrollToItem(0)` à chaque nouveau message (`ChatPanelTest`).
 - Sauvegarde : `allowBackup=false` + `data_extraction_rules.xml` (rien en cloud ni en transfert d'appareil, Android 12+).

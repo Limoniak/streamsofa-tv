@@ -23,6 +23,9 @@ pub struct Variant {
 pub struct Playback {
     pub master_url: String,
     pub variants: Vec<Variant>,
+    /// Fin de validité du jeton de lecture (secondes Unix) ; 0 si Twitch ne la donne pas.
+    /// Sert à ne jamais ressortir un jeton préparé d'avance (zapping rapide) une fois périmé.
+    pub expires_at: i64,
 }
 
 /// URL de la playlist maîtresse d'un live.
