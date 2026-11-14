@@ -159,7 +159,7 @@ class MultiViewModel @Inject constructor(
     }
 
     private fun newSlot(login: String): Slot {
-        val player = ExoPlayer.Builder(context).setLoadControl(liveLoadControl()).build().apply { playWhenReady = true }
+        val player = newLivePlayer(context)
         val slot = Slot(login, player)
         player.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {

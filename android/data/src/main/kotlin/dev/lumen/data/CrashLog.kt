@@ -3,6 +3,7 @@ package dev.lumen.data
 import android.content.ContentValues
 import android.content.Context
 import android.os.Build
+import androidx.annotation.RequiresApi
 import android.provider.MediaStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -51,8 +52,8 @@ class CrashLog @Inject constructor(
     }
 
     /** Copie dans Téléchargements (API 29+, sans permission) ; renvoie le nom du fichier. Appel hors thread principal. */
+    @RequiresApi(Build.VERSION_CODES.Q)
     fun exportToDownloads(): String {
-        check(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
         val name = "streamsofa-crash-${System.currentTimeMillis() / 1000}.txt"
         val values = ContentValues().apply {
             put(MediaStore.Downloads.DISPLAY_NAME, name)

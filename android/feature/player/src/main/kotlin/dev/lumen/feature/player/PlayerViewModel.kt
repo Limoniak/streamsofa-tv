@@ -1,6 +1,8 @@
 package dev.lumen.feature.player
 
 import android.content.Context
+import androidx.media3.common.util.UnstableApi
+import androidx.annotation.OptIn
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -105,6 +107,7 @@ const val RAID_DELAY_S = 10
  * Tampon d'un live : la première image dès 1,5 s de vidéo reçue (2,5 s par défaut), 3 s après une coupure (5 s).
  * Un live n'a de toute façon que quelques secondes d'avance à charger ; le reste des réglages est inchangé.
  */
+@OptIn(UnstableApi::class)
 internal fun liveLoadControl(): DefaultLoadControl = DefaultLoadControl.Builder()
     .setBufferDurationsMs(
         DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
@@ -113,6 +116,11 @@ internal fun liveLoadControl(): DefaultLoadControl = DefaultLoadControl.Builder(
         LIVE_REBUFFER_MS,
     )
     .build()
+
+/** Lecteur d'un live (lecteur simple et tuiles du multi-view), avec le tampon de [liveLoadControl]. */
+@OptIn(UnstableApi::class)
+internal fun newLivePlayer(context: Context): ExoPlayer =
+    ExoPlayer.Builder(context).setLoadControl(liveLoadControl()).build().apply { playWhenReady = true }
 
 private const val LIVE_START_BUFFER_MS = 1_500
 private const val LIVE_REBUFFER_MS = 3_000
@@ -196,7 +204,7 @@ class PlayerViewModel @Inject constructor(
         .map { snap -> snap?.accounts?.any { it.id == snap.activeId && it.state == AccountState.OK } == true }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
-    val player: ExoPlayer = ExoPlayer.Builder(context).setLoadControl(liveLoadControl()).build().apply { playWhenReady = true }
+    val player: ExoPlayer = newLivePlayer(context)
 
     /** Lives populaires, pour zapper sans suivis en live (invité). */
     private var popular: List<String> = emptyList()
@@ -476,6 +484,7 @@ class PlayerViewModel @Inject constructor(
         Ended(raid = lastRaid, next = next.await(), lastVideo = lastVideo.await())
     }
 
+    @OptIn(UnstableApi::class)
     private fun play() {
         val state = _state.value
         val url = (if (state.audioOnly) audioUrl else null)

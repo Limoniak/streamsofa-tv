@@ -143,6 +143,8 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
 - Chat : `LazyColumn` à clés (id, doublons écartés) + `requestScrollToItem(0)` à chaque nouveau message (`ChatPanelTest`).
 - Sauvegarde : `allowBackup=false` + `data_extraction_rules.xml` (rien en cloud ni en transfert d'appareil, Android 12+).
   `SearchProvider` protégé par `readPermission` `GLOBAL_SEARCH`.
+- Lint : zéro erreur dans tous les modules, vérifié en CI (étape « Lint Android ») ; API Media3 instable derrière
+  `@OptIn(UnstableApi::class)` (`newLivePlayer`, `liveLoadControl`), textes lus au clic via `LocalResources`.
 - APK : `localeFilters` = les six langues (écrites comme les dossiers, `pt-rBR`) ; `TranslationsTest` vérifie l'accord
   avec `locales_config.xml`.
 

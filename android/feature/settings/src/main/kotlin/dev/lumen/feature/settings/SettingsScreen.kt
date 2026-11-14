@@ -1,5 +1,6 @@
 package dev.lumen.feature.settings
 
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -67,6 +68,8 @@ class SettingsViewModel @Inject constructor(
     fun exportCrashLog() = viewModelScope.launch(Dispatchers.IO) {
         _crashStatus.value = when {
             !crashLog.hasEntries() -> CrashStatus.Empty
+            // Le bouton n'existe qu'à partir d'Android 10 ; la garde reste ici pour l'appel lui-même.
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.Q -> CrashStatus.Failed
             else -> runCatching { CrashStatus.Exported(crashLog.exportToDownloads()) }.getOrElse { CrashStatus.Failed }
         }
     }

@@ -29,7 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -105,7 +105,8 @@ fun ProfilesScreen(
     onRemove: (Account) -> Unit,
     locks: ProfileLocks,
 ) {
-    val context = LocalContext.current
+    // Textes lus au clic (titres des boîtes PIN et de confirmation), à jour si la langue change.
+    val resources = LocalResources.current
     var prompt by remember { mutableStateOf<PinPrompt?>(null) }
     var confirm by remember { mutableStateOf<Confirm?>(null) }
     // Profil dont on affiche les options : `Some(null)` = l'invité.
@@ -113,18 +114,18 @@ fun ProfilesScreen(
     val lockOf = { id: String? -> snapshot?.locks?.firstOrNull { it.profileId == id } }
     val hasParentPin = snapshot?.locks.orEmpty().any { it.hasPin && !it.kids }
 
-    fun nameOf(id: String?) = snapshot?.accounts?.firstOrNull { it.id == id }?.displayName ?: context.getString(R.string.profiles_guest)
+    fun nameOf(id: String?) = snapshot?.accounts?.firstOrNull { it.id == id }?.displayName ?: resources.getString(R.string.profiles_guest)
 
     /** Profil protégé : son PIN d'abord. */
     fun ownGate(id: String?, then: () -> Unit) {
         if (lockOf(id)?.hasPin != true) return then()
-        prompt = PinPrompt(context.getString(R.string.pin_enter, nameOf(id)), { locks.checkPin(id, it) }) { then() }
+        prompt = PinPrompt(resources.getString(R.string.pin_enter, nameOf(id)), { locks.checkPin(id, it) }) { then() }
     }
 
     /** Profil enfants : un PIN parent, s'il en existe un, pour le lever ou le retirer. */
     fun parentGate(id: String?, then: () -> Unit) {
         if (lockOf(id)?.kids != true || !hasParentPin) return then()
-        prompt = PinPrompt(context.getString(R.string.pin_parent), locks.checkParentPin, context.getString(R.string.pin_parent_hint)) { then() }
+        prompt = PinPrompt(resources.getString(R.string.pin_parent), locks.checkParentPin, resources.getString(R.string.pin_parent_hint)) { then() }
     }
 
     fun open(id: String?, enter: () -> Unit) = ownGate(id, enter)
@@ -219,7 +220,7 @@ fun ProfilesScreen(
             onSetPin = {
                 options = null
                 ownGate(id) {
-                    prompt = PinPrompt(context.getString(R.string.pin_new, nameOf(id)), { true }) { locks.setPin(id, it) }
+                    prompt = PinPrompt(resources.getString(R.string.pin_new, nameOf(id)), { true }) { locks.setPin(id, it) }
                 }
             },
             onRemovePin = {
@@ -235,9 +236,9 @@ fun ProfilesScreen(
                 // PIN oublié : le profil se retire toujours, sauf un profil enfants protégé par un parent.
                 parentGate(id) {
                     confirm = if (account != null) {
-                        Confirm(context.getString(R.string.profiles_remove_title, account.displayName), context.getString(R.string.profiles_remove_body)) { onRemove(account) }
+                        Confirm(resources.getString(R.string.profiles_remove_title, account.displayName), resources.getString(R.string.profiles_remove_body)) { onRemove(account) }
                     } else {
-                        Confirm(context.getString(R.string.profiles_reset_guest_title), context.getString(R.string.profiles_reset_guest_body), locks.resetGuest)
+                        Confirm(resources.getString(R.string.profiles_reset_guest_title), resources.getString(R.string.profiles_reset_guest_body), locks.resetGuest)
                     }
                 }
             },
