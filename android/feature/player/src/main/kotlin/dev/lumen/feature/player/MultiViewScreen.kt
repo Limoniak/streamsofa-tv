@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -57,9 +59,10 @@ private const val HINT_MS = 5_000L
 @Composable
 fun MultiViewRoute(onOpenSingle: (login: String) -> Unit, viewModel: MultiViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val chat by viewModel.chat.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onStop() }
-    MultiViewScreen(state, viewModel, onOpenSingle) { login ->
+    MultiViewScreen(state, viewModel, onOpenSingle, chat = chat, chatLook = viewModel.chatLook) { login ->
         val player = viewModel.player(login)
         if (player != null) {
             AndroidView(
@@ -89,6 +92,8 @@ internal fun MultiViewScreen(
     state: MultiUiState,
     actions: MultiActions,
     onOpenSingle: (login: String) -> Unit,
+    chat: ChatUiState = ChatUiState(),
+    chatLook: ChatLook = ChatLook(),
     video: @Composable (login: String) -> Unit,
 ) {
     var hint by remember { mutableStateOf(true) }
@@ -123,7 +128,8 @@ internal fun MultiViewScreen(
         }
     }
 
-    Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
+    Row(Modifier.fillMaxSize().background(Color.Black)) {
+    Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
         // 2 tuiles côte à côte, 3 ou 4 en grille 2 × 2 : des cellules 16:9 qui remplissent l'écran.
         Column(Modifier.fillMaxWidth()) {
             state.tiles.chunked(2).forEachIndexed { row, tiles ->
@@ -174,10 +180,22 @@ internal fun MultiViewScreen(
             )
         }
     }
+        // Chat de la tuile qui a le son, en lecture seule (pas de saisie en multi-view).
+        if (state.chatVisible) ChatPanel(chat, Modifier.width(chatLook.width).fillMaxHeight(), look = chatLook)
+    }
     menu?.let { login ->
         val name = state.tiles.firstOrNull { it.login == login }?.stream?.displayName ?: login
         TileMenu(
             name = name,
+            chatVisible = state.chatVisible,
+            onChat = if (actions.chatAllowed) {
+                {
+                    menu = null
+                    actions.toggleChat()
+                }
+            } else {
+                null
+            },
             onReplace = {
                 menu = null
                 replacing = login
@@ -266,7 +284,14 @@ private fun Tile(
 
 /** Menu d'une tuile (appui long sur OK) : la remplacer par une autre chaîne, ou la retirer. */
 @Composable
-private fun TileMenu(name: String, onReplace: () -> Unit, onRemove: () -> Unit, onDismiss: () -> Unit) {
+private fun TileMenu(
+    name: String,
+    chatVisible: Boolean,
+    onChat: (() -> Unit)?,
+    onReplace: () -> Unit,
+    onRemove: () -> Unit,
+    onDismiss: () -> Unit,
+) {
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestWhenAttached() }
     Dialog(onDismissRequest = onDismiss) {
@@ -280,6 +305,9 @@ private fun TileMenu(name: String, onReplace: () -> Unit, onRemove: () -> Unit, 
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Button(onClick = onReplace, modifier = Modifier.focusRequester(focus)) { Text(stringResource(R.string.multi_replace)) }
                 Button(onClick = onRemove) { Text(stringResource(R.string.multi_remove)) }
+                if (onChat != null) {
+                    Button(onClick = onChat) { Text(stringResource(if (chatVisible) R.string.player_chat_hide else R.string.player_chat_show)) }
+                }
             }
         }
     }

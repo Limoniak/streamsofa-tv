@@ -60,12 +60,17 @@ class MultiViewRemoteTest {
         }
         override fun retry(login: String) { log += "retry:$login" }
         override suspend fun replacements() = others
+        override val chatAllowed = true
+        override fun toggleChat() {
+            log += "chat"
+            state = state.copy(chatVisible = !state.chatVisible)
+        }
     }
 
     private var opened: String? = null
 
     private fun show(actions: FakeMulti) {
-        rule.setContent { LumenTheme { MultiViewScreen(state, actions, onOpenSingle = { opened = it }) {} } }
+        rule.setContent { LumenTheme { MultiViewScreen(state, actions, onOpenSingle = { opened = it }, chat = ChatUiState()) {} } }
         rule.waitForIdle()
     }
 
@@ -183,5 +188,18 @@ class MultiViewRemoteTest {
         rule.onNodeWithText(text(R.string.multi_hint)).assertExists()
         rule.mainClock.advanceTimeBy(6_000)
         rule.onNodeWithText(text(R.string.multi_hint)).assertDoesNotExist()
+    }
+
+    @Test
+    fun tileMenuShowsTheChatOfTheTileWithSound() {
+        val actions = FakeMulti()
+        show(actions)
+        longPressOk()
+        // Remplacer, Retirer, Afficher le chat.
+        press(Key.DirectionRight)
+        press(Key.DirectionRight)
+        press(Key.DirectionCenter)
+        assertEquals(listOf("chat"), actions.calls)
+        rule.onNodeWithText(text(R.string.chat_connecting)).assertExists()
     }
 }

@@ -6,6 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Added
+- Multi-view chat: "Show chat" in a tile's menu (long press on OK) shows the chat of the tile that has the sound, read-only, and follows it.
 - Sleep timer "end of stream": playback stops when the live stream ends or raids, instead of moving on.
 - Quality cap on Wi-Fi (Settings > Playback): Auto and the starting quality stay at or below it; Ethernet is not limited.
 - Screen time for kids profiles: a daily limit (30 minutes to 3 hours) for live streams and past broadcasts together, and "+30 min today". Both are set from the profile's options (long press in the profile picker), behind the parent PIN.

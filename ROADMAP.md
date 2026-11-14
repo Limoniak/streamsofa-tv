@@ -8,10 +8,6 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 ## Next up
 
 
-## Playback
-
-- [ ] 🟡 Multi-view: show the chat of the tile that has the sound.
-
 ## Chat
 
 - [ ] 🟢 ⚠️ Message pinned by the channel, at the top of the chat.

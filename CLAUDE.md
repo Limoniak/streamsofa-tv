@@ -123,7 +123,7 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
 
 - Lecteur VOD : ▲ fait défiler la vitesse, chapitres GQL `moments(VIDEO_CHAPTER_MARKERS)` marqués sur la barre.
   Live terminé ou chaîne hors ligne (`LoadError.Offline`) : écran de fin (raid ignoré, live suivant, dernière VOD).
-  Multi-view : appui long OK = menu Remplacer / Retirer.
+  Multi-view : appui long OK = menu Remplacer / Retirer / Chat (lecture seule, suit la tuile qui a le son ; jamais en enfants).
 
 - Tests à la télécommande : `PlayerScreen`, `VodPlayerScreen`, `MultiViewScreen` (sans ViewModel ni ExoPlayer,
   actions derrière `PlayerActions` / `VodActions` / `MultiActions`, vidéo passée en lambda) montés sous Robolectric dans

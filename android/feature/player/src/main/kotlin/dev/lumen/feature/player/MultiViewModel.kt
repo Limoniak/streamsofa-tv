@@ -12,6 +12,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.lumen.core.LiveStream
 import dev.lumen.core.Variant
 import dev.lumen.data.CatalogRepository
+import kotlinx.coroutines.flow.catch
+import dev.lumen.data.SettingsRepository
+import dev.lumen.data.ChatRepository
 import dev.lumen.data.LoadError
 import dev.lumen.data.loadCatching
 import dev.lumen.data.toLoadError
@@ -39,7 +42,12 @@ data class TileUiState(
     val status: TileStatus = TileStatus.Loading,
 )
 
-data class MultiUiState(val tiles: List<TileUiState>, val focused: Int = 0)
+data class MultiUiState(
+    val tiles: List<TileUiState>,
+    val focused: Int = 0,
+    /** Chat de la tuile qui a le son, à droite de la grille. */
+    val chatVisible: Boolean = false,
+)
 
 /** Codes Media3 4xxx : échec d'initialisation ou de décodage, souvent faute de décodeur libre. */
 private fun PlaybackException.isDecoderError() = errorCode in 4000..4999
@@ -60,6 +68,10 @@ interface MultiActions {
     fun retry(login: String)
     /** Chaînes proposées pour remplacer une tuile, hors celles affichées. */
     suspend fun replacements(): List<LiveStream>
+    /** Profil enfants : pas de chat. */
+    val chatAllowed: Boolean
+    /** Affiche ou masque le chat de la tuile qui a le son. */
+    fun toggleChat()
 }
 
 @HiltViewModel
@@ -67,7 +79,34 @@ class MultiViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     savedState: SavedStateHandle,
     private val catalog: CatalogRepository,
+    private val chatRepo: ChatRepository,
+    private val settings: SettingsRepository,
 ) : ViewModel(), MultiActions {
+    override val chatAllowed: Boolean get() = !settings.state.value.kids
+    val chatLook: ChatLook get() = settings.state.value.chatLook()
+    private val _chat = MutableStateFlow(ChatUiState())
+    val chat: StateFlow<ChatUiState> = _chat.asStateFlow()
+    private var chatJob: Job? = null
+    private var chatLogin: String? = null
+
+    override fun toggleChat() {
+        if (!chatAllowed) return
+        _state.update { it.copy(chatVisible = !it.chatVisible) }
+        followChat()
+    }
+
+    /** Le chat suit la tuile qui a le son ; masqué, la connexion est coupée. */
+    private fun followChat() {
+        val state = _state.value
+        val login = state.tiles.getOrNull(state.focused)?.login?.takeIf { state.chatVisible }
+        if (login == chatLogin) return
+        chatLogin = login
+        chatJob?.cancel()
+        _chat.value = ChatUiState()
+        if (login != null) chatJob = viewModelScope.launch {
+            chatRepo.events(login).catch { }.collect { batch -> _chat.update { it.applyEvents(batch) } }
+        }
+    }
     private val max = DecoderProbe.maxStreams(context).coerceAtLeast(1)
     private val initial = checkNotNull(savedState.get<String>("logins"))
         .split(',').map { it.trim().lowercase() }.filter { it.isNotEmpty() }.distinct().take(max)
@@ -95,6 +134,7 @@ class MultiViewModel @Inject constructor(
         if (index == _state.value.focused || index !in slots.indices) return
         _state.update { it.copy(focused = index) }
         applyVolumes()
+        followChat()
     }
 
     /** `false` s'il ne reste qu'une tuile : l'écran bascule alors en lecteur simple. */
@@ -116,6 +156,7 @@ class MultiViewModel @Inject constructor(
             if (better != null && better != slot.current) play(slot, better)
         }
         applyVolumes()
+        followChat()
         return true
     }
 
@@ -139,6 +180,7 @@ class MultiViewModel @Inject constructor(
         _state.update { s -> s.copy(tiles = s.tiles.mapIndexed { i, tile -> if (i == index) TileUiState(new) else tile }) }
         load(slot)
         applyVolumes()
+        followChat()
     }
 
     override fun retry(login: String) {
