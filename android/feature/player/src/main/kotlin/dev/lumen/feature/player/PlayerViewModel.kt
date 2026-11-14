@@ -9,6 +9,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -100,6 +101,22 @@ private const val LIVE_OFFSET_MS = 5_000L
 const val RAID_DELAY_S = 10
 
 /** Élément de lecture d'un live, partagé par le lecteur et le multi-view. */
+/**
+ * Tampon d'un live : la première image dès 1,5 s de vidéo reçue (2,5 s par défaut), 3 s après une coupure (5 s).
+ * Un live n'a de toute façon que quelques secondes d'avance à charger ; le reste des réglages est inchangé.
+ */
+internal fun liveLoadControl(): DefaultLoadControl = DefaultLoadControl.Builder()
+    .setBufferDurationsMs(
+        DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
+        DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
+        LIVE_START_BUFFER_MS,
+        LIVE_REBUFFER_MS,
+    )
+    .build()
+
+private const val LIVE_START_BUFFER_MS = 1_500
+private const val LIVE_REBUFFER_MS = 3_000
+
 internal fun liveMediaItem(url: String, targetOffsetMs: Long = LIVE_OFFSET_MS): MediaItem = MediaItem.Builder()
     .setUri(url)
     .setMimeType(MimeTypes.APPLICATION_M3U8)
@@ -179,7 +196,7 @@ class PlayerViewModel @Inject constructor(
         .map { snap -> snap?.accounts?.any { it.id == snap.activeId && it.state == AccountState.OK } == true }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
-    val player: ExoPlayer = ExoPlayer.Builder(context).build().apply { playWhenReady = true }
+    val player: ExoPlayer = ExoPlayer.Builder(context).setLoadControl(liveLoadControl()).build().apply { playWhenReady = true }
 
     /** Lives populaires, pour zapper sans suivis en live (invité). */
     private var popular: List<String> = emptyList()
@@ -188,6 +205,9 @@ class PlayerViewModel @Inject constructor(
     /** Dernier raid de la chaîne affichée, gardé même annulé : il est reproposé si le live s'arrête. */
     private var lastRaid: Raid? = null
     private var followJob: Job? = null
+
+    private val prefetch = PlaybackCache()
+    private var prefetchJob: Job? = null
 
     private var masterUrl: String? = null
     private var audioUrl: String? = null
@@ -202,6 +222,8 @@ class PlayerViewModel @Inject constructor(
                 if (playbackState == Player.STATE_READY) {
                     retried = false
                     _state.update { it.copy(status = PlayerStatus.Playing) }
+                    // L'image d'abord : les voisines ne lui disputent pas la bande passante du démarrage.
+                    prefetchNeighbours()
                 }
             }
 
@@ -357,14 +379,40 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    /** Prépare le jeton des chaînes de ▲ et ▼, puis le renouvelle tant qu'on reste sur celle-ci. */
+    private fun prefetchNeighbours() {
+        if (prefetchJob?.isActive == true) return
+        val current = _state.value.login
+        prefetchJob = viewModelScope.launch {
+            while (true) {
+                val neighbours = zapNeighbours(zapLogins(), current)
+                prefetch.retain(neighbours.toSet())
+                for (login in neighbours) {
+                    if (prefetch.isFresh(login)) continue
+                    // Une voisine hors ligne ou en erreur est simplement chargée normalement au zap.
+                    loadCatching {
+                        coroutineScope {
+                            val stream = async { loadCatching { catalog.liveStream(login) }.getOrNull() }
+                            prefetch.put(login, catalog.livePlayback(login), stream.await())
+                        }
+                    }
+                }
+                delay(PREFETCH_REFRESH_MS)
+            }
+        }
+    }
+
     private fun load(login: String) {
         if (login != _state.value.login) lastRaid = null
         joinChat(login)
         job?.cancel()
+        prefetchJob?.cancel()
+        // Un jeton préparé ne sert qu'à l'ouverture : une relance (jeton refusé) en redemande un neuf.
+        val ready = if (retried) null else prefetch.take(login)
         player.stop()
         masterUrl = null
         audioUrl = null
-        val known = catalog.followed.value.firstOrNull { it.login == login }
+        val known = ready?.stream ?: catalog.followed.value.firstOrNull { it.login == login }
         followJob?.cancel()
         _state.update {
             it.copy(
@@ -379,12 +427,12 @@ class PlayerViewModel @Inject constructor(
             )
         }
         job = viewModelScope.launch {
-            launch {
+            if (ready?.stream == null) launch {
                 loadCatching { catalog.liveStream(login) }.getOrNull()?.let { info ->
                     _state.update { if (it.login == login) it.copy(stream = info) else it }
                 }
             }
-            loadCatching { catalog.livePlayback(login) }
+            (ready?.let { Result.success(it.playback) } ?: loadCatching { catalog.livePlayback(login) })
                 .onSuccess { playback ->
                     masterUrl = playback.masterUrl
                     audioUrl = playback.variants.firstOrNull { it.audioOnly }?.url
