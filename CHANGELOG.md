@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-14
+
 ### Added
 - English interface. The app follows the system language (English or French) and can be set per app in the Android settings on Android 13 and later.
 - Channel zapping (Up / Down) without followed channels live, in guest mode for example: it goes through the popular streams.
@@ -83,6 +85,7 @@ First public release.
 - Settings: chat at launch, default quality, accent color, update check at startup.
 - In-app updates from GitHub Releases, with the APK matching the device's architecture.
 
-[Unreleased]: https://github.com/Limoniak/streamsofa-tv/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Limoniak/streamsofa-tv/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Limoniak/streamsofa-tv/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Limoniak/streamsofa-tv/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Limoniak/streamsofa-tv/releases/tag/v0.1.0

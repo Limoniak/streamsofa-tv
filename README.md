@@ -25,15 +25,15 @@
 
 | | |
 |---|---|
-| **Watch** | Live streams with quality selection and fast channel zapping, an experimental low-latency mode, audio only, a sleep timer, picture-in-picture. Past broadcasts that remember where you stopped, with chapters and playback speed. Clips. |
+| **Watch** | Live streams with quality selection and fast channel zapping (the channels above and below are prepared while you watch), an experimental low-latency mode, audio only, a sleep timer, picture-in-picture. Past broadcasts that remember where you stopped, with chapters and playback speed. Clips. |
 | **Multi-view** | Two to four streams side by side, on devices that can decode them. Sound follows the focused tile; any tile can be replaced. |
 | **Chat** | Read and send messages, replies, an emote picker, badges, 7TV / BTTV / FFZ emotes (animated where the device allows), hidden words and users. Text size, width, or on top of the video. Polls and predictions, read-only. Chat replay on past broadcasts. |
 | **Accounts** | Sign in by entering a code on your phone, no typing on the TV. Several accounts, plus a guest mode that needs no account at all. Settings per profile, an optional PIN, and a kids profile. |
-| **Discover** | Followed channels first, recommendations, popular streams and categories, a language filter, search. Top clips per category and from the channels you follow. |
+| **Discover** | Followed channels first, with the ones you pin at the top. A "Recently watched" row, recommendations, popular streams and categories (hide the ones you never watch), a language filter, search. Top clips per category and from the channels you follow. |
 | **Android TV** | "Continue watching" and "Live channels you follow" rows, global and voice search, `twitch.tv` links open in the app. |
 | **Raids** | When the channel you watch raids, a banner offers to follow it. |
 
-The interface is in English, French, Spanish, German, Italian and Brazilian Portuguese, and follows the system language. On Android 13 and later it can also be set for the app alone in the Android settings.
+The interface is in English, French, Spanish, German, Italian and Brazilian Portuguese, and follows the system language. On Android 13 and later it can also be set for the app alone in the Android settings. Screens are labelled for TalkBack.
 
 Ads inserted by Twitch play as usual: StreamSofa never blocks them and never tries to unlock subscriber or Turbo perks.
 
@@ -127,7 +127,7 @@ CI (`.github/workflows/ci.yml`) runs the tests on every push. Pushing a `vX.Y.Z`
 2. Add the repository secrets (Settings → Secrets and variables → Actions):
    `TWITCH_CLIENT_ID`, `LUMEN_KEYSTORE_BASE64` (output of `base64 -w0 streamsofa-release.jks`),
    `LUMEN_KEYSTORE_PASSWORD`, `LUMEN_KEY_ALIAS`, `LUMEN_KEY_PASSWORD`.
-3. Move the `Unreleased` entries of the changelog under the new version, then tag: `git tag v0.2.0 && git push origin v0.2.0`.
+3. Move the `Unreleased` entries of the changelog under the new version, then tag: `git tag v0.3.0 && git push origin v0.3.0`.
 
 Locally, an `android/keystore.properties` file (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`) signs `assembleRelease` with the same key; without it, release builds use the debug key.
 

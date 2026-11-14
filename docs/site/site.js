@@ -30,18 +30,18 @@
     "feat.kicker": "Fonctionnalités",
     "feat.title": "Tout ce que vous regardez sur Twitch, <em>sur grand écran</em>.",
     "feat.lead": "Un cœur en Rust pour les API Twitch, le chat et le stockage, avec une interface Jetpack Compose for TV.",
-    "f.live": "Lives", "f.live2": "Zapping rapide et choix de la qualité, retenue pour chaque chaîne.",
+    "f.live": "Lives", "f.live2": "Zapping rapide, les chaînes voisines étant préparées pendant que vous regardez, et qualité retenue pour chaque chaîne.",
     "f.live3": "Mode faible latence expérimental : environ 3,7 s de retard sur le streamer au lieu de 7,2 s, sur les chaînes qui le permettent.",
     "f.live4": "Son seul, qui continue en arrière-plan.",
     "f.live5": "Mise en veille (15, 30, 60 ou 90 minutes).",
     "f.live6": "Statistiques du flux : résolution, débit, retard, images perdues.",
     "f.live7": "Aperçu animé après un instant de focus sur une carte.",
-    "f.multi": "Multi-view", "f.multi2": "Deux à quatre flux côte à côte, sur les appareils capables de les décoder. Le son suit la tuile sélectionnée.",
-    "f.chat": "Chat", "f.chat2": "Lecture et envoi de messages, badges, émotes 7TV / BTTV / FFZ (animées si l’appareil le permet), citations mises en valeur, heure des messages en option, mots et pseudos masqués.",
-    "f.acc": "Comptes", "f.acc2": "Connexion en scannant un QR code avec le téléphone, sans rien taper sur la TV. Plusieurs comptes, et un mode invité sans compte.",
+    "f.multi": "Multi-view", "f.multi2": "Deux à quatre flux côte à côte, sur les appareils capables de les décoder. Le son suit la tuile sélectionnée, et chaque tuile peut être remplacée.",
+    "f.chat": "Chat", "f.chat2": "Lecture et envoi de messages, réponses et sélecteur d’émotes, badges, émotes 7TV / BTTV / FFZ (animées si l’appareil le permet), sondages et prédictions, citations mises en valeur, mots et pseudos masqués.",
+    "f.acc": "Comptes", "f.acc2": "Connexion en scannant un QR code avec le téléphone, sans rien taper sur la TV. Plusieurs comptes et un mode invité, chacun avec ses réglages, un PIN en option et un profil enfants.",
     "f.vod": "Rediffusions", "f.vod2": "Reprise là où vous vous étiez arrêté, par profil, avec le chat rejoué en synchro. Et les clips.",
-    "f.disc": "Découvrir", "f.disc2": "Les suivis d’abord, des recommandations, les lives et catégories populaires, un filtre de langue, la recherche avec les recherches récentes.",
-    "f.tv": "Android TV", "f.tv2": "Rangée « Continuer à regarder », recherche globale et vocale, et les liens twitch.tv s’ouvrent dans l’app.",
+    "f.disc": "Découvrir", "f.disc2": "Les suivis d’abord, les épinglés en tête, une rangée « Regardé récemment », des recommandations, les lives et catégories populaires (masquables), un filtre de langue, la recherche.",
+    "f.tv": "Android TV", "f.tv2": "Rangées « Continuer à regarder » et « Chaînes suivies en live », recherche globale et vocale, et les liens twitch.tv s’ouvrent dans l’app.",
     "f.perf": "Léger sur les vieilles box", "f.perf2": "Cœur natif en Rust, Baseline Profile pour un démarrage rapide, effets lourds coupés sur les appareils à faible mémoire.",
     "f.priv": "Respect de la vie privée", "f.priv2": "Jetons chiffrés par le Keystore Android et jamais journalisés. Aucun traceur ; le journal de crash, optionnel, reste sur l’appareil.",
     "f.upd": "Mises à jour intégrées", "f.upd2": "Les nouvelles versions arrivent des GitHub Releases et sont proposées au lancement. Les bêtas sont en option.",
@@ -180,6 +180,6 @@
     if (!release) return;
     $("#tag").textContent = release.tag_name;
     const cmd = $("#adb-cmd");
-    cmd.textContent = cmd.textContent.replace("0.2.0", release.tag_name.replace(/^v/, ""));
+    cmd.textContent = cmd.textContent.replace("0.3.0", release.tag_name.replace(/^v/, ""));
   }).catch(() => {});
 })();
