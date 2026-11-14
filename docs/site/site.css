@@ -191,9 +191,9 @@ h2 { font-size: clamp(32px, 4vw, 48px); line-height: 1.08; }
 .card li { display: flex; gap: 10px; }
 .card li::before { content: ""; width: 6px; height: 6px; margin-top: 9px; flex: none; border-radius: 50%; background: var(--lavender); }
 .card.peach li::before { background: var(--peach); }
-.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 22px; }
-.tiles span { aspect-ratio: 16 / 9; border-radius: 8px; background: linear-gradient(135deg, #3a2e52, #241d2e); border: 1px solid var(--line); }
-.tiles span:first-child { border-color: var(--lavender); box-shadow: 0 0 0 1px var(--lavender); }
+/* Capture dans une carte (multi-view) : cliquable, s'ouvre en grand comme celles de la galerie. */
+.card-shot { display: block; width: 100%; margin-top: 22px; padding: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #000; cursor: zoom-in; }
+.card-shot img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
 
 .note {
   display: flex; gap: 14px; align-items: flex-start; margin-top: 28px; padding: 18px 22px;

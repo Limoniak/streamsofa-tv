@@ -153,7 +153,7 @@
 
   // Galerie : agrandissement dans une boîte de dialogue native.
   const box = $("#lightbox");
-  $$(".shot button").forEach((b) => b.addEventListener("click", () => {
+  $$(".shot button, .card-shot").forEach((b) => b.addEventListener("click", () => {
     const img = $("img", box);
     img.src = b.dataset.full;
     img.alt = $("img", b).alt;
