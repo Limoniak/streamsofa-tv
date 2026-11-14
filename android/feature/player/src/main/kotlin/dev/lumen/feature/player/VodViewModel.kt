@@ -111,8 +111,16 @@ class VodViewModel @Inject constructor(
     private var chatJob: Job? = null
     private val replay = ReplayBuffer()
     private val noChatText = context.getString(R.string.vod_no_chat)
+    private val screenTime = ScreenTimeGuard(settings, isPlaying = { player.isPlaying }) { stopForTimeUp() }
+
+    private fun stopForTimeUp() {
+        saveProgress()
+        player.pause()
+        _state.update { it.copy(status = PlayerStatus.Failed(LoadError.Unavailable), detail = context.getString(R.string.screen_time_up)) }
+    }
 
     init {
+        screenTime.start(viewModelScope)
         player.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_READY) _state.update { it.copy(status = PlayerStatus.Playing) }
@@ -142,6 +150,7 @@ class VodViewModel @Inject constructor(
     override fun retry() = load()
 
     override fun togglePause() {
+        if (screenTime.isUp) return stopForTimeUp()
         if (player.playWhenReady) player.pause() else player.play()
     }
 
@@ -192,7 +201,7 @@ class VodViewModel @Inject constructor(
                     val start = player.currentPosition.takeIf { it > 0 } ?: resume
                     player.setMediaItem(item, start)
                     player.prepare()
-                    player.play()
+                    if (screenTime.isUp) stopForTimeUp() else player.play()
                 }
                 .onFailure { e ->
                     _state.update {

@@ -7,7 +7,6 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 
 ## Next up
 
-- [ ] 🟢 Daily screen time limit for kids profiles, lifted with the parent PIN.
 
 ## Playback
 

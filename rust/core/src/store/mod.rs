@@ -65,6 +65,10 @@ const MIGRATIONS: &[&str] = &["
 pub const GLOBAL_SETTINGS: &[&str] = &["check_updates", "beta_updates", "crash_log"];
 pub const PIN_HASH: &str = "pin_hash";
 pub const KIDS_PROFILE: &str = "kids_profile";
+/// Temps d'écran quotidien d'un profil enfants, en minutes (absent = sans limite).
+pub const KIDS_LIMIT: &str = "kids_daily_minutes";
+/// Temps accordé en plus par un parent : `AAAA-MM-JJ\tminutes`, valable ce jour-là seulement.
+pub const KIDS_EXTRA: &str = "kids_extra";
 
 const ACTIVE_ACCOUNT: &str = "active_account_id";
 

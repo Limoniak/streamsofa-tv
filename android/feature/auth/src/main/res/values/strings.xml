@@ -45,4 +45,9 @@
     <string name="profiles_reset_guest">Reset the guest profile</string>
     <string name="profiles_reset_guest_title">Reset the guest profile?</string>
     <string name="profiles_reset_guest_body">Its settings, resume points, PIN and kids mode are erased.</string>
+    <string name="profiles_screen_time">Screen time</string>
+    <string name="profiles_screen_time_title">Screen time for %1$s</string>
+    <string name="profiles_screen_time_off">No limit</string>
+    <string name="profiles_screen_time_extra">+%1$d min today</string>
+    <string name="profiles_screen_time_hint">Per day, live streams and past broadcasts together. When the time is up, playback stops until tomorrow or until you add time.</string>
 </resources>

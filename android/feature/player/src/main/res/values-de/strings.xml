@@ -75,4 +75,5 @@
     <string name="player_from_start">Von Anfang an</string>
     <string name="now_live_title">%1$s ist live</string>
     <string name="now_live_hint">OK zum Ansehen · Zurück, um zu bleiben</string>
+    <string name="screen_time_up">Für heute ist Schluss. Ein Elternteil kann Zeit hinzufügen: Profil in der Profilauswahl gedrückt halten.</string>
 </resources>

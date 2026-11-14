@@ -63,6 +63,12 @@ class ProfilesViewModel @Inject constructor(
 
     fun resetGuest() = launchSafely { accounts.resetGuest() }
 
+    suspend fun kidsLimit(profileId: String?): Int = runCatching { accounts.kidsLimit(profileId) }.getOrDefault(0)
+
+    fun setKidsLimit(profileId: String?, minutes: Int) = launchSafely { accounts.setKidsLimit(profileId, minutes) }
+
+    fun grantKidsTime(profileId: String?, minutes: Int) = launchSafely { accounts.grantKidsTime(profileId, minutes) }
+
     // Un échec ici (compte retiré entre-temps, base occupée) laisse simplement l'écran tel quel :
     // la liste affichée vient du dépôt et reste la vérité.
     private fun launchSafely(block: suspend () -> Unit) {

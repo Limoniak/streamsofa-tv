@@ -572,6 +572,25 @@ async fn profile_pins_and_kids_mode_show_in_the_snapshot() {
 }
 
 #[tokio::test]
+async fn kids_screen_time_is_only_written_through_the_profile_functions() {
+    let h = Harness::new().await;
+    assert!(h.core.set_setting("kids_daily_minutes".into(), "999".into()).is_err());
+    assert!(h.core.set_setting("kids_extra".into(), "2026-11-14\t600".into()).is_err());
+    h.core.set_kids_limit(None, 90).unwrap();
+    assert_eq!(h.core.kids_limit(None).unwrap(), 90);
+    h.core.grant_kids_time(None, "2026-11-14".into(), 30).unwrap();
+    h.core.grant_kids_time(None, "2026-11-14".into(), 30).unwrap();
+    let settings = h.core.settings().unwrap();
+    assert_eq!(settings.get("kids_daily_minutes").map(String::as_str), Some("90"));
+    assert_eq!(settings.get("kids_extra").map(String::as_str), Some("2026-11-14\t60"));
+    // Un autre jour : l'ajout de la veille ne compte plus.
+    h.core.grant_kids_time(None, "2026-11-15".into(), 15).unwrap();
+    assert_eq!(h.core.settings().unwrap().get("kids_extra").map(String::as_str), Some("2026-11-15\t15"));
+    h.core.set_kids_limit(None, 0).unwrap();
+    assert_eq!(h.core.kids_limit(None).unwrap(), 0);
+}
+
+#[tokio::test]
 async fn kids_mode_keeps_only_family_friendly_channels() {
     let h = Harness::new().await;
     Mock::given(method("POST"))

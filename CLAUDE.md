@@ -145,6 +145,9 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
   non finies, 10 au plus). « Pourrait vous plaire » : 2 dernières `recent_categories` (écrites par le lecteur), dans la
   langue de l'interface, hors suivis et regardés. « Les plus regardés dans votre langue » : `language_streams` (Helix
   `language`, GQL `streams(options: {languages})`). Paramètres > Accueil : OK = afficher/masquer, ◀ ▶ = déplacer.
+- Temps d'écran enfants : `kids_daily_minutes` et `kids_extra` (`jour\tminutes`) protégés comme `kids_profile`
+  (`set_kids_limit`, `grant_kids_time`, refusés par `set_setting`), réglés derrière le PIN parent dans les options du profil.
+  Consommé : `screen_time` (`jour\tsecondes`), +30 s par tranche jouée (`ScreenTimeGuard`, lecteurs live et VOD ; pas les clips).
 - Volume constant (`constant_volume`, désactivé par défaut) : `AudioLeveler`, `DynamicsProcessing` (API 28+) sur la session
   audio du lecteur live, une bande de compression (−28 dB, 4:1, +9 dB) et un limiteur ; refusé par l'appareil = sans effet.
   Non écouté sur un vrai appareil.

@@ -440,4 +440,11 @@ class PlayerRemoteTest {
         val after = listOf(stream("b"), stream("c"), stream("alice"))
         assertEquals(listOf("c"), newlyLive(before, after, watching = "alice").map { it.login })
     }
+
+    @Test
+    fun timeUpExplainsHowAParentAddsTime() {
+        state = live.copy(timeUp = true)
+        show(FakeActions())
+        node(R.string.screen_time_up).assertExists()
+    }
 }

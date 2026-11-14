@@ -78,6 +78,9 @@ fun ProfilesRoute(
             setPin = viewModel::setPin,
             setKids = viewModel::setKids,
             resetGuest = viewModel::resetGuest,
+            kidsLimit = viewModel::kidsLimit,
+            setKidsLimit = viewModel::setKidsLimit,
+            grantKidsTime = viewModel::grantKidsTime,
         ),
     )
 }
@@ -89,6 +92,11 @@ class ProfileLocks(
     val setPin: (String?, String?) -> Unit,
     val setKids: (String?, Boolean) -> Unit,
     val resetGuest: () -> Unit,
+    /** Temps d'écran d'un profil enfants, en minutes par jour (0 = sans limite). */
+    val kidsLimit: suspend (String?) -> Int = { 0 },
+    val setKidsLimit: (String?, Int) -> Unit = { _, _ -> },
+    /** Minutes en plus pour aujourd'hui. */
+    val grantKidsTime: (String?, Int) -> Unit = { _, _ -> },
 )
 
 /** Une saisie de PIN en attente : [check] la valide, puis [then] reçoit le PIN tapé. */
@@ -111,6 +119,8 @@ fun ProfilesScreen(
     var confirm by remember { mutableStateOf<Confirm?>(null) }
     // Profil dont on affiche les options : `Some(null)` = l'invité.
     var options by remember { mutableStateOf<Optional<String>?>(null) }
+    // Profil dont on règle le temps d'écran (après le PIN parent).
+    var screenTimeFor by remember { mutableStateOf<Optional<String>?>(null) }
     val lockOf = { id: String? -> snapshot?.locks?.firstOrNull { it.profileId == id } }
     val hasParentPin = snapshot?.locks.orEmpty().any { it.hasPin && !it.kids }
 
@@ -231,6 +241,14 @@ fun ProfilesScreen(
                 options = null
                 if (lock?.kids == true) parentGate(id) { locks.setKids(id, false) } else locks.setKids(id, true)
             },
+            onScreenTime = if (lock?.kids == true) {
+                {
+                    options = null
+                    parentGate(id) { screenTimeFor = Optional.ofNullable(id) }
+                }
+            } else {
+                null
+            },
             onRemove = {
                 options = null
                 // PIN oublié : le profil se retire toujours, sauf un profil enfants protégé par un parent.
@@ -256,6 +274,20 @@ fun ProfilesScreen(
                 current.then(pin)
             },
             onDismiss = { prompt = null },
+        )
+    }
+
+    screenTimeFor?.let { selected ->
+        val id = selected.orElse(null)
+        ScreenTimeDialog(
+            name = nameOf(id),
+            load = { locks.kidsLimit(id) },
+            onLimit = { locks.setKidsLimit(id, it) },
+            onGrant = {
+                screenTimeFor = null
+                locks.grantKidsTime(id, EXTRA_MINUTES)
+            },
+            onDismiss = { screenTimeFor = null },
         )
     }
 
@@ -348,6 +380,8 @@ private fun ProfileOptionsDialog(
     onToggleKids: () -> Unit,
     onRemove: () -> Unit,
     onDismiss: () -> Unit,
+    /** `null` : pas un profil enfants. */
+    onScreenTime: (() -> Unit)? = null,
 ) {
     Dialog(onDismissRequest = onDismiss) {
         val first = remember { FocusRequester() }
@@ -372,6 +406,11 @@ private fun ProfileOptionsDialog(
             OutlinedButton(onClick = onToggleKids, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(if (kids) R.string.profiles_kids_off else R.string.profiles_kids_on))
             }
+            if (onScreenTime != null) {
+                OutlinedButton(onClick = onScreenTime, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.profiles_screen_time))
+                }
+            }
             Text(
                 text = stringResource(if (needsParentPin) R.string.profiles_kids_no_parent else R.string.profiles_kids_body),
                 style = MaterialTheme.typography.bodySmall,
@@ -394,3 +433,64 @@ private fun ConfirmDialog(title: String, body: String, onConfirm: () -> Unit, on
         onConfirm = onConfirm,
         onDismiss = onDismiss,
     )
+
+/** Limites proposées, en minutes ; 0 = sans limite. */
+private val LIMITS = listOf(0, 30, 60, 90, 120, 180)
+private const val EXTRA_MINUTES = 30
+
+/** Temps d'écran d'un profil enfants : limite par jour, et 30 minutes de plus pour aujourd'hui. */
+@kotlin.OptIn(androidx.tv.material3.ExperimentalTvMaterial3Api::class)
+@Composable
+private fun ScreenTimeDialog(
+    name: String,
+    load: suspend () -> Int,
+    onLimit: (Int) -> Unit,
+    onGrant: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var limit by remember { mutableStateOf<Int?>(null) }
+    LaunchedEffect(Unit) { limit = load() }
+    Dialog(onDismissRequest = onDismiss) {
+        val first = remember { FocusRequester() }
+        LaunchedEffect(limit != null) { if (limit != null) runCatching { first.requestFocus() } }
+        Column(
+            modifier = Modifier
+                .width(560.dp)
+                .background(LumenColors.SurfaceRaised, RoundedCornerShape(24.dp))
+                .padding(32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(stringResource(R.string.profiles_screen_time_title, name), style = MaterialTheme.typography.headlineSmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                LIMITS.forEach { minutes ->
+                    val selected = minutes == limit
+                    androidx.tv.material3.FilterChip(
+                        selected = selected,
+                        onClick = {
+                            limit = minutes
+                            onLimit(minutes)
+                        },
+                        modifier = if (selected) Modifier.focusRequester(first) else Modifier,
+                    ) {
+                        Text(if (minutes == 0) stringResource(R.string.profiles_screen_time_off) else formatMinutes(minutes))
+                    }
+                }
+            }
+            OutlinedButton(onClick = onGrant, enabled = (limit ?: 0) > 0) {
+                Text(stringResource(R.string.profiles_screen_time_extra, EXTRA_MINUTES))
+            }
+            Text(
+                stringResource(R.string.profiles_screen_time_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** « 30 min », « 1 h », « 1 h 30 ». */
+internal fun formatMinutes(minutes: Int): String = when {
+    minutes < 60 -> "$minutes min"
+    minutes % 60 == 0 -> "${minutes / 60} h"
+    else -> "${minutes / 60} h ${"%02d".format(minutes % 60)}"
+}

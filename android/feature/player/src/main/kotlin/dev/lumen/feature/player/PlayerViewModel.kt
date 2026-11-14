@@ -80,6 +80,8 @@ data class PlayerUiState(
     val archiveId: String? = null,
     /** Chaîne suivie qui vient de lancer son live : bandeau, OK pour y aller. */
     val nowLive: LiveStream? = null,
+    /** Profil enfants : temps d'écran du jour écoulé, la lecture est arrêtée. */
+    val timeUp: Boolean = false,
 )
 
 /** Chaînes passées en live depuis le dernier relevé, hors celle que l'on regarde. */
@@ -233,6 +235,13 @@ class PlayerViewModel @Inject constructor(
 
     private val prefetch = PlaybackCache()
     private val leveler = AudioLeveler(player)
+    private val screenTime = ScreenTimeGuard(settings, isPlaying = { player.isPlaying }) { stopForTimeUp() }
+
+    private fun stopForTimeUp() {
+        setAudioOnly(false)
+        player.stop()
+        _state.update { it.copy(timeUp = true) }
+    }
     private var prefetchJob: Job? = null
 
     private var masterUrl: String? = null
@@ -267,6 +276,7 @@ class PlayerViewModel @Inject constructor(
         viewModelScope.launch {
             settings.state.map { it.constantVolume }.distinctUntilChanged().collect(leveler::setEnabled)
         }
+        screenTime.start(viewModelScope)
         // Compte connecté : les suivis sont relus de temps en temps ; une chaîne qui démarre est annoncée.
         viewModelScope.launch {
             var previous = catalog.followed.value
@@ -551,6 +561,7 @@ class PlayerViewModel @Inject constructor(
 
     @OptIn(UnstableApi::class)
     private fun play() {
+        if (screenTime.isUp) return stopForTimeUp()
         val state = _state.value
         val url = (if (state.audioOnly) audioUrl else null)
             ?: state.variants.firstOrNull { it.name == state.quality }?.url ?: masterUrl ?: return

@@ -75,4 +75,5 @@
     <string name="player_from_start">From the start</string>
     <string name="now_live_title">%1$s is live</string>
     <string name="now_live_hint">OK to watch · Back to stay</string>
+    <string name="screen_time_up">That\'s all for today. A parent can add time: long press the profile in the profile picker.</string>
 </resources>

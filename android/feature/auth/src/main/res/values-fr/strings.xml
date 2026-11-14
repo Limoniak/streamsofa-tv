@@ -45,4 +45,9 @@
     <string name="profiles_reset_guest">Réinitialiser le profil invité</string>
     <string name="profiles_reset_guest_title">Réinitialiser le profil invité ?</string>
     <string name="profiles_reset_guest_body">Ses réglages, reprises, PIN et mode enfant sont effacés.</string>
+    <string name="profiles_screen_time">Temps d\'écran</string>
+    <string name="profiles_screen_time_title">Temps d\'écran de %1$s</string>
+    <string name="profiles_screen_time_off">Sans limite</string>
+    <string name="profiles_screen_time_extra">+%1$d min aujourd\'hui</string>
+    <string name="profiles_screen_time_hint">Par jour, lives et rediffusions ensemble. Le temps écoulé, la lecture s\'arrête jusqu\'au lendemain, ou jusqu\'à ce que vous ajoutiez du temps.</string>
 </resources>

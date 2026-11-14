@@ -63,6 +63,12 @@ class FakeAccountsRepository(accounts: List<Account> = emptyList(), activeId: St
         val others = current.locks.filterNot { it.profileId == profileId }
         snapshot.value = current.copy(locks = if (lock.hasPin || lock.kids) others + lock else others)
     }
+
+    val kidsLimits = mutableMapOf<String?, Int>()
+    val granted = mutableMapOf<String?, Int>()
+    override suspend fun kidsLimit(profileId: String?) = kidsLimits[profileId] ?: 0
+    override suspend fun setKidsLimit(profileId: String?, minutes: Int) { kidsLimits[profileId] = minutes }
+    override suspend fun grantKidsTime(profileId: String?, minutes: Int) { granted[profileId] = (granted[profileId] ?: 0) + minutes }
 }
 
 fun deviceLogin(code: String) = DeviceLogin(

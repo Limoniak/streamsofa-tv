@@ -44,6 +44,12 @@ interface AccountsRepository {
     suspend fun setKids(profileId: String?, kids: Boolean)
 
     suspend fun resetGuest()
+
+    /** Temps d'écran quotidien d'un profil enfants, en minutes ; 0 = sans limite. */
+    suspend fun kidsLimit(profileId: String?): Int
+    suspend fun setKidsLimit(profileId: String?, minutes: Int)
+    /** Temps en plus pour aujourd'hui. */
+    suspend fun grantKidsTime(profileId: String?, minutes: Int)
 }
 
 @Singleton
@@ -104,6 +110,16 @@ internal class RustAccountsRepository @Inject constructor(
     }
 
     override suspend fun resetGuest() = withContext(Dispatchers.IO) { coreHolder.get().resetGuestProfile() }
+
+    override suspend fun kidsLimit(profileId: String?) = withContext(Dispatchers.IO) { coreHolder.get().kidsLimit(profileId).toInt() }
+
+    override suspend fun setKidsLimit(profileId: String?, minutes: Int) = withContext(Dispatchers.IO) {
+        coreHolder.get().setKidsLimit(profileId, minutes.coerceAtLeast(0).toUInt())
+    }
+
+    override suspend fun grantKidsTime(profileId: String?, minutes: Int) = withContext(Dispatchers.IO) {
+        coreHolder.get().grantKidsTime(profileId, today(), minutes.coerceAtLeast(0).toUInt())
+    }
 }
 
 @Module

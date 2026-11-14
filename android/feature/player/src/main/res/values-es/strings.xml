@@ -78,4 +78,5 @@
     <string name="player_from_start">Desde el principio</string>
     <string name="now_live_title">%1$s está en directo</string>
     <string name="now_live_hint">OK para verlo · Atrás para quedarte</string>
+    <string name="screen_time_up">Se acabó por hoy. Un adulto puede añadir tiempo: mantén pulsado el perfil en la selección de perfiles.</string>
 </resources>

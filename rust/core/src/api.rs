@@ -19,7 +19,7 @@ use crate::helix::{HelixClient, HelixStream};
 use crate::hls::{self, Playback};
 use crate::http;
 use crate::secret::Secret;
-use crate::store::{GLOBAL_SETTINGS, KIDS_PROFILE, PIN_HASH};
+use crate::store::{GLOBAL_SETTINGS, KIDS_EXTRA, KIDS_LIMIT, KIDS_PROFILE, PIN_HASH};
 use crate::store::Db;
 use crate::update::{self, AppUpdate};
 
@@ -906,7 +906,7 @@ impl Core {
 
     /// Les préférences de l'appareil sont communes, les autres propres au profil actif.
     pub fn set_setting(&self, key: String, value: String) -> Result<(), CoreError> {
-        if key == PIN_HASH || key == KIDS_PROFILE {
+        if [PIN_HASH, KIDS_PROFILE, KIDS_LIMIT, KIDS_EXTRA].contains(&key.as_str()) {
             return Err(CoreError::Internal { reason: format!("{key} passe par les fonctions de profil") });
         }
         let scope = if GLOBAL_SETTINGS.contains(&key.as_str()) { SETTINGS_SCOPE.to_owned() } else { self.progress_scope()? };
@@ -926,6 +926,20 @@ impl Core {
 
     pub fn set_kids_profile(&self, profile_id: Option<String>, kids: bool) -> Result<(), CoreError> {
         self.accounts.set_kids_profile(profile_id.as_deref(), kids)
+    }
+
+    /// Temps d'écran quotidien d'un profil enfants, en minutes ; 0 = sans limite.
+    pub fn set_kids_limit(&self, profile_id: Option<String>, minutes: u32) -> Result<(), CoreError> {
+        self.accounts.set_kids_limit(profile_id.as_deref(), minutes)
+    }
+
+    pub fn kids_limit(&self, profile_id: Option<String>) -> Result<u32, CoreError> {
+        self.accounts.kids_limit(profile_id.as_deref())
+    }
+
+    /// Temps en plus pour aujourd'hui (`date` = `AAAA-MM-JJ` local), accordé avec le PIN parent.
+    pub fn grant_kids_time(&self, profile_id: Option<String>, date: String, minutes: u32) -> Result<(), CoreError> {
+        self.accounts.grant_kids_time(profile_id.as_deref(), &date, minutes)
     }
 
     pub fn reset_guest_profile(&self) -> Result<(), CoreError> {

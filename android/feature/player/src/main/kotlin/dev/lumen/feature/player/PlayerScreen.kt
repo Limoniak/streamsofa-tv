@@ -292,6 +292,10 @@ internal fun PlayerScreen(
 
         val status = state.status
         when {
+            state.timeUp -> MessageState(
+                text = stringResource(R.string.screen_time_up),
+                modifier = Modifier.align(Alignment.Center),
+            )
             state.sleeping -> MessageState(
                 text = stringResource(R.string.player_slept),
                 actionLabel = stringResource(R.string.player_resume),
@@ -417,7 +421,7 @@ private fun InfoPanel(
     onSleep: () -> Unit,
     onPip: (() -> Unit)?,
     /** `null` : la chaîne n'archive pas ce live. */
-    onFromStart: (() -> Unit)? = null,
+    onFromStart: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     var showQuality by remember(showActions) { mutableStateOf(false) }

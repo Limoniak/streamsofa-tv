@@ -30,6 +30,9 @@ private fun Map<String, String>.lines(): String = entries.joinToString("\n") { "
 
 const val MAX_RECENT_CATEGORIES = 5
 
+/** `AAAA-MM-JJ\tvaleur` → (jour, valeur). */
+private fun String?.dayValue(): Pair<String, String>? = this?.split('\t', limit = 2)?.takeIf { it.size == 2 }?.let { it[0] to it[1] }
+
 /** Épinglées d'abord, dans l'ordre d'épinglage, puis les autres dans leur ordre d'origine. */
 fun List<LiveStream>.pinnedFirst(pinned: List<String>): List<LiveStream> {
     if (pinned.isEmpty()) return this
@@ -89,6 +92,12 @@ data class AppSettings(
     val recentCategories: Map<String, String> = emptyMap(),
     /** Rangées de l'accueil, dans l'ordre choisi, avec leur visibilité. */
     val homeRows: List<HomeRowSetting> = DEFAULT_HOME_ROWS,
+    /** Profil enfants : temps d'écran par jour, en minutes (0 = sans limite). Lu seulement, réglé avec le PIN parent. */
+    val kidsDailyMinutes: Int = 0,
+    /** Temps accordé en plus par un parent : (jour, minutes). Lu seulement. */
+    val kidsExtra: Pair<String, Int>? = null,
+    /** Temps de lecture du jour : (jour, secondes). */
+    val screenTime: Pair<String, Long>? = null,
 ) {
     /** [id] en tête des catégories récentes, [MAX_RECENT_CATEGORIES] au plus. */
     fun withRecentCategory(id: String, name: String): AppSettings {
@@ -129,7 +138,7 @@ data class AppSettings(
         "favorite_categories" to favoriteCategories.lines(),
         "recent_categories" to recentCategories.lines(),
         "home_rows" to homeRows.toHomeRowsValue(),
-    ) + channelQuality.mapKeys { QUALITY_PREFIX + it.key }
+    ) + listOfNotNull(screenTime?.let { "screen_time" to "${it.first}\t${it.second}" }) + channelQuality.mapKeys { QUALITY_PREFIX + it.key }
 
     internal companion object {
         fun fromMap(map: Map<String, String>) = AppSettings().let { d ->
@@ -159,6 +168,9 @@ data class AppSettings(
                 favoriteCategories = map["favorite_categories"].idNames(),
                 recentCategories = map["recent_categories"].idNames(),
                 homeRows = parseHomeRows(map["home_rows"]),
+                kidsDailyMinutes = map["kids_daily_minutes"]?.toIntOrNull() ?: 0,
+                kidsExtra = map["kids_extra"].dayValue()?.let { (day, v) -> v.toIntOrNull()?.let { day to it } },
+                screenTime = map["screen_time"].dayValue()?.let { (day, v) -> v.toLongOrNull()?.let { day to it } },
             )
         }
     }

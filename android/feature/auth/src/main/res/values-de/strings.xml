@@ -45,4 +45,9 @@
     <string name="profiles_reset_guest">Gastprofil zurücksetzen</string>
     <string name="profiles_reset_guest_title">Gastprofil zurücksetzen?</string>
     <string name="profiles_reset_guest_body">Einstellungen, Wiedergabepositionen, PIN und Kindermodus werden gelöscht.</string>
+    <string name="profiles_screen_time">Bildschirmzeit</string>
+    <string name="profiles_screen_time_title">Bildschirmzeit von %1$s</string>
+    <string name="profiles_screen_time_off">Kein Limit</string>
+    <string name="profiles_screen_time_extra">+%1$d Min. heute</string>
+    <string name="profiles_screen_time_hint">Pro Tag, Livestreams und Videos zusammen. Ist die Zeit um, stoppt die Wiedergabe bis morgen oder bis du Zeit hinzufügst.</string>
 </resources>

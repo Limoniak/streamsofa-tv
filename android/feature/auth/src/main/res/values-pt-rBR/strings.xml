@@ -45,4 +45,9 @@
     <string name="profiles_reset_guest">Redefinir o perfil de convidado</string>
     <string name="profiles_reset_guest_title">Redefinir o perfil de convidado?</string>
     <string name="profiles_reset_guest_body">As configurações, os pontos de retomada, o PIN e o modo infantil são apagados.</string>
+    <string name="profiles_screen_time">Tempo de tela</string>
+    <string name="profiles_screen_time_title">Tempo de tela de %1$s</string>
+    <string name="profiles_screen_time_off">Sem limite</string>
+    <string name="profiles_screen_time_extra">+%1$d min hoje</string>
+    <string name="profiles_screen_time_hint">Por dia, lives e vídeos juntos. Quando o tempo acaba, a reprodução para até amanhã ou até você adicionar tempo.</string>
 </resources>

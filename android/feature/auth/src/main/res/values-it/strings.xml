@@ -45,4 +45,9 @@
     <string name="profiles_reset_guest">Reimposta il profilo ospite</string>
     <string name="profiles_reset_guest_title">Reimpostare il profilo ospite?</string>
     <string name="profiles_reset_guest_body">Impostazioni, punti di ripresa, PIN e modalità bambini vengono cancellati.</string>
+    <string name="profiles_screen_time">Tempo davanti allo schermo</string>
+    <string name="profiles_screen_time_title">Tempo davanti allo schermo di %1$s</string>
+    <string name="profiles_screen_time_off">Nessun limite</string>
+    <string name="profiles_screen_time_extra">+%1$d min oggi</string>
+    <string name="profiles_screen_time_hint">Al giorno, dirette e video insieme. Finito il tempo, la riproduzione si ferma fino a domani o finché non aggiungi tempo.</string>
 </resources>

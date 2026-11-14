@@ -45,4 +45,9 @@
     <string name="profiles_reset_guest">Restablecer el perfil de invitado</string>
     <string name="profiles_reset_guest_title">¿Restablecer el perfil de invitado?</string>
     <string name="profiles_reset_guest_body">Se borran sus ajustes, puntos de reanudación, PIN y modo infantil.</string>
+    <string name="profiles_screen_time">Tiempo de pantalla</string>
+    <string name="profiles_screen_time_title">Tiempo de pantalla de %1$s</string>
+    <string name="profiles_screen_time_off">Sin límite</string>
+    <string name="profiles_screen_time_extra">+%1$d min hoy</string>
+    <string name="profiles_screen_time_hint">Por día, directos y emisiones anteriores juntos. Al acabarse el tiempo, la reproducción se detiene hasta mañana o hasta que añadas tiempo.</string>
 </resources>

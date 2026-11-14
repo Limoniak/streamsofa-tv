@@ -14,7 +14,7 @@ use crate::error::CoreError;
 use crate::helix::HelixClient;
 use crate::qr::{self, QrMatrix};
 use crate::secret::Secret;
-use crate::store::{Db, KIDS_PROFILE, PIN_HASH};
+use crate::store::{Db, KIDS_EXTRA, KIDS_LIMIT, KIDS_PROFILE, PIN_HASH};
 
 mod pin;
 
@@ -187,6 +187,37 @@ impl AccountManager {
         } else {
             self.db.delete_setting(scope, KIDS_PROFILE)?;
         }
+        self.notify();
+        Ok(())
+    }
+
+    /// Limite quotidienne d'un profil enfants ; 0 la retire. Écrite seulement ici (derrière le PIN parent côté app).
+    pub fn set_kids_limit(&self, profile: Option<&str>, minutes: u32) -> Result<(), CoreError> {
+        let scope = self.profile_scope(profile)?;
+        if minutes == 0 {
+            self.db.delete_setting(scope, KIDS_LIMIT)?;
+        } else {
+            self.db.set_setting(scope, KIDS_LIMIT, &minutes.min(24 * 60).to_string())?;
+        }
+        self.notify();
+        Ok(())
+    }
+
+    pub fn kids_limit(&self, profile: Option<&str>) -> Result<u32, CoreError> {
+        let scope = self.profile_scope(profile)?;
+        Ok(self.db.settings(scope)?.get(KIDS_LIMIT).and_then(|v| v.parse().ok()).unwrap_or(0))
+    }
+
+    /// Ajoute `minutes` au temps du jour `date` (`AAAA-MM-JJ`, la date locale de l'appareil) ;
+    /// un ajout d'un autre jour remplace l'ancien.
+    pub fn grant_kids_time(&self, profile: Option<&str>, date: &str, minutes: u32) -> Result<(), CoreError> {
+        let scope = self.profile_scope(profile)?;
+        let current = self.db.settings(scope)?.get(KIDS_EXTRA).and_then(|v| {
+            let (day, min) = v.split_once('\t')?;
+            (day == date).then(|| min.parse::<u32>().ok()).flatten()
+        });
+        let total = current.unwrap_or(0).saturating_add(minutes).min(24 * 60);
+        self.db.set_setting(scope, KIDS_EXTRA, &format!("{date}\t{total}"))?;
         self.notify();
         Ok(())
     }
