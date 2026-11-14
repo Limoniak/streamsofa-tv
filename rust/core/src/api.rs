@@ -462,7 +462,7 @@ impl Core {
                     }
                 }
                 let mut live = self.with_avatars(&token, streams).await;
-                live.sort_by(|a, b| b.viewers.cmp(&a.viewers));
+                live.sort_by_key(|s| std::cmp::Reverse(s.viewers));
                 Ok(live)
             })
             .await?;
@@ -539,7 +539,7 @@ impl Core {
                 }
                 let mut seen: std::collections::HashSet<String> = followed.into_iter().map(|s| s.user_id).collect();
                 picked.retain(|s| seen.insert(s.user_id.clone()));
-                picked.sort_by(|a, b| b.viewer_count.cmp(&a.viewer_count));
+                picked.sort_by_key(|s| std::cmp::Reverse(s.viewer_count));
                 picked.truncate(PAGE_SIZE as usize);
                 Ok(self.with_avatars(&token, picked).await)
             })
@@ -679,7 +679,7 @@ impl Core {
         // Une chaîne en erreur est simplement absente de la rangée.
         let lists = futures_util::future::join_all(logins.iter().map(|login| self.gql.clips(login, false, 5))).await;
         let mut clips: Vec<Clip> = lists.into_iter().flatten().flatten().collect();
-        clips.sort_by(|a, b| b.views.cmp(&a.views));
+        clips.sort_by_key(|c| std::cmp::Reverse(c.views));
         clips.truncate(PAGE_SIZE as usize);
         self.kids_filter(clips, |c| &c.channel_login).await
     }
@@ -833,7 +833,7 @@ impl Core {
             EmoteMap::new()
         };
         let mut third_party: Vec<(String, String)> = channel_emotes.into_iter().collect();
-        third_party.sort_by(|a, b| a.0.to_lowercase().cmp(&b.0.to_lowercase()));
+        third_party.sort_by_cached_key(|e| e.0.to_lowercase());
         Ok(chat::picker_order(channel, twitch, third_party))
     }
 

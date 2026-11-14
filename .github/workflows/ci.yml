@@ -35,6 +35,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
+          components: clippy
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
@@ -53,6 +54,11 @@ jobs:
       - name: Tests Rust
         working-directory: rust
         run: cargo test --locked
+
+      # Toute remarque Clippy fait échouer le build, comme les erreurs lint côté Android.
+      - name: Clippy
+        working-directory: rust
+        run: cargo clippy --all-targets --locked -- -D warnings
 
       - name: local.properties
         working-directory: android

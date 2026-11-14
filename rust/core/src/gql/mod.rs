@@ -618,7 +618,7 @@ impl GqlClient {
             .into_iter()
             .map(|q| ClipQuality { height: q.quality.parse().unwrap_or(0), url: format!("{}?{signature}", q.source_url) })
             .collect();
-        qualities.sort_by(|a, b| b.height.cmp(&a.height));
+        qualities.sort_by_key(|q| std::cmp::Reverse(q.height));
         Ok(qualities)
     }
 

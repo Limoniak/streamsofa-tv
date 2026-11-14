@@ -99,6 +99,9 @@ pub enum ChatState {
     Reconnecting,
 }
 
+// `Message` est bien plus gros que les autres variantes, mais UniFFI n'accepte pas de `Box` ici ;
+// les événements voyagent par lots bornés (~100 ms), la place perdue reste négligeable.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq, uniffi::Enum)]
 pub enum ChatEvent {
     Message { message: ChatMessage },
