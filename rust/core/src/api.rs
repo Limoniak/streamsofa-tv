@@ -761,6 +761,12 @@ impl Core {
         self.master_playlist(master_url, token.expires_at(), CoreError::Offline).await
     }
 
+    /// VOD enregistrée pendant le live de `login` (« Depuis le début ») ; `None` si la chaîne
+    /// n'archive pas ses lives. Sa lecture passe par `vod_playback`, avec les mêmes contrôles.
+    pub async fn live_archive(&self, login: String) -> Result<Option<String>, CoreError> {
+        self.gql.live_archive(&login).await
+    }
+
     /// Playlist d'une VOD, en anonyme comme le live : une VOD réservée aux abonnés reste refusée.
     /// Fichiers MP4 d'un clip, du meilleur au plus bas ; vide si le clip n'existe plus.
     // shortcut: pas de contrôle enfants ici, les clips n'arrivent que par des listes déjà filtrées ;

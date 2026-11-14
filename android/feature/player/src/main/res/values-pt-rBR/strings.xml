@@ -75,4 +75,5 @@
     <string name="activity_prediction_open">Palpites abertos · faltam %1$s</string>
     <string name="activity_prediction_locked">Palpites encerrados, aguardando o resultado</string>
     <string name="activity_prediction_won">Resultado: %1$s</string>
+    <string name="player_from_start">Desde o início</string>
 </resources>

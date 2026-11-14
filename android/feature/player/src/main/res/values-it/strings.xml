@@ -75,4 +75,5 @@
     <string name="activity_prediction_open">Pronostici aperti · mancano %1$s</string>
     <string name="activity_prediction_locked">Pronostici chiusi, in attesa del risultato</string>
     <string name="activity_prediction_won">Risultato: %1$s</string>
+    <string name="player_from_start">Dall\'inizio</string>
 </resources>

@@ -181,7 +181,13 @@ class VodViewModel @Inject constructor(
                     _state.update { it.copy(video = info ?: it.video) }
                     val resume = info?.takeIf { !it.finished && it.positionS > RESUME_REWIND_S * 2u }
                         ?.let { (it.positionS - RESUME_REWIND_S).toLong() * 1000 } ?: 0L
-                    val item = MediaItem.Builder().setUri(playback.masterUrl).setMimeType(MimeTypes.APPLICATION_M3U8).build()
+                    // L'archive d'un live en cours est une playlist « EVENT » qui grandit : ExoPlayer la traite comme
+                    // un direct. Pas de rattrapage (vitesse figée à 1×), et départ explicite (0 = début du live).
+                    val item = MediaItem.Builder()
+                        .setUri(playback.masterUrl)
+                        .setMimeType(MimeTypes.APPLICATION_M3U8)
+                        .setLiveConfiguration(MediaItem.LiveConfiguration.Builder().setMinPlaybackSpeed(1f).setMaxPlaybackSpeed(1f).build())
+                        .build()
                     // Une relance après erreur repart de là où l'on en était.
                     val start = player.currentPosition.takeIf { it > 0 } ?: resume
                     player.setMediaItem(item, start)

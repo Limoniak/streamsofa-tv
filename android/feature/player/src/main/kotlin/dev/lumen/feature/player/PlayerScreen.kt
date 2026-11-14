@@ -333,6 +333,7 @@ internal fun PlayerScreen(
                     null
                 },
                 onChannel = { onOpenChannel(state.login) },
+                onFromStart = state.archiveId?.let { id -> { onOpenVod(id) } },
                 showStats = showStats,
                 onStats = { showStats = !showStats },
                 onAudioOnly = actions::toggleAudioOnly,
@@ -409,6 +410,8 @@ private fun InfoPanel(
     onAudioOnly: () -> Unit,
     onSleep: () -> Unit,
     onPip: (() -> Unit)?,
+    /** `null` : la chaîne n'archive pas ce live. */
+    onFromStart: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     var showQuality by remember(showActions) { mutableStateOf(false) }
@@ -471,6 +474,8 @@ private fun InfoPanel(
                         else stringResource(R.string.player_sleep, state.sleepMinutes),
                     )
                 }
+                // Retour, depuis la rediffusion, ramène ici, au direct.
+                if (onFromStart != null) Button(onClick = onFromStart) { Text(stringResource(R.string.player_from_start)) }
                 if (onMulti != null) Button(onClick = onMulti) { Text(stringResource(R.string.player_multi)) }
                 if (onPip != null && !state.audioOnly) Button(onClick = onPip) { Text(stringResource(R.string.player_pip)) }
                 Button(onClick = onChannel) { Text(stringResource(R.string.player_channel)) }

@@ -72,4 +72,5 @@
     <string name="activity_prediction_open">Predictions open · %1$s left</string>
     <string name="activity_prediction_locked">Predictions closed, waiting for the result</string>
     <string name="activity_prediction_won">Result: %1$s</string>
+    <string name="player_from_start">From the start</string>
 </resources>

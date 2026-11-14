@@ -104,6 +104,31 @@ impl GqlClient {
         Ok(data.stream_playback_access_token)
     }
 
+    /// Identifiant de la VOD que Twitch enregistre pendant le live de `login` ; `None` hors live
+    /// ou si la chaîne n'archive pas ses lives.
+    pub async fn live_archive(&self, login: &str) -> Result<Option<String>, CoreError> {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Archive {
+            id: String,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Stream {
+            archive_video: Option<Archive>,
+        }
+        #[derive(Deserialize)]
+        struct User {
+            stream: Option<Stream>,
+        }
+        #[derive(Deserialize)]
+        struct Data {
+            user: Option<User>,
+        }
+        let data: Data = self.run("LiveArchive", queries::LIVE_ARCHIVE, json!({ "login": login.to_lowercase() })).await?;
+        Ok(data.user.and_then(|u| u.stream).and_then(|s| s.archive_video).map(|a| a.id).filter(|id| !id.is_empty()))
+    }
+
     /// `Ok(None)` : la VOD n'existe pas.
     pub async fn vod_playback_token(&self, video_id: &str) -> Result<Option<PlaybackToken>, CoreError> {
         #[derive(Deserialize)]

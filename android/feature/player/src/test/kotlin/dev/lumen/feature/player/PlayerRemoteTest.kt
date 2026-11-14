@@ -391,4 +391,23 @@ class PlayerRemoteTest {
         node(R.string.player_chat_show).assertIsFocused()
         node(R.string.chat_connecting).assertDoesNotExist()
     }
+
+    @Test
+    fun fromTheStartOpensTheArchivedVideo() {
+        state = live.copy(archiveId = "a1")
+        show(FakeActions())
+        press(Key.DirectionCenter)
+        // Chat, Qualité, Mise en veille, Depuis le début.
+        repeat(3) { press(Key.DirectionRight) }
+        node(R.string.player_from_start).assertIsFocused()
+        press(Key.DirectionCenter)
+        assertEquals("a1", openedVod)
+    }
+
+    @Test
+    fun noFromTheStartWithoutArchive() {
+        show(FakeActions())
+        press(Key.DirectionCenter)
+        node(R.string.player_from_start).assertDoesNotExist()
+    }
 }

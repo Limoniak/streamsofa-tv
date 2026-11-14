@@ -94,6 +94,8 @@ interface CatalogRepository {
     suspend fun topCategories(cursor: String?): CategoryPage
     suspend fun liveStream(login: String): LiveStream?
     suspend fun livePlayback(login: String): Playback
+    /** VOD enregistrée pendant le live de [login] ; `null` si la chaîne n'archive pas ses lives. */
+    suspend fun liveArchive(login: String): String?
 
     /** Reprises enregistrées depuis le lancement : les écrans déjà chargés les appliquent. */
     val vodProgress: StateFlow<Map<String, VodProgress>>
@@ -175,6 +177,8 @@ internal class RustCatalogRepository @Inject constructor(
     override suspend fun liveStream(login: String) = coreHolder.get().liveStream(login)
 
     override suspend fun livePlayback(login: String) = coreHolder.get().livePlayback(login)
+
+    override suspend fun liveArchive(login: String) = coreHolder.get().liveArchive(login)
 
     private val _vodProgress = MutableStateFlow<Map<String, VodProgress>>(emptyMap())
     override val vodProgress: StateFlow<Map<String, VodProgress>> = _vodProgress.asStateFlow()

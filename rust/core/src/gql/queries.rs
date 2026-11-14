@@ -45,6 +45,9 @@ pub const TOP_CATEGORIES: &str = "query TopCategories($first: Int, $after: Curso
     games(first: $first, after: $after) { \
     edges { cursor node { id displayName viewersCount } } pageInfo { hasNextPage } } }";
 
+/// VOD enregistrée pendant le live en cours (absente si la chaîne n'archive pas ses lives).
+pub const LIVE_ARCHIVE: &str = "query LiveArchive($login: String!) { user(login: $login) { stream { archiveVideo { id } } } }";
+
 pub const CHANNEL_STREAM: &str = "query ChannelStream($login: String!) { user(login: $login) { \
     id login displayName profileImageURL(width: 70) broadcastSettings { title } \
     stream { id viewersCount createdAt game { id displayName } } } }";

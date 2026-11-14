@@ -5,6 +5,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+- "From the start" in the live player's action bar, when the channel records its streams: it plays the broadcast being recorded from its beginning; Back returns to the live stream.
+
 ## [0.4.0] - 2026-11-14
 
 ### Added

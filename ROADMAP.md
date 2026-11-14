@@ -7,7 +7,6 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 
 ## Next up
 
-- [ ] 🟡 Rewind a live stream to its start, through the broadcast archived while it is live, then back to live.
 - [ ] 🟢 "Now live" banner while watching, when a followed channel starts streaming (OK to switch to it).
 - [ ] 🟡 Constant volume: even out loudness between channels when zapping.
 - [ ] 🟢 Daily screen time limit for kids profiles, lifted with the parent PIN.

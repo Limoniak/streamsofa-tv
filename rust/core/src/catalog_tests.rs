@@ -226,6 +226,32 @@ async fn language_streams_refuse_an_invalid_code() {
     assert!(h.core.language_streams("fr&x=1".into()).await.is_err());
 }
 
+#[tokio::test]
+async fn live_archive_is_the_video_recorded_during_the_stream() {
+    let h = Harness::new().await;
+    Mock::given(method("POST"))
+        .and(path("/gql"))
+        .and(body_string_contains("\"operationName\":\"LiveArchive\""))
+        .and(body_string_contains("\"login\":\"zerator\""))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": { "user": { "stream": {
+            "archiveVideo": { "id": "2928376724" } } } } })))
+        .expect(1)
+        .mount(&h.server)
+        .await;
+    assert_eq!(h.core.live_archive("ZeratoR".into()).await.unwrap().as_deref(), Some("2928376724"));
+}
+
+#[tokio::test]
+async fn no_archive_when_the_channel_keeps_none() {
+    let h = Harness::new().await;
+    Mock::given(method("POST"))
+        .and(path("/gql"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": { "user": { "stream": { "archiveVideo": null } } } })))
+        .mount(&h.server)
+        .await;
+    assert_eq!(h.core.live_archive("x".into()).await.unwrap(), None);
+}
+
 // --- Lecture -----------------------------------------------------------------------------------
 
 async fn mock_playback_token(h: &Harness, token: Value) {

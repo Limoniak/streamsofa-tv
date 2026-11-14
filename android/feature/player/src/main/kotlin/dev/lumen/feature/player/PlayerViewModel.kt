@@ -76,6 +76,8 @@ data class PlayerUiState(
     val sleeping: Boolean = false,
     /** Chaîne hors ligne (live terminé) : suites proposées à la place d'une simple erreur. */
     val ended: Ended? = null,
+    /** VOD enregistrée pendant ce live : « Depuis le début » l'ouvre. `null` si la chaîne n'archive pas. */
+    val archiveId: String? = null,
 )
 
 /** Suites proposées quand le live s'arrête ; chacune est absente si elle n'existe pas. */
@@ -433,6 +435,7 @@ class PlayerViewModel @Inject constructor(
                 raid = null,
                 sleeping = false,
                 ended = null,
+                archiveId = null,
                 login = login,
                 stream = known,
                 variants = emptyList(),
@@ -466,6 +469,11 @@ class PlayerViewModel @Inject constructor(
                         s.copy(variants = variants, quality = quality, canAudioOnly = audioUrl != null)
                     }
                     play()
+                    // Secondaire, après la lecture : le bouton « Depuis le début » apparaît s'il y a une archive.
+                    launch {
+                        val archive = loadCatching { catalog.liveArchive(login) }.getOrNull()
+                        _state.update { if (it.login == login) it.copy(archiveId = archive) else it }
+                    }
                 }
                 .onFailure { e ->
                     val error = e.toLoadError()
