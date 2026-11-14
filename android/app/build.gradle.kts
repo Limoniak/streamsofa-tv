@@ -83,6 +83,13 @@ android {
         }
     }
 
+    // Seules les langues de l'interface : les bibliothèques (Compose, Media3…) en apportent ~80 autres,
+    // qui alourdissent resources.arsc et afficheraient des textes dans une langue que l'app ne parle pas.
+    // Une langue ajoutée dans values-xx/ va aussi ici et dans res/xml/locales_config.xml.
+    androidResources {
+        localeFilters += listOf("en", "fr", "es", "de", "it", "pt-rBR")
+    }
+
     buildFeatures {
         buildConfig = true
     }

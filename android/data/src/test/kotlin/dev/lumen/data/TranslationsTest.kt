@@ -69,4 +69,16 @@ class TranslationsTest {
             .orEmpty().map { it.name.removePrefix("values-").replace("-r", "-") }.toSet() + "en"
         assertEquals(shipped, declared)
     }
+
+    @Test
+    fun apkKeepsEveryLanguage() {
+        val gradle = File(root, "app/build.gradle.kts").readText()
+        val filters = Regex("""localeFilters \+= listOf\(([^)]*)\)""").find(gradle)?.groupValues?.get(1)
+            ?.let { list -> Regex("\"([\\w-]+)\"").findAll(list).map { it.groupValues[1].replace("-r", "-") }.toSet() }
+        val declared = Regex("""android:name="([\w-]+)"""")
+            .findAll(File(root, "app/src/main/res/xml/locales_config.xml").readText()).map { it.groupValues[1] }.toSet()
+        // Une langue absente du filtre serait retirée de l'APK sans erreur de compilation.
+        // Le filtre s'écrit comme les dossiers (`pt-rBR`), locales_config en BCP 47 (`pt-BR`).
+        assertEquals(declared, filters)
+    }
 }
