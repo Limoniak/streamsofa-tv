@@ -96,6 +96,18 @@ pub fn to_event(line: &IrcLine) -> Option<ChatEvent> {
     }
 }
 
+/// Modes du salon portés par ROOMSTATE (complet au premier, puis seulement ce qui change).
+pub fn room(line: &IrcLine) -> ChatEvent {
+    let flag = |key: &str| line.tags.get(key).map(|v| v == "1");
+    let number = |key: &str| line.tags.get(key).and_then(|v| v.parse::<i32>().ok());
+    ChatEvent::Room {
+        emote_only: flag("emote-only"),
+        slow_s: number("slow"),
+        followers_min: number("followers-only"),
+        subs_only: flag("subs-only"),
+    }
+}
+
 fn message(line: &IrcLine, system: Option<String>) -> ChatMessage {
     let login = line.tag("login").to_owned();
     let login = if login.is_empty() { line.prefix.split('!').next().unwrap_or("").to_owned() } else { login };

@@ -20,6 +20,17 @@ fn emote(id: &str, name: &str) -> ChatFragment {
 }
 
 #[test]
+fn roomstate_reports_only_the_modes_it_carries() {
+    let full = parse_line("@emote-only=1;followers-only=10;r9k=0;room-id=1;slow=30;subs-only=0 :tmi.twitch.tv ROOMSTATE #chan").unwrap();
+    assert_eq!(
+        super::irc::room(&full),
+        ChatEvent::Room { emote_only: Some(true), slow_s: Some(30), followers_min: Some(10), subs_only: Some(false) }
+    );
+    let change = parse_line("@room-id=1;slow=0 :tmi.twitch.tv ROOMSTATE #chan").unwrap();
+    assert_eq!(super::irc::room(&change), ChatEvent::Room { emote_only: None, slow_s: Some(0), followers_min: None, subs_only: None });
+}
+
+#[test]
 fn privmsg_with_tags_and_emotes() {
     let line = parse_line(PRIVMSG).unwrap();
     assert_eq!(line.command, "PRIVMSG");

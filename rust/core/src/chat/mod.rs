@@ -111,6 +111,10 @@ pub enum ChatEvent {
     Delete { message_id: String },
     Notice { text: String },
     State { state: ChatState },
+    /// Modes du salon (ROOMSTATE) ; seuls les champs présents ont changé, les autres sont `None`.
+    /// `slow_s` : secondes entre deux messages (0 = désactivé) ; `followers_min` : ancienneté de
+    /// follow exigée en minutes (-1 = désactivé, 0 = tout follower).
+    Room { emote_only: Option<bool>, slow_s: Option<i32>, followers_min: Option<i32>, subs_only: Option<bool> },
 }
 
 /// Implémenté côté Kotlin. Appelé depuis un thread du cœur, jamais le thread principal.
@@ -214,9 +218,12 @@ async fn session(url: &str, tls: &Arc<rustls::ClientConfig>, channel: &str, list
                             flush(listener, &mut batch);
                             return joined;
                         }
-                        "ROOMSTATE" if !joined => {
-                            joined = true;
-                            batch.push(ChatEvent::State { state: ChatState::Joined });
+                        "ROOMSTATE" => {
+                            if !joined {
+                                joined = true;
+                                batch.push(ChatEvent::State { state: ChatState::Joined });
+                            }
+                            batch.push(irc::room(&line));
                         }
                         _ => {
                             let Some(mut event) = irc::to_event(&line) else { continue };

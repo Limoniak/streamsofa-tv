@@ -77,4 +77,12 @@
     <string name="now_live_hint">OK to watch · Back to stay</string>
     <string name="screen_time_up">That\'s all for today. A parent can add time: long press the profile in the profile picker.</string>
     <string name="player_sleep_end">Sleep timer: end of stream</string>
+    <string name="activity_pinned">Pinned</string>
+    <string name="activity_hype">Hype Train</string>
+    <string name="activity_hype_level">Level %1$d</string>
+    <string name="room_emote_only">Emote-only</string>
+    <string name="room_subs_only">Subscribers only</string>
+    <string name="room_followers_only">Followers only</string>
+    <string name="room_followers_for">Followers for %1$d min</string>
+    <string name="room_slow">Slow mode %1$d s</string>
 </resources>

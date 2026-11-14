@@ -14,7 +14,7 @@ use serde_json::{json, Value};
 
 use crate::catalog::{
     box_art_template, parse_utc, thumbnail_template, video_thumbnail, Category, CategoryPage, Channel, ChannelAbout, ChannelActivity, Chapter,
-    Clip, ClipQuality, LiveStream, Panel, Poll, PollChoice, Prediction, PredictionOutcome, PredictionStatus, ReplayComment, ScheduleSegment, SearchChannel, SearchResults, StreamPage, Video,
+    Clip, ClipQuality, HypeTrain, LiveStream, Panel, PinnedMessage, Poll, PollChoice, Prediction, PredictionOutcome, PredictionStatus, ReplayComment, ScheduleSegment, SearchChannel, SearchResults, StreamPage, Video,
 };
 use crate::hls::url_query;
 use crate::chat::{emote_url, readable_color, ChatFragment, ChatMessage};
@@ -313,8 +313,15 @@ impl GqlClient {
         struct Data {
             user: Option<GUser>,
         }
-        let data: Data = self.run("ChannelActivity", queries::CHANNEL_ACTIVITY, json!({ "login": login.to_lowercase() })).await?;
-        let Some(user) = data.user else { return Ok(ChannelActivity { poll: None, prediction: None }) };
+        let (data, extras) = futures_util::future::join(
+            self.run::<Data>("ChannelActivity", queries::CHANNEL_ACTIVITY, json!({ "login": login.to_lowercase() })),
+            self.channel_extras(login),
+        )
+        .await;
+        let data = data?;
+        // Message épinglé et Hype Train : secondaires, une erreur les rend simplement absents.
+        let (pinned, hype_train) = extras.unwrap_or((None, None));
+        let Some(user) = data.user else { return Ok(ChannelActivity { poll: None, prediction: None, pinned, hype_train }) };
         let poll = user.viewable_poll.and_then(|p| {
             // Archivé, modéré ou invalide : plus rien à montrer.
             let active = match p.status.as_str() {
@@ -355,7 +362,85 @@ impl GqlClient {
                     .collect(),
             })
         });
-        Ok(ChannelActivity { poll, prediction })
+        Ok(ChannelActivity { poll, prediction, pinned, hype_train })
+    }
+
+    async fn channel_extras(&self, login: &str) -> Result<(Option<PinnedMessage>, Option<HypeTrain>), CoreError> {
+        #[derive(Deserialize)]
+        struct GText {
+            #[serde(default)]
+            text: String,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct GSender {
+            #[serde(default)]
+            display_name: String,
+        }
+        #[derive(Deserialize)]
+        struct GMessage {
+            content: Option<GText>,
+            sender: Option<GSender>,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct GPinned {
+            pinned_message: Option<GMessage>,
+        }
+        #[derive(Deserialize)]
+        struct GLevel {
+            #[serde(default)]
+            value: u32,
+        }
+        #[derive(Deserialize)]
+        struct GProgress {
+            level: Option<GLevel>,
+            #[serde(default)]
+            progression: u32,
+            #[serde(default)]
+            goal: u32,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct GExecution {
+            #[serde(default)]
+            is_active: bool,
+            progress: Option<GProgress>,
+        }
+        #[derive(Deserialize)]
+        struct GHype {
+            execution: Option<GExecution>,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct GChannel {
+            pinned_chat_messages: Option<Connection<GPinned>>,
+            hype_train: Option<GHype>,
+        }
+        #[derive(Deserialize)]
+        struct GUser {
+            channel: Option<GChannel>,
+        }
+        #[derive(Deserialize)]
+        struct Data {
+            user: Option<GUser>,
+        }
+        let data: Data = self.run("ChannelExtras", queries::CHANNEL_EXTRAS, json!({ "login": login.to_lowercase() })).await?;
+        let Some(channel) = data.user.and_then(|u| u.channel) else { return Ok((None, None)) };
+        let pinned = channel
+            .pinned_chat_messages
+            .and_then(|c| c.edges.into_iter().next())
+            .and_then(|e| e.node.pinned_message)
+            .and_then(|m| {
+                let text = m.content.map(|c| c.text).unwrap_or_default();
+                (!text.trim().is_empty()).then(|| PinnedMessage { sender: m.sender.map(|s| s.display_name).unwrap_or_default(), text })
+            });
+        let hype = channel.hype_train.and_then(|h| h.execution).filter(|e| e.is_active).and_then(|e| e.progress).map(|p| HypeTrain {
+            level: p.level.map_or(1, |l| l.value.max(1)),
+            progress: p.progression,
+            goal: p.goal,
+        });
+        Ok((pinned, hype))
     }
 
     /// Chat d'une VOD à partir de `offset_s` ; vide si la VOD n'a pas (ou plus) de chat.

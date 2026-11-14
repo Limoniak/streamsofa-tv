@@ -521,6 +521,51 @@ async fn channel_activity_without_poll_or_prediction() {
 }
 
 #[tokio::test]
+async fn channel_activity_adds_the_pinned_message_and_hype_train() {
+    let h = Harness::new().await;
+    Mock::given(method("POST"))
+        .and(path("/gql"))
+        .and(body_string_contains("\"operationName\":\"ChannelActivity\""))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": { "user": { "viewablePoll": null,
+            "channel": { "activePredictionEvents": [] } } } })))
+        .mount(&h.server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/gql"))
+        .and(body_string_contains("\"operationName\":\"ChannelExtras\""))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": { "user": { "channel": {
+            "pinnedChatMessages": { "edges": [{ "node": { "pinnedMessage": {
+                "content": { "text": "Tournoi à 20 h" }, "sender": { "displayName": "Modo" } } } }] },
+            "hypeTrain": { "execution": { "isActive": true, "progress": { "level": { "value": 2 }, "progression": 1509, "goal": 1600 } } } } } } })))
+        .mount(&h.server)
+        .await;
+    let activity = h.core.channel_activity("alpha".into()).await.unwrap();
+    assert_eq!(activity.pinned, Some(crate::catalog::PinnedMessage { sender: "Modo".into(), text: "Tournoi à 20 h".into() }));
+    assert_eq!(activity.hype_train, Some(crate::catalog::HypeTrain { level: 2, progress: 1509, goal: 1600 }));
+}
+
+#[tokio::test]
+async fn a_broken_extras_query_keeps_polls_readable() {
+    let h = Harness::new().await;
+    Mock::given(method("POST"))
+        .and(path("/gql"))
+        .and(body_string_contains("\"operationName\":\"ChannelExtras\""))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "errors": [{ "message": "champ inconnu" }] })))
+        .mount(&h.server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/gql"))
+        .and(body_string_contains("\"operationName\":\"ChannelActivity\""))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": { "user": {
+            "viewablePoll": { "title": "Quel jeu ?", "status": "ACTIVE", "choices": [] }, "channel": { "activePredictionEvents": [] } } } })))
+        .mount(&h.server)
+        .await;
+    let activity = h.core.channel_activity("alpha".into()).await.unwrap();
+    assert!(activity.poll.is_some());
+    assert_eq!((activity.pinned, activity.hype_train), (None, None));
+}
+
+#[tokio::test]
 async fn category_clips_filter_by_language() {
     let h = Harness::new().await;
     Mock::given(method("POST"))

@@ -80,4 +80,12 @@
     <string name="now_live_hint">OK para verlo · Atrás para quedarte</string>
     <string name="screen_time_up">Se acabó por hoy. Un adulto puede añadir tiempo: mantén pulsado el perfil en la selección de perfiles.</string>
     <string name="player_sleep_end">Temporizador: fin del directo</string>
+    <string name="activity_pinned">Fijado</string>
+    <string name="activity_hype">Hype Train</string>
+    <string name="activity_hype_level">Nivel %1$d</string>
+    <string name="room_emote_only">Solo emotes</string>
+    <string name="room_subs_only">Solo suscriptores</string>
+    <string name="room_followers_only">Solo seguidores</string>
+    <string name="room_followers_for">Seguidores desde hace %1$d min</string>
+    <string name="room_slow">Modo lento %1$d s</string>
 </resources>

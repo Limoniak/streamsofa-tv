@@ -203,7 +203,7 @@ internal fun PlayerScreen(
     // Même colonne à côté de la vidéo ou par-dessus (option « Chat par-dessus la vidéo »).
     val chatColumn: @Composable (Modifier) -> Unit = { modifier ->
         Column(modifier) {
-            channelActivity?.takeIf { it.poll != null || it.prediction != null }?.let { ActivityCard(it) }
+            channelActivity?.takeIf { !it.isEmpty }?.let { ActivityCard(it) }
             ChatPanel(chat, Modifier.weight(1f).fillMaxWidth(), mention = myLogin, timestamps = actions.chatTimestamps, look = look)
             if (canWrite) {
                 WriteButton(

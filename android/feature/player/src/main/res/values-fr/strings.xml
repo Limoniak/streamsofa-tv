@@ -80,4 +80,12 @@
     <string name="now_live_hint">OK pour y aller · Retour pour rester</string>
     <string name="screen_time_up">C\'est fini pour aujourd\'hui. Un parent peut ajouter du temps : appui long sur le profil, dans le choix du profil.</string>
     <string name="player_sleep_end">Mise en veille : fin du live</string>
+    <string name="activity_pinned">Épinglé</string>
+    <string name="activity_hype">Hype Train</string>
+    <string name="activity_hype_level">Niveau %1$d</string>
+    <string name="room_emote_only">Émotes seules</string>
+    <string name="room_subs_only">Abonnés seuls</string>
+    <string name="room_followers_only">Followers seuls</string>
+    <string name="room_followers_for">Followers depuis %1$d min</string>
+    <string name="room_slow">Mode lent %1$d s</string>
 </resources>

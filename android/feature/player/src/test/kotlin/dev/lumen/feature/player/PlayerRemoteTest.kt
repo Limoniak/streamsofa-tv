@@ -75,7 +75,7 @@ class PlayerRemoteTest {
         override fun sendChat(text: String, replyTo: String?) { calls += "send:$text" }
         override suspend fun liveList() = lives
         override suspend fun multiCandidates() = lives
-        override suspend fun channelActivity() = ChannelActivity(poll = null, prediction = null)
+        override suspend fun channelActivity() = ChannelActivity(poll = null, prediction = null, pinned = null, hypeTrain = null)
         override suspend fun chatEmotes() = emptyList<PickerEmote>()
     }
 

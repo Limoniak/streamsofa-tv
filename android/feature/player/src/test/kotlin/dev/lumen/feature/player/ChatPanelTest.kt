@@ -59,4 +59,14 @@ class ChatPanelTest {
         add(3..3)
         rule.onNodeWithText("message numéro 3", substring = true).assertIsDisplayed()
     }
+
+    @Test
+    fun roomModesShowAboveTheChat() {
+        chat = ChatUiState(room = RoomModes(emoteOnly = true, slowS = 30))
+        rule.setContent { LumenTheme { ChatPanel(chat, Modifier.width(340.dp).height(300.dp)) } }
+        rule.waitForIdle()
+        val emote = rule.activity.getString(R.string.room_emote_only)
+        val slow = rule.activity.getString(R.string.room_slow, 30)
+        rule.onNodeWithText("$emote  ·  $slow").assertIsDisplayed()
+    }
 }

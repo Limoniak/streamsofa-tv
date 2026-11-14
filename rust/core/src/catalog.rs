@@ -104,11 +104,28 @@ pub struct Chapter {
     pub title: String,
 }
 
-/// Sondage et prédiction en cours sur une chaîne, en lecture seule.
+/// Sondage, prédiction, message épinglé et Hype Train en cours sur une chaîne, en lecture seule.
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
 pub struct ChannelActivity {
     pub poll: Option<Poll>,
     pub prediction: Option<Prediction>,
+    pub pinned: Option<PinnedMessage>,
+    pub hype_train: Option<HypeTrain>,
+}
+
+/// Message épinglé en tête du chat par la chaîne ou ses modérateurs.
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct PinnedMessage {
+    pub sender: String,
+    pub text: String,
+}
+
+/// Hype Train en cours : niveau atteint et avancée vers le suivant.
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct HypeTrain {
+    pub level: u32,
+    pub progress: u32,
+    pub goal: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]

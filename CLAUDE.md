@@ -42,6 +42,9 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
   Sélecteur d'émotes : Helix `chat/emotes/user` (celles de la chaîne d'abord) + émotes tierces de la chaîne (cache `emotes:<id>`).
 - Sondages et prédictions : GQL anonyme (`user.viewablePoll`, `channel.activePredictionEvents`), relus toutes les 15 s
   seulement quand le chat est affiché (PubSub n'existe plus, EventSub exige les scopes du diffuseur). Lecture seule.
+- Message épinglé et Hype Train : requête GQL `ChannelExtras` à part (`channel.pinnedChatMessages`, `hypeTrain.execution`),
+  jointe à `ChannelActivity` ; une erreur la rend absente sans toucher sondages et prédictions. Modes du salon :
+  `ChatEvent::Room` (ROOMSTATE, champs présents seulement), fusionnés dans `ChatUiState.room`, bandeau en tête du chat.
 - Apparence du chat (`chat_text_size`, `chat_width`, `chat_overlay`) : `ChatLook`, lu à l'ouverture du lecteur.
 - Profils : préférences par profil (portée = id du compte ou `guest`), sauf `check_updates`, `beta_updates`,
   `crash_log` (portée `global`) ; `set_setting` aiguille selon la clé. PIN : 4 chiffres, PBKDF2-SHA256 (ring) dans

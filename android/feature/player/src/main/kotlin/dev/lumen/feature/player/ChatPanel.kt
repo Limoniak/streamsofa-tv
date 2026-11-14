@@ -107,6 +107,7 @@ fun ChatPanel(
                 ChatLine(line, mention, timestamps, look.scale)
             }
         }
+        if (chat.room.any) RoomBanner(chat.room, Modifier.align(Alignment.TopCenter))
         if (chat.state != ChatState.JOINED && chat.lines.isEmpty()) {
             Text(
                 text = stringResource(R.string.chat_connecting),
@@ -208,5 +209,28 @@ private fun imageContent(url: String, name: String, size: TextUnit) = InlineText
                 if (kotlin.math.abs(ratio - 1f) > 0.05f && emoteRatios[url] != ratio) emoteRatios[url] = ratio
             }
         },
+    )
+}
+
+/** Modes du salon en tête du chat : « Émotes seules · Lent 30 s · Abonnés seuls ». */
+@Composable
+private fun RoomBanner(room: RoomModes, modifier: Modifier = Modifier) {
+    val parts = buildList {
+        if (room.emoteOnly) add(stringResource(R.string.room_emote_only))
+        if (room.subsOnly) add(stringResource(R.string.room_subs_only))
+        if (room.followersMin == 0) add(stringResource(R.string.room_followers_only))
+        if (room.followersMin > 0) add(stringResource(R.string.room_followers_for, room.followersMin))
+        if (room.slowS > 0) add(stringResource(R.string.room_slow, room.slowS))
+    }
+    Text(
+        text = parts.joinToString("  ·  "),
+        style = MaterialTheme.typography.labelMedium,
+        color = LumenColors.OnSurfaceMuted,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier
+            .fillMaxWidth()
+            .background(LumenColors.Surface.copy(alpha = 0.9f))
+            .padding(horizontal = 16.dp, vertical = 6.dp),
     )
 }

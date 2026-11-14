@@ -46,4 +46,13 @@ class ChatStateTest {
         val state = ChatUiState().applyEvents(listOf(ChatEvent.State(ChatState.JOINED)))
         assertEquals(ChatState.JOINED, state.state)
     }
+
+    @org.junit.Test
+    fun roomModesMergeOnlyWhatChanged() {
+        val full = ChatUiState().applyEvents(listOf(dev.lumen.core.ChatEvent.Room(emoteOnly = true, slowS = 30, followersMin = -1, subsOnly = false)))
+        val changed = full.applyEvents(listOf(dev.lumen.core.ChatEvent.Room(emoteOnly = null, slowS = 0, followersMin = null, subsOnly = null)))
+        org.junit.Assert.assertEquals(RoomModes(emoteOnly = true, slowS = 0, followersMin = -1, subsOnly = false), changed.room)
+        org.junit.Assert.assertEquals(true, changed.room.any)
+        org.junit.Assert.assertEquals(false, RoomModes().any)
+    }
 }

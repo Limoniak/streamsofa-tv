@@ -82,6 +82,11 @@ pub const CHANNEL_ACTIVITY: &str = "query ChannelActivity($login: String!) { use
     channel { activePredictionEvents { title status createdAt predictionWindowSeconds \
     outcomes { id title totalPoints totalUsers } winningOutcome { id } } } } }";
 
+/// À part de CHANNEL_ACTIVITY : si Twitch change ces champs, sondages et prédictions restent lisibles.
+pub const CHANNEL_EXTRAS: &str = "query ChannelExtras($login: String!) { user(login: $login) { channel { \
+    pinnedChatMessages(first: 1) { edges { node { pinnedMessage { content { text } sender { displayName } } } } } \
+    hypeTrain { execution { isActive progress { level { value } progression goal } } } } } }";
+
 pub const VOD_COMMENTS: &str = "query VodComments($id: ID!, $offset: Int) { video(id: $id) { id \
     comments(contentOffsetSeconds: $offset) { edges { node { id contentOffsetSeconds \
     commenter { id login displayName } message { userColor fragments { text emote { emoteID } } } } } } } }";

@@ -19,17 +19,37 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 import dev.lumen.core.ChannelActivity
+import dev.lumen.core.HypeTrain
+import dev.lumen.core.PinnedMessage
 import dev.lumen.core.Poll
 import dev.lumen.core.Prediction
 import dev.lumen.core.PredictionStatus
 import dev.lumen.designsystem.LumenColors
 
-/** Sondage et prédiction en cours, en tête du chat ; en lecture seule (voter se fait sur Twitch). */
+/** Rien à montrer : la carte n'est pas affichée du tout. */
+val ChannelActivity.isEmpty: Boolean get() = poll == null && prediction == null && pinned == null && hypeTrain == null
+
+/** Message épinglé, Hype Train, sondage et prédiction en cours, en tête du chat ; en lecture seule. */
 @Composable
 fun ActivityCard(activity: ChannelActivity, modifier: Modifier = Modifier) {
     Column(modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        activity.pinned?.let { PinnedBlock(it) }
+        activity.hypeTrain?.let { HypeBlock(it) }
         activity.poll?.let { PollBlock(it) }
         activity.prediction?.let { PredictionBlock(it) }
+    }
+}
+
+@Composable
+private fun PinnedBlock(pinned: PinnedMessage) {
+    Block(stringResource(R.string.activity_pinned), pinned.text, pinned.sender) {}
+}
+
+@Composable
+private fun HypeBlock(train: HypeTrain) {
+    val share = if (train.goal > 0u) train.progress.toFloat() / train.goal.toFloat() else 0f
+    Block(stringResource(R.string.activity_hype), stringResource(R.string.activity_hype_level, train.level.toInt()), "${train.progress} / ${train.goal}") {
+        Share(label = "", share = share, highlight = true)
     }
 }
 

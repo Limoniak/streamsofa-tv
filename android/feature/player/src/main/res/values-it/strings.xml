@@ -80,4 +80,12 @@
     <string name="now_live_hint">OK per guardarlo · Indietro per restare</string>
     <string name="screen_time_up">Per oggi è tutto. Un genitore può aggiungere tempo: tieni premuto il profilo nella scelta del profilo.</string>
     <string name="player_sleep_end">Timer di spegnimento: fine della diretta</string>
+    <string name="activity_pinned">Fissato</string>
+    <string name="activity_hype">Hype Train</string>
+    <string name="activity_hype_level">Livello %1$d</string>
+    <string name="room_emote_only">Solo emote</string>
+    <string name="room_subs_only">Solo abbonati</string>
+    <string name="room_followers_only">Solo follower</string>
+    <string name="room_followers_for">Follower da %1$d min</string>
+    <string name="room_slow">Modalità lenta %1$d s</string>
 </resources>

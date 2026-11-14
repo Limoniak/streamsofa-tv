@@ -10,10 +10,7 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 
 ## Chat
 
-- [ ] 🟢 ⚠️ Message pinned by the channel, at the top of the chat.
-- [ ] 🟢 Emote-only and slow mode indicators.
 - [ ] 🟡 User card when selecting a message (name, badges, recent messages).
-- [ ] 🟢 ⚠️ Hype Train progress.
 
 ## Discover
 
