@@ -67,6 +67,8 @@ class PlayerRemoteTest {
         override fun retry() { calls += "retry" }
         override fun followRaid() { calls += "followRaid" }
         override fun cancelRaid() { calls += "cancelRaid" }
+        override fun openNowLive() { calls += "openNowLive" }
+        override fun dismissNowLive() { calls += "dismissNowLive" }
         override fun selectQuality(name: String?) { calls += "quality:$name" }
         override fun toggleAudioOnly() { calls += "audioOnly" }
         override fun cycleSleepTimer() { calls += "sleep" }
@@ -409,5 +411,33 @@ class PlayerRemoteTest {
         show(FakeActions())
         press(Key.DirectionCenter)
         node(R.string.player_from_start).assertDoesNotExist()
+    }
+
+    @Test
+    fun nowLiveBannerOkWatchesAndBackStays() {
+        state = live.copy(nowLive = stream("bob"))
+        val actions = FakeActions()
+        show(actions)
+        node(R.string.now_live_title, "Bob").assertExists()
+        press(Key.DirectionCenter)
+        back()
+        assertEquals(listOf("openNowLive", "dismissNowLive"), actions.calls)
+    }
+
+    @Test
+    fun aRaidTakesPrecedenceOverTheNowLiveBanner() {
+        state = live.copy(nowLive = stream("bob"), raid = Raid(toLogin = "carol", toName = "Carol", viewers = 1u))
+        val actions = FakeActions()
+        show(actions)
+        node(R.string.now_live_title, "Bob").assertDoesNotExist()
+        press(Key.DirectionCenter)
+        assertEquals(listOf("followRaid"), actions.calls)
+    }
+
+    @Test
+    fun onlyChannelsThatJustStartedAreAnnounced() {
+        val before = listOf(stream("a"), stream("b"))
+        val after = listOf(stream("b"), stream("c"), stream("alice"))
+        assertEquals(listOf("c"), newlyLive(before, after, watching = "alice").map { it.login })
     }
 }

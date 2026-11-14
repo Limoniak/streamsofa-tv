@@ -6,6 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Added
+- While you watch a live stream, a banner announces a followed channel that just went live: OK to switch to it, Back to stay (signed-in accounts; followed channels are checked every 2 minutes).
 - "From the start" in the live player's action bar, when the channel records its streams: it plays the broadcast being recorded from its beginning; Back returns to the live stream.
 
 ## [0.4.0] - 2026-11-14

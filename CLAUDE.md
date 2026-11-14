@@ -145,6 +145,8 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
   non finies, 10 au plus). « Pourrait vous plaire » : 2 dernières `recent_categories` (écrites par le lecteur), dans la
   langue de l'interface, hors suivis et regardés. « Les plus regardés dans votre langue » : `language_streams` (Helix
   `language`, GQL `streams(options: {languages})`). Paramètres > Accueil : OK = afficher/masquer, ◀ ▶ = déplacer.
+- Bandeau « X est en live » : le lecteur live relit `followedStreams()` toutes les 2 min (compte connecté),
+  `newlyLive()` compare avec le relevé précédent ; 10 s, OK = y aller, Retour = rester, un raid passe avant.
 - « Depuis le début » : GQL `user.stream.archiveVideo` (`live_archive`), lu après le démarrage ; ouvre le lecteur VOD.
   L'archive en cours est une playlist HLS `EVENT` : départ explicite à 0 et vitesse figée à 1× (`LiveConfiguration`).
 - Zapping rapide : `PlaybackCache` (`Prefetch.kt`) garde le jeton des chaînes de ▲ et ▼, préparé après `STATE_READY`,

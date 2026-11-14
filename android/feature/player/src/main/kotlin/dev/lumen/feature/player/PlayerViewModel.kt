@@ -78,7 +78,19 @@ data class PlayerUiState(
     val ended: Ended? = null,
     /** VOD enregistrée pendant ce live : « Depuis le début » l'ouvre. `null` si la chaîne n'archive pas. */
     val archiveId: String? = null,
+    /** Chaîne suivie qui vient de lancer son live : bandeau, OK pour y aller. */
+    val nowLive: LiveStream? = null,
 )
+
+/** Chaînes passées en live depuis le dernier relevé, hors celle que l'on regarde. */
+fun newlyLive(before: List<LiveStream>, after: List<LiveStream>, watching: String): List<LiveStream> {
+    val known = before.map { it.login }.toSet()
+    return after.filter { it.login !in known && it.login != watching }
+}
+
+/** Relevé des suivis pendant la lecture : bandeau « en live » et liste de zapping à jour. */
+private const val FOLLOWED_REFRESH_MS = 2 * 60_000L
+const val NOW_LIVE_BANNER_S = 10
 
 /** Suites proposées quand le live s'arrête ; chacune est absente si elle n'existe pas. */
 data class Ended(
@@ -159,6 +171,9 @@ interface PlayerActions {
     fun retry()
     fun followRaid()
     fun cancelRaid()
+    /** Bandeau « en live » : y aller, ou le fermer. */
+    fun openNowLive()
+    fun dismissNowLive()
     fun selectQuality(name: String?)
     fun toggleAudioOnly()
     fun cycleSleepTimer()
@@ -248,6 +263,17 @@ class PlayerViewModel @Inject constructor(
         viewModelScope.launch {
             catalog.followed.collect { refreshCanZap() }
         }
+        // Compte connecté : les suivis sont relus de temps en temps ; une chaîne qui démarre est annoncée.
+        viewModelScope.launch {
+            var previous = catalog.followed.value
+            while (true) {
+                delay(FOLLOWED_REFRESH_MS)
+                if (accounts.snapshot.value?.activeId == null) continue
+                val current = loadCatching { catalog.followedStreams() }.getOrNull() ?: continue
+                newlyLive(previous, current, _state.value.login).firstOrNull()?.let(::showNowLive)
+                previous = current
+            }
+        }
         if (catalog.followed.value.isEmpty()) viewModelScope.launch {
             popular = loadCatching { catalog.topStreams(null).items }.getOrDefault(emptyList()).map { it.login }
             refreshCanZap()
@@ -277,6 +303,30 @@ class PlayerViewModel @Inject constructor(
         followJob?.cancel()
         retried = false
         load(raid.toLogin)
+    }
+
+    override fun openNowLive() {
+        val stream = _state.value.nowLive ?: return
+        _state.update { it.copy(nowLive = null) }
+        open(stream.login)
+    }
+
+    override fun dismissNowLive() {
+        nowLiveJob?.cancel()
+        _state.update { it.copy(nowLive = null) }
+    }
+
+    private var nowLiveJob: Job? = null
+
+    private fun showNowLive(stream: LiveStream) {
+        // Un raid a priorité : il propose déjà une chaîne.
+        if (_state.value.raid != null) return
+        _state.update { it.copy(nowLive = stream) }
+        nowLiveJob?.cancel()
+        nowLiveJob = viewModelScope.launch {
+            delay(NOW_LIVE_BANNER_S * 1000L)
+            _state.update { if (it.nowLive == stream) it.copy(nowLive = null) else it }
+        }
     }
 
     override fun cancelRaid() {

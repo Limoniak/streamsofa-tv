@@ -76,4 +76,6 @@
     <string name="activity_prediction_locked">Palpites encerrados, aguardando o resultado</string>
     <string name="activity_prediction_won">Resultado: %1$s</string>
     <string name="player_from_start">Desde o início</string>
+    <string name="now_live_title">%1$s está ao vivo</string>
+    <string name="now_live_hint">OK para assistir · Voltar para ficar</string>
 </resources>

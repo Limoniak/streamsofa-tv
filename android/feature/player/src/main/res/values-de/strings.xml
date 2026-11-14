@@ -73,4 +73,6 @@
     <string name="activity_prediction_locked">Vorhersagen geschlossen, Ergebnis steht aus</string>
     <string name="activity_prediction_won">Ergebnis: %1$s</string>
     <string name="player_from_start">Von Anfang an</string>
+    <string name="now_live_title">%1$s ist live</string>
+    <string name="now_live_hint">OK zum Ansehen · Zurück, um zu bleiben</string>
 </resources>

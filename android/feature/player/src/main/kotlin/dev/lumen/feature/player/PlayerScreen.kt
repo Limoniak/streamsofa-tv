@@ -188,6 +188,7 @@ internal fun PlayerScreen(
     BackHandler(enabled = listing) { listing = false }
     BackHandler(enabled = writeFocused) { rootFocus.requestFocus() }
     BackHandler(enabled = state.raid != null) { actions.cancelRaid() }
+    BackHandler(enabled = state.nowLive != null && state.raid == null) { actions.dismissNowLive() }
 
     val look = remember { actions.chatLook }
     // Sondage et prédiction relus toutes les 15 s, seulement chat affiché : aucun flux temps réel en anonyme.
@@ -241,6 +242,10 @@ internal fun PlayerScreen(
                 val ok = event.key == Key.DirectionCenter || event.key == Key.Enter || event.key == Key.NumPadEnter
                 if (ok && state.raid != null) {
                     actions.followRaid()
+                    return@onKeyEvent true
+                }
+                if (ok && state.nowLive != null) {
+                    actions.openNowLive()
                     return@onKeyEvent true
                 }
                 // Écran de fin : ◀ ▶ passent d'une suite à l'autre, ▲ ▼ zappent toujours.
@@ -313,6 +318,7 @@ internal fun PlayerScreen(
         }
 
         state.raid?.let { RaidBanner(it, Modifier.align(Alignment.TopStart)) }
+        if (state.raid == null) state.nowLive?.let { NowLiveBanner(it, Modifier.align(Alignment.TopStart)) }
 
         if (chatVisible && !inPip && look.overlay) chatColumn(Modifier.align(Alignment.CenterEnd).width(look.width).fillMaxHeight())
 
@@ -541,6 +547,33 @@ private fun WriteButton(onClick: () -> Unit, onLeave: () -> Unit, onHideChat: ()
             },
     ) {
         Text(stringResource(R.string.player_write))
+    }
+}
+
+/** Une chaîne suivie vient de lancer son live : OK pour y aller, Retour pour rester. */
+@Composable
+private fun NowLiveBanner(stream: dev.lumen.core.LiveStream, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .padding(horizontal = LumenInsets.horizontal, vertical = LumenInsets.vertical)
+            .background(Color.Black.copy(alpha = 0.8f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 20.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Avatar(stream.avatarUrl, stream.displayName, size = 40.dp)
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = stringResource(R.string.now_live_title, stream.displayName),
+                style = MaterialTheme.typography.titleMedium,
+                color = LumenColors.Accent,
+            )
+            Text(
+                text = listOf(stream.categoryName, stringResource(R.string.now_live_hint)).filter { it.isNotEmpty() }.joinToString("  ·  "),
+                style = MaterialTheme.typography.bodyMedium,
+                color = LumenColors.OnSurfaceMuted,
+            )
+        }
     }
 }
 
