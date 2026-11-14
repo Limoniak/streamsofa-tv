@@ -5,6 +5,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed
+- Live player: OK opened the chat along with the action bar on some remotes; it now only opens the action bar.
+
 ## [0.3.0] - 2026-11-14
 
 ### Added

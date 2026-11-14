@@ -10,6 +10,8 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.pressKey
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -375,5 +377,18 @@ class PlayerRemoteTest {
         state = live.copy(login = "bob", stream = stream("bob"))
         rule.waitForIdle()
         rule.onNodeWithContentDescription("Bob, Titre de bob").assertExists()
+    }
+
+    @Test
+    fun releasingOkDoesNotPressTheFirstActionButton() {
+        show(FakeActions())
+        // Comme une vraie télécommande : le relâchement arrive après l'ouverture de la barre et le déplacement du focus.
+        rule.onRoot().performKeyInput { keyDown(Key.DirectionCenter) }
+        rule.waitForIdle()
+        rule.onAllNodes(isRoot()).onFirst().performKeyInput { keyUp(Key.DirectionCenter) }
+        rule.waitForIdle()
+        // La barre est ouverte, le chat ne s'est pas affiché tout seul.
+        node(R.string.player_chat_show).assertIsFocused()
+        node(R.string.chat_connecting).assertDoesNotExist()
     }
 }

@@ -164,6 +164,11 @@ internal fun PlayerScreen(
     val inPip = rememberInPip()
     val ended = state.ended.takeIf { state.status is PlayerStatus.Failed }
     var writeFocused by remember { mutableStateOf(false) }
+    /**
+     * OK enfoncé ouvre la barre d'actions et y place le focus : son relâchement arrive ensuite sur le
+     * premier bouton (« Afficher le chat »), qui s'activerait. Ce relâchement-là est ignoré.
+     */
+    val swallowOkUp = remember { booleanArrayOf(false) }
     val canWrite = canSend && state.stream != null
 
     // Chaque changement de chaîne affiche brièvement son nom : on sait où l'on a zappé.
@@ -223,6 +228,11 @@ internal fun PlayerScreen(
             .fillMaxSize()
             .background(Color.Black)
             .onPreviewKeyEvent {
+                val ok = it.key == Key.DirectionCenter || it.key == Key.Enter || it.key == Key.NumPadEnter
+                if (it.type == KeyEventType.KeyUp && ok && swallowOkUp[0]) {
+                    swallowOkUp[0] = false
+                    return@onPreviewKeyEvent true
+                }
                 if (it.type == KeyEventType.KeyDown && overlay != Overlay.Hidden) interactions++
                 false
             }
@@ -237,7 +247,12 @@ internal fun PlayerScreen(
                 if (ended != null && (event.key == Key.DirectionLeft || event.key == Key.DirectionRight)) return@onKeyEvent false
                 when (event.key) {
                     Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> {
-                        if (state.status is PlayerStatus.Failed || state.sleeping) actions.retry() else overlay = Overlay.Actions
+                        if (state.status is PlayerStatus.Failed || state.sleeping) {
+                            actions.retry()
+                        } else {
+                            overlay = Overlay.Actions
+                            swallowOkUp[0] = true
+                        }
                         true
                     }
                     Key.DirectionUp, Key.DirectionDown -> {
