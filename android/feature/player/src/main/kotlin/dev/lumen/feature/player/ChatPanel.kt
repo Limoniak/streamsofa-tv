@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
@@ -80,17 +81,29 @@ fun ChatPanel(
     look: ChatLook = ChatLook(),
 ) {
     // Par-dessus la vidéo : fond assombri, assez transparent pour voir l'image.
+    // Le plus récent d'abord (liste inversée) ; un id en double ferait planter la liste à clés.
+    val lines = remember(chat.lines) { chat.lines.asReversed().distinctBy { it.id } }
+    val listState = rememberLazyListState()
+    // Avec des clés, Compose garderait l'ancien message en place et le nouveau arriverait sous le bord :
+    // on ramène le bas à l'écran dès la mesure suivante, sans image de retard.
+    val newest = lines.firstOrNull()?.id
+    val lastNewest = remember { arrayOf<String?>(null) }
+    if (newest != lastNewest[0]) {
+        lastNewest[0] = newest
+        listState.requestScrollToItem(0)
+    }
     Box(modifier.background(if (look.overlay) Color.Black.copy(alpha = 0.45f) else LumenColors.Background)) {
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
-            // Liste inversée : un nouveau message s'insère en bas sans gérer le défilement.
+            // Liste inversée : le plus récent en bas.
             reverseLayout = true,
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            // Sans clé : la position suit l'index 0, donc le bas. Avec des clés, Compose garderait
-            // l'ancien message à l'écran et les nouveaux arriveraient sous le bord.
-            items(chat.lines.asReversed()) { line ->
+            // Clés : à chaque lot (~10 par seconde), seules les nouvelles lignes sont composées ;
+            // les autres gardent leur texte mis en forme et leurs émotes.
+            items(lines, key = { it.id }, contentType = { if (it.system != null) 1 else 0 }) { line ->
                 ChatLine(line, mention, timestamps, look.scale)
             }
         }
