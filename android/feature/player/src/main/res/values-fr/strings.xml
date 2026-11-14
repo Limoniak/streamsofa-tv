@@ -14,7 +14,11 @@
     <string name="chat_compose_hint">Votre message</string>
     <string name="chat_send">Envoyer</string>
     <string name="player_multi">Multi-view</string>
-    <string name="multi_pick_title">Ajouter jusqu\'à %1$d chaînes</string>
+    <plurals name="multi_pick_title">
+        <item quantity="one">Ajouter jusqu\'à %1$d chaîne</item>
+        <item quantity="many">Ajouter jusqu\'à %1$d chaînes</item>
+        <item quantity="other">Ajouter jusqu\'à %1$d chaînes</item>
+    </plurals>
     <string name="multi_pick_loading">Chargement…</string>
     <string name="multi_pick_empty">Aucune autre chaîne en live.</string>
     <string name="multi_launch">Lancer (%1$d)</string>
@@ -57,8 +61,16 @@
     <string name="chat_reply_cancel">Ne plus répondre</string>
     <string name="chat_replying_to">Réponse à %1$s : %2$s</string>
     <string name="activity_poll">Sondage</string>
-    <string name="activity_poll_left">%1$d votes · encore %2$s</string>
-    <string name="activity_poll_ended">Sondage terminé · %1$d votes</string>
+    <plurals name="activity_poll_left">
+        <item quantity="one">%1$d vote · encore %2$s</item>
+        <item quantity="many">%1$d votes · encore %2$s</item>
+        <item quantity="other">%1$d votes · encore %2$s</item>
+    </plurals>
+    <plurals name="activity_poll_ended">
+        <item quantity="one">Sondage terminé · %1$d vote</item>
+        <item quantity="many">Sondage terminé · %1$d votes</item>
+        <item quantity="other">Sondage terminé · %1$d votes</item>
+    </plurals>
     <string name="activity_prediction">Prédiction</string>
     <string name="activity_prediction_open">Paris ouverts · encore %1$s</string>
     <string name="activity_prediction_locked">Paris fermés, résultat attendu</string>

@@ -50,6 +50,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Multi-view: a long press on OK opens a menu (replace or remove) instead of removing the tile at once.
 
 ### Fixed
+- Singular and plural are now right in every language: "1 vote" instead of "1 votes" in polls, "up to 1 channel" in the multi-view picker.
 - On Android 12 and later, app data (accounts, profile PINs, settings) is no longer copied to a new device during a device-to-device transfer.
 - Only the system search can query the app's search suggestions; other apps can no longer run Twitch searches through your account.
 - Multi-view: after replacing a tile, the sound no longer jumps to the first tile for a moment.

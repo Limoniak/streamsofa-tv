@@ -305,7 +305,7 @@ class PlayerRemoteTest {
         repeat(3) { press(Key.DirectionRight) }
         node(R.string.player_multi).assertIsFocused()
         press(Key.DirectionCenter)
-        node(R.string.multi_pick_title, 3).assertExists()
+        rule.onNodeWithText(rule.activity.resources.getQuantityString(R.plurals.multi_pick_title, 3, 3)).assertExists()
     }
 
     @Test

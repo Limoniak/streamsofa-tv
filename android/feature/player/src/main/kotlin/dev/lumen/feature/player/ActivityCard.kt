@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -35,9 +36,9 @@ fun ActivityCard(activity: ChannelActivity, modifier: Modifier = Modifier) {
 @Composable
 private fun PollBlock(poll: Poll) {
     val status = if (poll.active) {
-        stringResource(R.string.activity_poll_left, poll.totalVotes.toInt(), formatSeconds((poll.remainingMs / 1000u).toLong()))
+        pluralStringResource(R.plurals.activity_poll_left, poll.totalVotes.toInt(), poll.totalVotes.toInt(), formatSeconds((poll.remainingMs / 1000u).toLong()))
     } else {
-        stringResource(R.string.activity_poll_ended, poll.totalVotes.toInt())
+        pluralStringResource(R.plurals.activity_poll_ended, poll.totalVotes.toInt(), poll.totalVotes.toInt())
     }
     val best = poll.choices.maxOfOrNull { it.votes } ?: 0u
     Block(stringResource(R.string.activity_poll), poll.title, status) {

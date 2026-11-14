@@ -18,8 +18,24 @@ class TranslationsTest {
     private val root: File = generateSequence(File("").absoluteFile) { it.parentFile }
         .first { File(it, "settings.gradle.kts").exists() }
 
-    private fun strings(file: File): Map<String, String> =
-        entry.findAll(file.readText()).associate { it.groupValues[1] to it.groupValues[2] }
+    private val pluralsBlock = Regex("""<plurals name="(\w+)">(.*?)</plurals>""", RegexOption.DOT_MATCHES_ALL)
+    private val pluralItem = Regex("""<item quantity="(\w+)">(.*?)</item>""", RegexOption.DOT_MATCHES_ALL)
+
+    /**
+     * Chaînes et pluriels d'un fichier. Un pluriel compte comme `nom#forme` pour chacune de ses formes,
+     * plus `nom#other` exigé partout : les formes (one, few, many…) dépendent de la langue, pas les paramètres.
+     */
+    private fun strings(file: File): Map<String, String> {
+        val text = file.readText()
+        val plain = entry.findAll(pluralsBlock.replace(text, "")).associate { it.groupValues[1] to it.groupValues[2] }
+        val plurals = pluralsBlock.findAll(text).flatMap { block ->
+            pluralItem.findAll(block.groupValues[2]).map { "${block.groupValues[1]}#${it.groupValues[1]}" to it.groupValues[2] }
+        }.toMap()
+        return plain + plurals
+    }
+
+    /** Pour comparer les clés d'une langue à l'autre : un pluriel est présent s'il a sa forme `other`. */
+    private fun Map<String, String>.comparableKeys() = keys.filter { !it.contains('#') || it.endsWith("#other") }.toSet()
 
     private fun resDirs(): List<File> = root.walkTopDown()
         .onEnter { it.name != "build" && !it.name.startsWith(".") }
@@ -37,10 +53,12 @@ class TranslationsTest {
             for (dir in translations.sortedBy { it.name }) {
                 val where = "${res.relativeTo(root)}/${dir.name}"
                 val translated = strings(File(dir, "strings.xml"))
-                (english.keys - translated.keys).forEach { problems += "$where : clé manquante $it" }
-                (translated.keys - english.keys).forEach { problems += "$where : clé inconnue $it" }
+                (english.comparableKeys() - translated.comparableKeys()).forEach { problems += "$where : clé manquante $it" }
+                (translated.comparableKeys() - english.comparableKeys()).forEach { problems += "$where : clé inconnue $it" }
                 for ((key, value) in translated) {
-                    val expected = placeholder.findAll(english[key] ?: continue).map { it.value }.sorted().toList()
+                    // Chaque forme d'un pluriel garde les paramètres de la forme `other` anglaise.
+                    val reference = english[key] ?: english[key.substringBefore('#') + "#other"] ?: continue
+                    val expected = placeholder.findAll(reference).map { it.value }.sorted().toList()
                     val actual = placeholder.findAll(value).map { it.value }.sorted().toList()
                     if (expected != actual) problems += "$where : paramètres de $key ($actual au lieu de $expected)"
                     // Une apostrophe nue tronque la chaîne à la compilation des ressources.

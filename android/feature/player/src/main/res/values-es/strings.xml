@@ -14,7 +14,11 @@
     <string name="chat_compose_hint">Tu mensaje</string>
     <string name="chat_send">Enviar</string>
     <string name="player_multi">Multi-view</string>
-    <string name="multi_pick_title">Añade hasta %1$d canales</string>
+    <plurals name="multi_pick_title">
+        <item quantity="one">Añade hasta %1$d canal</item>
+        <item quantity="many">Añade hasta %1$d canales</item>
+        <item quantity="other">Añade hasta %1$d canales</item>
+    </plurals>
     <string name="multi_pick_loading">Cargando…</string>
     <string name="multi_pick_empty">No hay ningún otro canal en directo.</string>
     <string name="multi_launch">Iniciar (%1$d)</string>
@@ -57,8 +61,16 @@
     <string name="chat_reply_cancel">No responder</string>
     <string name="chat_replying_to">Respondiendo a %1$s: %2$s</string>
     <string name="activity_poll">Encuesta</string>
-    <string name="activity_poll_left">%1$d votos · quedan %2$s</string>
-    <string name="activity_poll_ended">Encuesta terminada · %1$d votos</string>
+    <plurals name="activity_poll_left">
+        <item quantity="one">%1$d voto · quedan %2$s</item>
+        <item quantity="many">%1$d votos · quedan %2$s</item>
+        <item quantity="other">%1$d votos · quedan %2$s</item>
+    </plurals>
+    <plurals name="activity_poll_ended">
+        <item quantity="one">Encuesta terminada · %1$d voto</item>
+        <item quantity="many">Encuesta terminada · %1$d votos</item>
+        <item quantity="other">Encuesta terminada · %1$d votos</item>
+    </plurals>
     <string name="activity_prediction">Predicción</string>
     <string name="activity_prediction_open">Predicciones abiertas · quedan %1$s</string>
     <string name="activity_prediction_locked">Predicciones cerradas, a la espera del resultado</string>

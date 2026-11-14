@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -63,7 +64,7 @@ fun MultiPicker(
                 .padding(28.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            Text(stringResource(R.string.multi_pick_title, maxExtra), style = MaterialTheme.typography.headlineSmall)
+            Text(pluralStringResource(R.plurals.multi_pick_title, maxExtra, maxExtra), style = MaterialTheme.typography.headlineSmall)
             val list = candidates
             when {
                 list == null -> Text(stringResource(R.string.multi_pick_loading), color = LumenColors.OnSurfaceMuted)

@@ -14,7 +14,10 @@
     <string name="chat_compose_hint">Your message</string>
     <string name="chat_send">Send</string>
     <string name="player_multi">Multi-view</string>
-    <string name="multi_pick_title">Add up to %1$d channels</string>
+    <plurals name="multi_pick_title">
+        <item quantity="one">Add up to %1$d channel</item>
+        <item quantity="other">Add up to %1$d channels</item>
+    </plurals>
     <string name="multi_pick_loading">Loading…</string>
     <string name="multi_pick_empty">No other channel is live.</string>
     <string name="multi_launch">Start (%1$d)</string>
@@ -57,8 +60,14 @@
     <string name="chat_reply_cancel">Don\'t reply</string>
     <string name="chat_replying_to">Replying to %1$s: %2$s</string>
     <string name="activity_poll">Poll</string>
-    <string name="activity_poll_left">%1$d votes · %2$s left</string>
-    <string name="activity_poll_ended">Poll ended · %1$d votes</string>
+    <plurals name="activity_poll_left">
+        <item quantity="one">%1$d vote · %2$s left</item>
+        <item quantity="other">%1$d votes · %2$s left</item>
+    </plurals>
+    <plurals name="activity_poll_ended">
+        <item quantity="one">Poll ended · %1$d vote</item>
+        <item quantity="other">Poll ended · %1$d votes</item>
+    </plurals>
     <string name="activity_prediction">Prediction</string>
     <string name="activity_prediction_open">Predictions open · %1$s left</string>
     <string name="activity_prediction_locked">Predictions closed, waiting for the result</string>

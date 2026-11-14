@@ -6,6 +6,7 @@ Priorités, dans l'ordre : performance, connexion Twitch fiable, multi-compte, d
 L'utilisateur parle français ; les commentaires et les messages de commit sont en français.
 L'UI suit la langue du système : anglais dans `values/strings.xml` (défaut), puis `values-fr/`, `-es/`, `-de/`, `-it/`, `-pt-rBR/` ;
 toute chaîne ajoutée l'est dans les six (`TranslationsTest` dans `:data` échoue sinon), et une langue nouvelle va aussi dans `locales_config.xml`.
+Un nombre suivi d'un mot passe par `<plurals>` (`pluralStringResource`) : `one` et `other` partout, plus `many` en fr/es/it/pt (lint l'exige).
 Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque changement visible va dans `Unreleased`).
 
 ## Architecture
