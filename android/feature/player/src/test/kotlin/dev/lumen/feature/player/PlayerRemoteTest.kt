@@ -10,6 +10,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.performKeyInput
@@ -187,9 +188,9 @@ class PlayerRemoteTest {
         press(Key.DirectionCenter)
         assertEquals(listOf("quality:720p"), actions.calls)
 
-        // ▲ remonte sur « Qualité » ; puis Mise en veille, Page de la chaîne.
+        // ▲ remonte sur « Qualité » ; puis Mise en veille, Messages du chat, Page de la chaîne.
         press(Key.DirectionUp)
-        repeat(2) { press(Key.DirectionRight) }
+        repeat(3) { press(Key.DirectionRight) }
         node(R.string.player_channel).assertIsFocused()
         press(Key.DirectionCenter)
         assertEquals("alice", openedChannel)
@@ -455,5 +456,20 @@ class PlayerRemoteTest {
         press(Key.DirectionCenter)
         node(R.string.player_sleep_end).assertExists()
         assertEquals(SLEEP_AT_END, SLEEP_OPTIONS.last())
+    }
+
+    @Test
+    fun chatBrowserOpensTheUserCard() {
+        val ann = dev.lumen.core.ChatMessage(
+            id = "m1", userId = "u1", login = "ann", displayName = "Ann", color = 0xFFFFFFFFu,
+            fragments = listOf(dev.lumen.core.ChatFragment.Text("bonjour")), action = false, system = null,
+            timestampMs = 0, badges = emptyList(), replyTo = null,
+        )
+        rule.setContent { LumenTheme { ChatBrowser(listOf(ann, ann.copy(id = "m2", fragments = listOf(dev.lumen.core.ChatFragment.Text("ça va ?"))))) {} } }
+        rule.waitForIdle()
+        rule.onAllNodes(isRoot()).onLast().performKeyInput { pressKey(Key.DirectionCenter) }
+        rule.waitForIdle()
+        rule.onNodeWithText(rule.activity.resources.getQuantityString(R.plurals.chat_user_messages, 2, 2)).assertExists()
+        rule.onNodeWithText("ça va ?").assertExists()
     }
 }

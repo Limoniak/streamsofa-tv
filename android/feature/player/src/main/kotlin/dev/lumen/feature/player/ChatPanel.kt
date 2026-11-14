@@ -120,7 +120,7 @@ fun ChatPanel(
 }
 
 @Composable
-private fun ChatLine(line: ChatMessage, mention: String?, timestamps: Boolean, scale: Float) {
+internal fun ChatLine(line: ChatMessage, mention: String?, timestamps: Boolean, scale: Float) {
     val system = line.system
     val mentioned = remember(line, mention) { mention != null && line.mentions(mention) }
     val time = if (timestamps && line.timestampMs > 0) {

@@ -8,10 +8,6 @@ Shipped changes are listed in the [changelog](CHANGELOG.md).
 ## Next up
 
 
-## Chat
-
-- [ ] 🟡 User card when selecting a message (name, badges, recent messages).
-
 ## Discover
 
 - [ ] 🟢 Reminder for a stream announced in a channel's schedule.

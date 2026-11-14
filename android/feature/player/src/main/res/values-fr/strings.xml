@@ -88,4 +88,11 @@
     <string name="room_followers_only">Followers seuls</string>
     <string name="room_followers_for">Followers depuis %1$d min</string>
     <string name="room_slow">Mode lent %1$d s</string>
+    <string name="player_chat_browse">Messages du chat</string>
+    <string name="chat_browse_empty">Pas encore de message.</string>
+    <plurals name="chat_user_messages">
+        <item quantity="one">%1$d message récent</item>
+        <item quantity="many">%1$d de messages récents</item>
+        <item quantity="other">%1$d messages récents</item>
+    </plurals>
 </resources>

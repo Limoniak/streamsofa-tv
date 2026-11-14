@@ -150,6 +150,8 @@ internal fun PlayerScreen(
     var chatVisible by rememberSaveable { mutableStateOf(actions.chatByDefault) }
     var composing by remember { mutableStateOf(false) }
     var picking by remember { mutableStateOf(false) }
+    /** Liste des messages du chat, figée à l'ouverture (fiche d'un utilisateur). */
+    var browsing by remember { mutableStateOf<List<dev.lumen.core.ChatMessage>?>(null) }
     var listing by remember { mutableStateOf(false) }
     var showStats by rememberSaveable { mutableStateOf(false) }
 
@@ -344,6 +346,14 @@ internal fun PlayerScreen(
                 },
                 onChannel = { onOpenChannel(state.login) },
                 onFromStart = state.archiveId?.let { id -> { onOpenVod(id) } },
+                onBrowseChat = if (actions.chatAllowed) {
+                    {
+                        overlay = Overlay.Hidden
+                        browsing = chat.browsable()
+                    }
+                } else {
+                    null
+                },
                 showStats = showStats,
                 onStats = { showStats = !showStats },
                 onAudioOnly = actions::toggleAudioOnly,
@@ -386,6 +396,7 @@ internal fun PlayerScreen(
             loadEmotes = actions::chatEmotes,
         )
     }
+    browsing?.let { messages -> ChatBrowser(messages, onDismiss = { browsing = null }) }
     if (picking) {
         MultiPicker(
             load = actions::multiCandidates,
@@ -398,8 +409,8 @@ internal fun PlayerScreen(
         )
     }
     // Une boîte fermée, la télécommande revient au lecteur (aux suites proposées si le live est terminé).
-    LaunchedEffect(composing, picking, listing) {
-        if (!composing && !picking && !listing) (if (ended != null) endedFocus else rootFocus).requestWhenAttached()
+    LaunchedEffect(composing, picking, listing, browsing) {
+        if (!composing && !picking && !listing && browsing == null) (if (ended != null) endedFocus else rootFocus).requestWhenAttached()
     }
 }
 
@@ -422,6 +433,8 @@ private fun InfoPanel(
     onPip: (() -> Unit)?,
     /** `null` : la chaîne n'archive pas ce live. */
     onFromStart: (() -> Unit)?,
+    /** `null` : pas de chat (profil enfants). */
+    onBrowseChat: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     var showQuality by remember(showActions) { mutableStateOf(false) }
@@ -490,6 +503,7 @@ private fun InfoPanel(
                 // Retour, depuis la rediffusion, ramène ici, au direct.
                 if (onFromStart != null) Button(onClick = onFromStart) { Text(stringResource(R.string.player_from_start)) }
                 if (onMulti != null) Button(onClick = onMulti) { Text(stringResource(R.string.player_multi)) }
+                if (onBrowseChat != null) Button(onClick = onBrowseChat) { Text(stringResource(R.string.player_chat_browse)) }
                 if (onPip != null && !state.audioOnly) Button(onClick = onPip) { Text(stringResource(R.string.player_pip)) }
                 Button(onClick = onChannel) { Text(stringResource(R.string.player_channel)) }
                 if (!state.audioOnly) {
