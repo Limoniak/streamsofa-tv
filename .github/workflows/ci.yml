@@ -123,5 +123,12 @@ jobs:
           awk -v v="${GITHUB_REF_NAME#v}" '/^## \[/{p = index($0, "[" v "]")} /^\[/{p = 0} p' CHANGELOG.md | tail -n +2 > notes.md
           if [ -s notes.md ]; then notes=(--notes-file notes.md); else notes=(--generate-notes); fi
           # Un tag avec suffixe (`v1.2.0-beta.1`) publie une pré-version, proposée seulement aux bêta-testeurs.
-          if [[ "$GITHUB_REF_NAME" == *-* ]]; then notes+=(--prerelease); fi
-          gh release create "$GITHUB_REF_NAME" dist/*.apk --title "StreamSofa ${GITHUB_REF_NAME#v}" "${notes[@]}"
+          pre=(); if [[ "$GITHUB_REF_NAME" == *-* ]]; then pre=(--prerelease); fi
+          title="StreamSofa ${GITHUB_REF_NAME#v}"
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            # Release créée à la main (site ou app GitHub, depuis un téléphone par exemple) : la CI la complète.
+            gh release upload "$GITHUB_REF_NAME" dist/*.apk --clobber
+            if [ -s notes.md ]; then gh release edit "$GITHUB_REF_NAME" --title "$title" --notes-file notes.md "${pre[@]}"; fi
+          else
+            gh release create "$GITHUB_REF_NAME" dist/*.apk --title "$title" "${notes[@]}" "${pre[@]}"
+          fi
