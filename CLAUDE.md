@@ -163,6 +163,11 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
   `expires` du JSON signé, 0 si absent) moins 1 min ; renouvelé à mi-vie (30 s à 4 min). Une relance (`retried`) en redemande un.
   Tampon du live : 1,5 s avant la première image, 3 s après une coupure (`liveLoadControl`).
 - Chat : `LazyColumn` à clés (id, doublons écartés) + `requestScrollToItem(0)` à chaque nouveau message (`ChatPanelTest`).
+- Recompositions : les écrans de lecture reçoivent le chat (et l'horloge VOD) en fournisseur `() -> T`, lu seulement par
+  `ChatPanel(chat: () -> ChatUiState)` et `VodInfo` ; un lot de messages ne recompose pas tout le lecteur.
+  Rapports du compilateur Compose : `-Plumen.composeReports` (`build/compose-reports` de chaque module).
+- Barre latérale : `ModalSideRail` (`:designsystem`, `SideRailTest`), largeur changée sans animation (celle de tv-material
+  `ModalNavigationDrawer` saccadait), entrée toujours sur l'onglet courant (`entry`, `focusProperties.onEnter`).
 - Sauvegarde : `allowBackup=false` + `data_extraction_rules.xml` (rien en cloud ni en transfert d'appareil, Android 12+).
   `SearchProvider` protégé par `readPermission` `GLOBAL_SEARCH`.
 - Rappels du planning (`reminders`, `login\tdébut`, 20 max, valables de −5 min à +12 h) : bouton sur la page chaîne hors live,

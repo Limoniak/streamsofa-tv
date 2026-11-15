@@ -105,7 +105,7 @@ class SiteScreenshots {
         }
         rule.setContent {
             LumenTheme {
-                MultiViewScreen(state, actions, onOpenSingle = {}, chat = chat, chatLook = ChatLook()) { login ->
+                MultiViewScreen(state, actions, onOpenSingle = {}, chat = { chat }, chatLook = ChatLook()) { login ->
                     frames[login]?.let { Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
                 }
             }
@@ -150,7 +150,7 @@ class SiteScreenshots {
         rule.setContent {
             LumenTheme {
                 PlayerScreen(
-                    state = state, chat = chat.copy(room = RoomModes(slowS = 3)), canSend = false, myLogin = null, actions = actions,
+                    state = state, chat = { chat.copy(room = RoomModes(slowS = 3)) }, canSend = false, myLogin = null, actions = actions,
                     onMultiView = {}, onOpenChannel = {}, onOpenVod = {},
                     video = { Image(image, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) },
                     stats = {},

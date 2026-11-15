@@ -80,7 +80,8 @@ fun HomeRoute(
 }
 
 /** Une rangée prête à afficher : ses clés de focus (dans l'ordre) et son contenu. */
-private class HomeItem(val id: String, val keys: List<String>, val content: @Composable () -> Unit)
+/** [type] : rangées de même forme, dont la composition est réutilisée au défilement vertical. */
+private class HomeItem(val id: String, val keys: List<String>, val type: String, val content: @Composable () -> Unit)
 
 /**
  * Accueil : les rangées dans l'ordre choisi (Paramètres > Accueil). Les rangées principales (suivis,
@@ -128,7 +129,7 @@ fun HomeScreen(
     var target: String? = null
     fun streamItem(id: String, title: String, section: Section<LiveStream>, prefix: String, emptyText: String? = null) {
         val keys = (section as? Section.Ready)?.items.orEmpty().map { "$prefix:${it.login}" }
-        items += HomeItem(id, keys) {
+        items += HomeItem(id, keys, "streams") {
             StreamRow(title, section, prefix, emptyText, memory, target, openStream, openChannel, onRetry)
         }
     }
@@ -138,7 +139,7 @@ fun HomeScreen(
         }
         HomeRow.ContinueWatching -> if (state.continueWatching.isNotEmpty()) {
             val videos = state.continueWatching
-            items += HomeItem("continue", videos.map { "w:${it.id}" }) {
+            items += HomeItem("continue", videos.map { "w:${it.id}" }, "videos") {
                 RowScaffold(stringResource(R.string.home_continue)) {
                     val viewsLabel = stringResource(R.string.video_views)
                     CardRow(videos, key = { it.id }) { video ->
@@ -178,7 +179,7 @@ fun HomeScreen(
                 if (hidden.isEmpty() || s !is Section.Ready) s else Section.Ready(s.items.filter { it.id !in hidden })
             }
             val keys = (section as? Section.Ready)?.items.orEmpty().map { "c:${it.id}" }
-            items += HomeItem("categories", keys) {
+            items += HomeItem("categories", keys, "categories") {
                 RowScaffold(stringResource(R.string.home_categories)) {
                     when (section) {
                         Section.Loading -> SkeletonRow { CategoryCardSkeleton() }
@@ -224,7 +225,7 @@ fun HomeScreen(
         state.reminderLive?.let { stream ->
             item(key = "reminder") { ReminderBanner(stream.displayName, { onWatchReminder(stream.login) }, onDismissReminder) }
         }
-        items.forEach { row -> item(key = row.id) { row.content() } }
+        items.forEach { row -> item(key = row.id, contentType = row.type) { row.content() } }
     }
     options?.let { category ->
         CategoryOptionsDialog(

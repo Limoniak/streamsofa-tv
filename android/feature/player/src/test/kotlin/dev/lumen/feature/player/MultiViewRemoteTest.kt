@@ -70,7 +70,7 @@ class MultiViewRemoteTest {
     private var opened: String? = null
 
     private fun show(actions: FakeMulti) {
-        rule.setContent { LumenTheme { MultiViewScreen(state, actions, onOpenSingle = { opened = it }, chat = ChatUiState()) {} } }
+        rule.setContent { LumenTheme { MultiViewScreen(state, actions, onOpenSingle = { opened = it }, chat = { ChatUiState() }) {} } }
         rule.waitForIdle()
     }
 

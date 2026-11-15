@@ -5,6 +5,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+- The side menu opens and closes instantly instead of animating its width, which dropped frames on modest TV boxes.
+- Smoother playback screens: new chat messages (about ten times a second) and the past-broadcast clock now redraw only the chat and the progress bar, not the whole player.
+- Lighter Home rows: a channel's initial is no longer drawn under its loaded avatar, and rows of the same kind reuse each other's layout while scrolling.
+
 ## [0.5.1] - 2026-11-15
 
 ### Changed

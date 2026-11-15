@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -68,10 +69,11 @@ private const val VOD_OVERLAY_TIMEOUT_MS = 4_000L
 @Composable
 fun VodPlayerRoute(viewModel: VodViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val clock by viewModel.clock.collectAsStateWithLifecycle()
-    val chat by viewModel.chat.collectAsStateWithLifecycle()
+    // Horloge (4 fois par seconde) et chat lus seulement par ceux qui les affichent, pas par tout l'écran.
+    val clock = viewModel.clock.collectAsStateWithLifecycle()
+    val chat = viewModel.chat.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onStop() }
-    VodPlayerScreen(state, clock, chat, viewModel) {
+    VodPlayerScreen(state, { clock.value }, { chat.value }, viewModel) {
         AndroidView(
             factory = { context ->
                 PlayerView(context).apply {
@@ -97,8 +99,8 @@ fun VodPlayerRoute(viewModel: VodViewModel = hiltViewModel()) {
 @Composable
 internal fun VodPlayerScreen(
     state: VodUiState,
-    clock: VodClock,
-    chat: ChatUiState,
+    clock: () -> VodClock,
+    chat: () -> ChatUiState,
     actions: VodActions,
     video: @Composable () -> Unit,
 ) {
@@ -110,8 +112,9 @@ internal fun VodPlayerScreen(
     LaunchedEffect(Unit) { rootFocus.requestWhenAttached() }
     LaunchedEffect(chatVisible) { actions.setChatVisible(chatVisible) }
     // En pause, les infos restent affichées ; sinon elles s'effacent après quelques secondes.
-    LaunchedEffect(overlay, interactions, clock.paused) {
-        if (overlay && !clock.paused) {
+    val paused by remember { derivedStateOf { clock().paused } }
+    LaunchedEffect(overlay, interactions, paused) {
+        if (overlay && !paused) {
             delay(VOD_OVERLAY_TIMEOUT_MS)
             overlay = false
         }
@@ -184,7 +187,8 @@ internal fun VodPlayerScreen(
 }
 
 @Composable
-private fun VodInfo(state: VodUiState, clock: VodClock, modifier: Modifier = Modifier) {
+private fun VodInfo(state: VodUiState, clockOf: () -> VodClock, modifier: Modifier = Modifier) {
+    val clock = clockOf()
     val video = state.video
     val durationMs = clock.durationMs.takeIf { it > 0 } ?: (video?.durationS?.toLong() ?: 0) * 1000
     Column(

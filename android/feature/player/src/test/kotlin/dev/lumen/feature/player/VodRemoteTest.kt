@@ -48,7 +48,7 @@ class VodRemoteTest {
     private var clock by mutableStateOf(VodClock(positionMs = 60_000, durationMs = 3_600_000))
 
     private fun show(actions: FakeVod) {
-        rule.setContent { LumenTheme { VodPlayerScreen(state, clock, ChatUiState(), actions) {} } }
+        rule.setContent { LumenTheme { VodPlayerScreen(state, { clock }, { ChatUiState() }, actions) {} } }
         rule.waitForIdle()
     }
 

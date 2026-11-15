@@ -69,6 +69,21 @@ fun AppSettings.chatLook() = ChatLook(
 )
 
 /**
+ * Comme [ChatPanel], le chat lu ici seulement : un nouveau lot de messages (~10 fois par seconde)
+ * recompose ce panneau, pas l'écran du lecteur qui le contient.
+ */
+@Composable
+fun ChatPanel(
+    chat: () -> ChatUiState,
+    modifier: Modifier = Modifier,
+    mention: String? = null,
+    timestamps: Boolean = false,
+    look: ChatLook = ChatLook(),
+) {
+    ChatPanel(chat(), modifier, mention, timestamps, look)
+}
+
+/**
  * Colonne de chat à droite de la vidéo ; le plus récent en bas, sans défilement manuel.
  * [mention] : login du compte actif, dont les citations sont mises en valeur.
  */

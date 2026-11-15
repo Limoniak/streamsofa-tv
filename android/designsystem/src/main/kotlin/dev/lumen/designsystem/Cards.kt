@@ -18,7 +18,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -317,17 +320,22 @@ fun Avatar(url: String, name: String, size: Dp, modifier: Modifier = Modifier) {
         modifier = modifier.size(size).clip(CircleShape).background(LumenColors.SurfaceRaised),
         contentAlignment = Alignment.Center,
     ) {
-        // L'initiale reste visible tant que l'image n'est pas chargée, ou si elle échoue.
-        Text(
-            text = name.take(1).uppercase(),
-            style = MaterialTheme.typography.labelLarge,
-            color = LumenColors.Accent,
-        )
+        // L'initiale reste visible tant que l'image n'est pas chargée, ou si elle échoue ; ensuite elle
+        // n'est plus dessinée sous l'image (un texte de moins par carte à chaque image du défilement).
+        var loaded by remember(url) { mutableStateOf(false) }
+        if (!loaded) {
+            Text(
+                text = name.take(1).uppercase(),
+                style = MaterialTheme.typography.labelLarge,
+                color = LumenColors.Accent,
+            )
+        }
         if (url.isNotEmpty()) {
             AsyncImage(
                 model = url,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
+                onSuccess = { loaded = true },
                 modifier = Modifier.size(size),
             )
         }

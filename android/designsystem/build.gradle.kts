@@ -10,6 +10,11 @@ android {
     defaultConfig {
         minSdk = 26
     }
+
+    // Barre latérale testée à la télécommande : Compose sous Robolectric, sans émulateur.
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 dependencies {
@@ -23,4 +28,9 @@ dependencies {
     implementation(libs.coil.gif)
 
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.ext.junit)
+    testImplementation(libs.compose.ui.test.junit4)
+
+    debugImplementation(libs.compose.ui.test.manifest)
 }

@@ -3,12 +3,7 @@ package dev.lumen.tv
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
@@ -18,21 +13,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
-import androidx.tv.material3.ModalNavigationDrawer
-import androidx.tv.material3.NavigationDrawerItem
-import androidx.tv.material3.NavigationDrawerItemDefaults
-import androidx.tv.material3.Text
 import dev.lumen.designsystem.LumenColors
+import dev.lumen.designsystem.ModalSideRail
+import dev.lumen.designsystem.SideRailItem
 
 enum class ShellTab(@StringRes val label: Int, @DrawableRes val icon: Int) {
     Search(R.string.nav_search, R.drawable.ic_nav_search),
@@ -42,63 +32,43 @@ enum class ShellTab(@StringRes val label: Int, @DrawableRes val icon: Int) {
     Settings(R.string.nav_settings, R.drawable.ic_nav_settings),
 }
 
-private val RailPadding = 12.dp
-
 /** Un compte doit se reconnecter : une pastille sur « Profils » le signale depuis n'importe quel onglet. */
 val LocalNeedsReauth = compositionLocalOf { false }
 
 /**
- * Barre latérale repliée en icônes ; elle s'ouvre quand le focus y entre (gauche).
- * Modale : elle s'ouvre par-dessus la page au lieu de la pousser, sinon chaque image de l'animation
- * remesure toutes les rangées (saccades sur les box modestes).
+ * Barre latérale repliée en icônes ; elle s'ouvre par-dessus la page quand le focus y entre (gauche),
+ * sans pousser ni remesurer les rangées, et sans animer sa largeur (saccades sur les box modestes).
  */
 @Composable
 fun Shell(selected: ShellTab?, onTab: (ShellTab) -> Unit, content: @Composable () -> Unit) {
     val selectedFocus = remember { FocusRequester() }
-    ModalNavigationDrawer(
+    ModalSideRail(
         modifier = Modifier.background(MaterialTheme.colorScheme.background),
-        drawerContent = {
-            Column(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .padding(RailPadding)
-                    .focusRestorer(selectedFocus),
-                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-            ) {
-                val needsReauth = LocalNeedsReauth.current
-                ShellTab.entries.forEach { tab ->
-                    val label = stringResource(tab.label)
-                    val reauth = stringResource(R.string.nav_needs_reauth)
-                    NavigationDrawerItem(
-                        selected = tab == selected,
-                        onClick = { onTab(tab) },
-                        leadingContent = {
-                            Box {
-                                Icon(painterResource(tab.icon), contentDescription = null)
-                                if (tab == ShellTab.Profiles && needsReauth) {
-                                    Box(
-                                        Modifier
-                                            .align(Alignment.TopEnd)
-                                            .size(10.dp)
-                                            .background(LumenColors.Error, CircleShape),
-                                    )
-                                }
-                            }
-                        },
-                        // Repliée, la barre n'affiche que les icônes : TalkBack lit le libellé dans les deux cas.
-                        modifier = (if (tab == selected) Modifier.focusRequester(selectedFocus) else Modifier)
-                            .semantics {
-                                contentDescription = label
-                                if (tab == ShellTab.Profiles && needsReauth) stateDescription = reauth
-                            },
-                    ) {
-                        Text(label, Modifier.clearAndSetSemantics { })
+        entry = selectedFocus.takeIf { selected != null },
+        rail = {
+            val needsReauth = LocalNeedsReauth.current
+            ShellTab.entries.forEach { tab ->
+                val label = stringResource(tab.label)
+                val reauth = stringResource(R.string.nav_needs_reauth)
+                SideRailItem(
+                    selected = tab == selected,
+                    onClick = { onTab(tab) },
+                    label = label,
+                    modifier = (if (tab == selected) Modifier.focusRequester(selectedFocus) else Modifier)
+                        .semantics { if (tab == ShellTab.Profiles && needsReauth) stateDescription = reauth },
+                ) {
+                    Icon(painterResource(tab.icon), contentDescription = null)
+                    if (tab == ShellTab.Profiles && needsReauth) {
+                        Box(
+                            Modifier
+                                .align(Alignment.TopEnd)
+                                .size(10.dp)
+                                .background(LumenColors.Error, CircleShape),
+                        )
                     }
                 }
             }
         },
-    ) {
-        // La barre modale ne réserve pas sa place : on décale la page de la largeur repliée.
-        Box(Modifier.fillMaxSize().padding(start = NavigationDrawerItemDefaults.CollapsedDrawerItemWidth + RailPadding * 2)) { content() }
-    }
+        content = content,
+    )
 }

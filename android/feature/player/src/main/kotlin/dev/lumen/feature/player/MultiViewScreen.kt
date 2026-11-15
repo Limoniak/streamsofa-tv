@@ -59,10 +59,11 @@ private const val HINT_MS = 5_000L
 @Composable
 fun MultiViewRoute(onOpenSingle: (login: String) -> Unit, viewModel: MultiViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val chat by viewModel.chat.collectAsStateWithLifecycle()
+    // Lu seulement par le panneau du chat : les lots de messages ne recomposent pas les tuiles.
+    val chat = viewModel.chat.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onStop() }
-    MultiViewScreen(state, viewModel, onOpenSingle, chat = chat, chatLook = viewModel.chatLook) { login ->
+    MultiViewScreen(state, viewModel, onOpenSingle, chat = { chat.value }, chatLook = viewModel.chatLook) { login ->
         val player = viewModel.player(login)
         if (player != null) {
             AndroidView(
@@ -92,7 +93,7 @@ internal fun MultiViewScreen(
     state: MultiUiState,
     actions: MultiActions,
     onOpenSingle: (login: String) -> Unit,
-    chat: ChatUiState = ChatUiState(),
+    chat: () -> ChatUiState = { ChatUiState() },
     chatLook: ChatLook = ChatLook(),
     video: @Composable (login: String) -> Unit,
 ) {

@@ -13,6 +13,11 @@ subprojects {
     plugins.withId("org.jetbrains.kotlin.plugin.compose") {
         extensions.configure<org.jetbrains.kotlin.compose.compiler.gradle.ComposeCompilerGradlePluginExtension> {
             stabilityConfigurationFiles.add(rootProject.layout.projectDirectory.file("compose-stability.conf"))
+            // `-Plumen.composeReports` : rapports du compilateur (composables non sautables, paramètres instables).
+            if (providers.gradleProperty("lumen.composeReports").isPresent) {
+                reportsDestination.set(layout.buildDirectory.dir("compose-reports"))
+                metricsDestination.set(layout.buildDirectory.dir("compose-reports"))
+            }
         }
     }
 }

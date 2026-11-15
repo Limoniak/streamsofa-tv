@@ -93,14 +93,15 @@ fun PlayerRoute(
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val chat by viewModel.chat.collectAsStateWithLifecycle()
+    // Le chat arrive par lots toutes les ~100 ms : seul son panneau le lit, pas tout l'écran.
+    val chat = viewModel.chat.collectAsStateWithLifecycle()
     val canSend by viewModel.canSend.collectAsStateWithLifecycle()
     val myLogin by viewModel.myLogin.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onStop() }
     PlayerScreen(
         state = state,
-        chat = chat,
+        chat = { chat.value },
         canSend = canSend,
         myLogin = myLogin,
         actions = viewModel,
@@ -136,7 +137,7 @@ fun PlayerRoute(
 @Composable
 internal fun PlayerScreen(
     state: PlayerUiState,
-    chat: ChatUiState,
+    chat: () -> ChatUiState,
     canSend: Boolean,
     myLogin: String?,
     actions: PlayerActions,
@@ -349,7 +350,7 @@ internal fun PlayerScreen(
                 onBrowseChat = if (actions.chatAllowed) {
                     {
                         overlay = Overlay.Hidden
-                        browsing = chat.browsable()
+                        browsing = chat().browsable()
                     }
                 } else {
                     null
@@ -391,7 +392,7 @@ internal fun PlayerScreen(
                 actions.sendChat(text, replyTo)
                 composing = false
             },
-            replyCandidates = { chat.replyCandidates() },
+            replyCandidates = { chat().replyCandidates() },
             onDismiss = { composing = false },
             loadEmotes = actions::chatEmotes,
         )

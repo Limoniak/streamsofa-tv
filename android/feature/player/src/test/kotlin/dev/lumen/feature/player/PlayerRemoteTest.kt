@@ -94,7 +94,7 @@ class PlayerRemoteTest {
             LumenTheme {
                 PlayerScreen(
                     state = state,
-                    chat = ChatUiState(),
+                    chat = { ChatUiState() },
                     canSend = canSend,
                     myLogin = null,
                     actions = actions,
