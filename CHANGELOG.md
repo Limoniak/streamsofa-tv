@@ -5,6 +5,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+- The side menu now opens over the page instead of pushing it aside, so moving in and out of it no longer stutters on modest TV boxes.
+
 ## [0.5.0] - 2026-11-14
 
 ### Added

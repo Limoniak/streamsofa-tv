@@ -7,3 +7,12 @@ plugins {
     alias(libs.plugins.android.test) apply false
     alias(libs.plugins.baselineprofile) apply false
 }
+
+// Sans ce fichier, Compose juge instables les types de `lumen-core` et recompose les cartes à chaque rechargement.
+subprojects {
+    plugins.withId("org.jetbrains.kotlin.plugin.compose") {
+        extensions.configure<org.jetbrains.kotlin.compose.compiler.gradle.ComposeCompilerGradlePluginExtension> {
+            stabilityConfigurationFiles.add(rootProject.layout.projectDirectory.file("compose-stability.conf"))
+        }
+    }
+}

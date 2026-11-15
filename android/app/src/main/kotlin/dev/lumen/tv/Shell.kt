@@ -28,8 +28,9 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
-import androidx.tv.material3.NavigationDrawer
+import androidx.tv.material3.ModalNavigationDrawer
 import androidx.tv.material3.NavigationDrawerItem
+import androidx.tv.material3.NavigationDrawerItemDefaults
 import androidx.tv.material3.Text
 import dev.lumen.designsystem.LumenColors
 
@@ -41,20 +42,26 @@ enum class ShellTab(@StringRes val label: Int, @DrawableRes val icon: Int) {
     Settings(R.string.nav_settings, R.drawable.ic_nav_settings),
 }
 
+private val RailPadding = 12.dp
+
 /** Un compte doit se reconnecter : une pastille sur « Profils » le signale depuis n'importe quel onglet. */
 val LocalNeedsReauth = compositionLocalOf { false }
 
-/** Barre latérale repliée en icônes ; elle s'ouvre quand le focus y entre (gauche). */
+/**
+ * Barre latérale repliée en icônes ; elle s'ouvre quand le focus y entre (gauche).
+ * Modale : elle s'ouvre par-dessus la page au lieu de la pousser, sinon chaque image de l'animation
+ * remesure toutes les rangées (saccades sur les box modestes).
+ */
 @Composable
 fun Shell(selected: ShellTab?, onTab: (ShellTab) -> Unit, content: @Composable () -> Unit) {
     val selectedFocus = remember { FocusRequester() }
-    NavigationDrawer(
+    ModalNavigationDrawer(
         modifier = Modifier.background(MaterialTheme.colorScheme.background),
         drawerContent = {
             Column(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .padding(12.dp)
+                    .padding(RailPadding)
                     .focusRestorer(selectedFocus),
                 verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
             ) {
@@ -91,6 +98,7 @@ fun Shell(selected: ShellTab?, onTab: (ShellTab) -> Unit, content: @Composable (
             }
         },
     ) {
-        Box(Modifier.fillMaxSize()) { content() }
+        // La barre modale ne réserve pas sa place : on décale la page de la largeur repliée.
+        Box(Modifier.fillMaxSize().padding(start = NavigationDrawerItemDefaults.CollapsedDrawerItemWidth + RailPadding * 2)) { content() }
     }
 }
