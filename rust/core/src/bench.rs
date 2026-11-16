@@ -79,3 +79,11 @@ impl BenchDb {
         serde_json::from_str::<HashMap<String, String>>(&body).expect("json").len()
     }
 }
+
+/// Un cœur invité dont le catalogue GQL pointe sur `gql_url` (faux serveur local) : mesure un appel
+/// complet, de la fonction exportée à la réponse décodée (tokio, hyper, reqwest, serde, SQLite).
+pub fn core_with_gql(gql_url: String, data_dir: &Path, secrets: std::sync::Arc<dyn crate::SecretStore>) -> std::sync::Arc<crate::Core> {
+    let config = crate::CoreConfig { client_id: String::new(), data_dir: data_dir.to_string_lossy().into_owned(), app_version: "bench".into() };
+    let endpoints = crate::api::Endpoints { gql: gql_url, ..Default::default() };
+    crate::Core::with_endpoints(config, secrets, endpoints).expect("cœur")
+}

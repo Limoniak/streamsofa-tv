@@ -4,6 +4,7 @@
 //! - catalogue : une page de 100 lives, Helix (compte connecté) et GQL (invité) ;
 //! - lecture : la playlist maîtresse HLS d'un live ;
 //! - base SQLite : préférences, reprise des VOD, cache des émotes ;
+//! - réseau : un appel complet du catalogue contre un serveur local (tokio, hyper, reqwest, serde) ;
 //! - démarrage : `Core::new` (client HTTP, TLS, ouverture de la base), base déjà créée.
 
 use std::fmt::Write as _;
@@ -156,5 +157,25 @@ fn startup(c: &mut Criterion) {
     c.bench_function("demarrage/core_new", |b| b.iter(|| lumen_core::Core::new(config(), std::sync::Arc::new(NoSecrets)).unwrap()));
 }
 
-criterion_group!(benches, chat, catalog, hls, store, startup);
+/// Un appel complet du catalogue invité contre un serveur local (HTTP/1.1 sans TLS) : 100 lives.
+fn network(c: &mut Criterion) {
+    use wiremock::matchers::method;
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    let rt = tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build().unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    let (_server, core) = rt.block_on(async {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .respond_with(ResponseTemplate::new(200).set_body_raw(gql_page(), "application/json"))
+            .mount(&server)
+            .await;
+        let core = lumen_core::bench::core_with_gql(format!("{}/gql", server.uri()), dir.path(), std::sync::Arc::new(NoSecrets));
+        (server, core)
+    });
+    assert_eq!(rt.block_on(core.top_streams(None)).unwrap().items.len(), 100);
+    c.bench_function("reseau/top_streams_local", |b| b.iter(|| rt.block_on(core.top_streams(None)).unwrap()));
+}
+
+criterion_group!(benches, chat, catalog, hls, store, startup, network);
 criterion_main!(benches);
