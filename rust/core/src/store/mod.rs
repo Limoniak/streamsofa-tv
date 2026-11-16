@@ -179,15 +179,19 @@ impl Db {
 
     /// Position et fin de lecture de chaque VOD déjà vue parmi `video_ids`.
     pub fn vod_progress(&self, scope: &str, video_ids: &[&str]) -> Result<HashMap<String, (u32, bool)>, CoreError> {
-        let conn = self.conn();
-        let mut stmt = conn.prepare_cached("SELECT position_s, finished FROM vod_progress WHERE scope = ?1 AND video_id = ?2")?;
-        let mut out = HashMap::new();
-        for id in video_ids {
-            if let Some(row) = stmt.query_row(params![scope, id], |r| Ok((r.get(0)?, r.get(1)?))).optional()? {
-                out.insert((*id).to_owned(), row);
-            }
+        if video_ids.is_empty() {
+            return Ok(HashMap::new());
         }
-        Ok(out)
+        // Une seule requête pour toute la page : les ids passent en tableau JSON (`json_each`),
+        // ce qui garde une requête préparée unique quel que soit leur nombre.
+        let ids = serde_json::to_string(video_ids).map_err(|e| CoreError::Internal { reason: e.to_string() })?;
+        let conn = self.conn();
+        let mut stmt = conn.prepare_cached(
+            "SELECT video_id, position_s, finished FROM vod_progress
+             WHERE scope = ?1 AND video_id IN (SELECT value FROM json_each(?2))",
+        )?;
+        let rows = stmt.query_map(params![scope, ids], |r| Ok((r.get(0)?, (r.get(1)?, r.get(2)?))))?;
+        Ok(rows.collect::<Result<_, _>>()?)
     }
 
     pub fn settings(&self, scope: &str) -> Result<HashMap<String, String>, CoreError> {
