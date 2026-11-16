@@ -8,6 +8,10 @@ license.workspace = true
 name = "lumen_core"
 crate-type = ["cdylib", "lib"]
 
+[features]
+# Ouvre `lumen_core::bench` aux benchmarks criterion ; jamais activée par le build Android.
+bench = []
+
 [dependencies]
 uniffi = { workspace = true, features = ["tokio"] }
 tokio = { version = "1", features = ["rt-multi-thread", "time", "sync", "macros", "fs", "io-util"] }
@@ -30,3 +34,9 @@ futures-util = { version = "0.3.34", default-features = false, features = ["sink
 tokio = { version = "1", features = ["rt-multi-thread", "time", "sync", "macros", "test-util"] }
 wiremock = "0.6"
 tempfile = "3"
+criterion = { version = "0.7", default-features = false, features = ["cargo_bench_support"] }
+
+[[bench]]
+name = "hot_paths"
+harness = false
+required-features = ["bench"]

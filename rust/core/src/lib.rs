@@ -5,6 +5,9 @@
 mod accounts;
 mod api;
 mod auth;
+#[cfg(feature = "bench")]
+#[doc(hidden)]
+pub mod bench;
 mod catalog;
 mod chat;
 mod emotes;

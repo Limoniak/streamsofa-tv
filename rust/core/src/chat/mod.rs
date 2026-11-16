@@ -266,3 +266,20 @@ fn rand_suffix() -> u32 {
     hasher.write_u8(0);
     hasher.finish() as u32
 }
+
+/// Pour les benchmarks : le traitement d'une trame, identique à celui de [`session`], sans la socket.
+#[cfg(feature = "bench")]
+pub(crate) fn bench_frame(decor: &Decor, frame: &str) -> Vec<ChatEvent> {
+    let mut batch = Vec::new();
+    for line in frame.split("\r\n").filter_map(parse_line) {
+        let Some(mut event) = irc::to_event(&line) else { continue };
+        if let ChatEvent::Message { message } = &mut event {
+            if decor.hides(message) {
+                continue;
+            }
+            decor.apply(message, line.tag("badges"));
+        }
+        batch.push(event);
+    }
+    batch
+}

@@ -1163,6 +1163,17 @@ fn badge_map(badges: Vec<Option<GBadge>>) -> HashMap<String, String> {
     badges.into_iter().flatten().map(|b| (format!("{}/{}", b.set_id, b.version), b.image_url)).collect()
 }
 
+/// Pour les benchmarks : décodage et conversion d'une réponse `TopStreams`, sans le réseau.
+#[cfg(feature = "bench")]
+pub(crate) fn bench_top_streams(body: &[u8]) -> usize {
+    #[derive(Deserialize)]
+    struct Data {
+        streams: Option<Connection<GStream>>,
+    }
+    let envelope: Envelope<Data> = serde_json::from_slice(body).expect("réponse GQL");
+    stream_page(envelope.data.and_then(|d| d.streams)).items.len()
+}
+
 #[cfg(test)]
 mod token_tests {
     use super::PlaybackToken;
