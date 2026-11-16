@@ -1,30 +1,38 @@
 //! Lignes IRC de Twitch (avec tags IRCv3) et leur traduction en événements de chat.
 
-use std::collections::HashMap;
+use std::borrow::Cow;
 
 use super::{ChatEvent, ChatFragment, ChatMessage, ReplyParent};
 
+/// Une ligne IRC, empruntée à la trame reçue : rien n'est copié tant qu'un champ n'est pas gardé.
 #[derive(Debug, Default, PartialEq)]
-pub struct IrcLine {
-    pub tags: HashMap<String, String>,
+pub struct IrcLine<'a> {
+    /// Tags dans l'ordre de la ligne, valeur encore échappée.
+    tags: Vec<(&'a str, &'a str)>,
     /// `nick!user@host` sans le `:` initial.
-    pub prefix: String,
-    pub command: String,
-    pub params: Vec<String>,
+    pub prefix: &'a str,
+    pub command: &'a str,
+    pub params: Vec<&'a str>,
 }
 
-impl IrcLine {
-    pub fn tag(&self, key: &str) -> &str {
-        self.tags.get(key).map(String::as_str).unwrap_or("")
+impl<'a> IrcLine<'a> {
+    /// Valeur du tag, `None` s'il est absent. Un tag répété garde sa dernière valeur.
+    pub fn tag_opt(&self, key: &str) -> Option<Cow<'a, str>> {
+        self.tags.iter().rev().find(|(k, _)| *k == key).map(|(_, value)| unescape_tag(value))
+    }
+
+    /// Valeur du tag, vide s'il est absent.
+    pub fn tag(&self, key: &str) -> Cow<'a, str> {
+        self.tag_opt(key).unwrap_or(Cow::Borrowed(""))
     }
 
     /// Dernier paramètre : le texte du message pour PRIVMSG, USERNOTICE…
-    pub fn trailing(&self) -> &str {
-        self.params.last().map(String::as_str).unwrap_or("")
+    pub fn trailing(&self) -> &'a str {
+        self.params.last().copied().unwrap_or("")
     }
 }
 
-pub fn parse_line(line: &str) -> Option<IrcLine> {
+pub fn parse_line(line: &str) -> Option<IrcLine<'_>> {
     let mut rest = line.trim_end_matches(['\r', '\n']);
     if rest.is_empty() {
         return None;
@@ -32,32 +40,33 @@ pub fn parse_line(line: &str) -> Option<IrcLine> {
     let mut out = IrcLine::default();
     if let Some(tagged) = rest.strip_prefix('@') {
         let (tags, after) = tagged.split_once(' ')?;
-        for pair in tags.split(';') {
-            let (key, value) = pair.split_once('=').unwrap_or((pair, ""));
-            out.tags.insert(key.to_owned(), unescape_tag(value));
-        }
+        out.tags = tags.split(';').map(|pair| pair.split_once('=').unwrap_or((pair, ""))).collect();
         rest = after.trim_start();
     }
     if let Some(prefixed) = rest.strip_prefix(':') {
         let (prefix, after) = prefixed.split_once(' ')?;
-        out.prefix = prefix.to_owned();
+        out.prefix = prefix;
         rest = after.trim_start();
     }
     let (command, mut params) = rest.split_once(' ').unwrap_or((rest, ""));
-    out.command = command.to_owned();
+    out.command = command;
     while !params.is_empty() {
         if let Some(trailing) = params.strip_prefix(':') {
-            out.params.push(trailing.to_owned());
+            out.params.push(trailing);
             break;
         }
         let (param, after) = params.split_once(' ').unwrap_or((params, ""));
-        out.params.push(param.to_owned());
+        out.params.push(param);
         params = after.trim_start();
     }
     Some(out)
 }
 
-fn unescape_tag(value: &str) -> String {
+/// La plupart des valeurs n'ont rien d'échappé : elles restent empruntées.
+fn unescape_tag(value: &str) -> Cow<'_, str> {
+    if !value.contains('\\') {
+        return Cow::Borrowed(value);
+    }
     let mut out = String::with_capacity(value.len());
     let mut chars = value.chars();
     while let Some(c) = chars.next() {
@@ -74,23 +83,23 @@ fn unescape_tag(value: &str) -> String {
             None => {}
         }
     }
-    out
+    Cow::Owned(out)
 }
 
 /// Traduit une ligne en événement d'interface ; `None` pour tout ce que l'écran n'affiche pas.
 pub fn to_event(line: &IrcLine) -> Option<ChatEvent> {
-    match line.command.as_str() {
+    match line.command {
         "PRIVMSG" => Some(ChatEvent::Message { message: message(line, None) }),
         // Abonnements, raids, annonces : le texte système, suivi du message éventuel.
         "USERNOTICE" => {
-            let system = line.tag("system-msg").to_owned();
+            let system = line.tag("system-msg").into_owned();
             Some(ChatEvent::Message { message: message(line, Some(system)) })
         }
         "CLEARCHAT" => match line.params.get(1) {
-            Some(_) => Some(ChatEvent::ClearUser { user_id: line.tag("target-user-id").to_owned() }),
+            Some(_) => Some(ChatEvent::ClearUser { user_id: line.tag("target-user-id").into_owned() }),
             None => Some(ChatEvent::ClearAll),
         },
-        "CLEARMSG" => Some(ChatEvent::Delete { message_id: line.tag("target-msg-id").to_owned() }),
+        "CLEARMSG" => Some(ChatEvent::Delete { message_id: line.tag("target-msg-id").into_owned() }),
         "NOTICE" => Some(ChatEvent::Notice { text: line.trailing().to_owned() }),
         _ => None,
     }
@@ -98,8 +107,8 @@ pub fn to_event(line: &IrcLine) -> Option<ChatEvent> {
 
 /// Modes du salon portés par ROOMSTATE (complet au premier, puis seulement ce qui change).
 pub fn room(line: &IrcLine) -> ChatEvent {
-    let flag = |key: &str| line.tags.get(key).map(|v| v == "1");
-    let number = |key: &str| line.tags.get(key).and_then(|v| v.parse::<i32>().ok());
+    let flag = |key: &str| line.tag_opt(key).map(|v| v == "1");
+    let number = |key: &str| line.tag_opt(key).and_then(|v| v.parse::<i32>().ok());
     ChatEvent::Room {
         emote_only: flag("emote-only"),
         slow_s: number("slow"),
@@ -109,11 +118,11 @@ pub fn room(line: &IrcLine) -> ChatEvent {
 }
 
 fn message(line: &IrcLine, system: Option<String>) -> ChatMessage {
-    let login = line.tag("login").to_owned();
+    let login = line.tag("login").into_owned();
     let login = if login.is_empty() { line.prefix.split('!').next().unwrap_or("").to_owned() } else { login };
     let display_name = match line.tag("display-name") {
-        "" => login.clone(),
-        name => name.to_owned(),
+        name if name.is_empty() => login.clone(),
+        name => name.into_owned(),
     };
     // Avec USERNOTICE le texte est facultatif (un abonnement sans message).
     let raw = if line.command == "USERNOTICE" && line.params.len() < 2 { "" } else { line.trailing() };
@@ -122,25 +131,25 @@ fn message(line: &IrcLine, system: Option<String>) -> ChatMessage {
         None => (raw, false),
     };
     ChatMessage {
-        id: line.tag("id").to_owned(),
-        user_id: line.tag("user-id").to_owned(),
-        color: readable_color(line.tag("color"), &login),
-        fragments: fragments(text, line.tag("emotes")),
+        id: line.tag("id").into_owned(),
+        user_id: line.tag("user-id").into_owned(),
+        color: readable_color(&line.tag("color"), &login),
+        fragments: fragments(text, &line.tag("emotes")),
         timestamp_ms: line.tag("tmi-sent-ts").parse().unwrap_or(0),
         system: system.filter(|s| !s.is_empty()),
         login,
         display_name,
         action,
         badges: Vec::new(),
-        reply_to: match line.tag("reply-parent-msg-id") {
-            "" => None,
-            _ => Some(ReplyParent {
+        reply_to: match line.tag_opt("reply-parent-msg-id") {
+            Some(id) if !id.is_empty() => Some(ReplyParent {
                 display_name: match line.tag("reply-parent-display-name") {
-                    "" => line.tag("reply-parent-user-login").to_owned(),
-                    name => name.to_owned(),
+                    name if name.is_empty() => line.tag("reply-parent-user-login").into_owned(),
+                    name => name.into_owned(),
                 },
-                body: line.tag("reply-parent-msg-body").to_owned(),
+                body: line.tag("reply-parent-msg-body").into_owned(),
             }),
+            _ => None,
         },
     }
 }

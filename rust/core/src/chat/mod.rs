@@ -209,7 +209,7 @@ async fn session(url: &str, tls: &Arc<rustls::ClientConfig>, channel: &str, list
                 last_seen = Instant::now();
                 // Une trame peut porter plusieurs lignes IRC.
                 for line in text.split("\r\n").filter_map(parse_line) {
-                    match line.command.as_str() {
+                    match line.command {
                         "PING" => {
                             let _ = write.send(Message::text(format!("PONG :{}", line.trailing()))).await;
                         }
@@ -232,7 +232,7 @@ async fn session(url: &str, tls: &Arc<rustls::ClientConfig>, channel: &str, list
                                 if decor.hides(message) {
                                     continue;
                                 }
-                                decor.apply(message, line.tag("badges"));
+                                decor.apply(message, &line.tag("badges"));
                             }
                             batch.push(event);
                         }
@@ -277,7 +277,7 @@ pub(crate) fn bench_frame(decor: &Decor, frame: &str) -> Vec<ChatEvent> {
             if decor.hides(message) {
                 continue;
             }
-            decor.apply(message, line.tag("badges"));
+            decor.apply(message, &line.tag("badges"));
         }
         batch.push(event);
     }
