@@ -10,10 +10,15 @@ license = "GPL-3.0-or-later"
 [workspace.dependencies]
 uniffi = "0.32"
 
-# Les .so embarqués dans l'APK : taille réduite, mais on garde l'unwinding
-# pour qu'UniFFI convertisse un panic en exception Kotlin plutôt que de tuer l'app.
+# Les .so embarqués dans l'APK. Notre code (et le décodage serde qui y est instancié) est compilé pour la
+# vitesse, les dépendances pour la taille : mesuré le 16 novembre 2026, c'est 17 à 28 % plus rapide sur le
+# chat et le catalogue que tout en "s", pour la même taille de .so (PERF_REPORT.md).
+# On garde l'unwinding pour qu'UniFFI convertisse un panic en exception Kotlin plutôt que de tuer l'app.
 [profile.release]
-opt-level = "s"
+opt-level = 3
 lto = "thin"
 codegen-units = 1
 strip = true
+
+[profile.release.package."*"]
+opt-level = "z"
