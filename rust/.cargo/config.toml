@@ -1,0 +1,5 @@
+# SQLite embarqué (rusqlite `bundled`) : on retire les modules que le cœur n'utilise pas
+# (recherche plein texte FTS3/FTS5, R-Tree, table virtuelle dbstat). JSON reste : `json_each` sert
+# à la reprise des VOD. Mesuré le 16 novembre 2026 : −269 Ko sur liblumen_core.so arm64 (−4,2 %).
+[env]
+LIBSQLITE3_FLAGS = "-USQLITE_ENABLE_FTS3 -USQLITE_ENABLE_FTS3_PARENTHESIS -USQLITE_ENABLE_FTS5 -USQLITE_ENABLE_RTREE -USQLITE_ENABLE_DBSTAT_VTAB"

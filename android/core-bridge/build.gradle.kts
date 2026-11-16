@@ -20,7 +20,7 @@ val bindingsDir = layout.buildDirectory.dir("generated/uniffi")
 val ndkDir = androidComponents.sdkComponents.sdkDirectory.map { it.dir("ndk/$pinnedNdk") }
 
 val rustSources = fileTree(rustDir) {
-    include("Cargo.toml", "Cargo.lock", "core/**", "uniffi-bindgen/**")
+    include("Cargo.toml", "Cargo.lock", ".cargo/config.toml", "core/**", "uniffi-bindgen/**")
 }
 
 val cargoNdkBuild = tasks.register<Exec>("cargoNdkBuild") {
