@@ -3,7 +3,8 @@
 //! - chat : une trame IRC de 20 messages (le rythme d'un gros salon est de 20 à 100 messages/s) ;
 //! - catalogue : une page de 100 lives, Helix (compte connecté) et GQL (invité) ;
 //! - lecture : la playlist maîtresse HLS d'un live ;
-//! - base SQLite : préférences, reprise des VOD, cache des émotes.
+//! - base SQLite : préférences, reprise des VOD, cache des émotes ;
+//! - démarrage : `Core::new` (client HTTP, TLS, ouverture de la base), base déjà créée.
 
 use std::fmt::Write as _;
 use std::hint::black_box;
@@ -129,5 +130,31 @@ fn store(c: &mut Criterion) {
     c.bench_function("base/cache_emotes_400", |b| b.iter(|| db.meta_get_map(black_box("emotes:123456789"))));
 }
 
-criterion_group!(benches, chat, catalog, hls, store);
+struct NoSecrets;
+
+impl lumen_core::SecretStore for NoSecrets {
+    fn load(&self, _key: String) -> Result<Option<Vec<u8>>, lumen_core::CoreError> {
+        Ok(None)
+    }
+    fn save(&self, _key: String, _blob: Vec<u8>) -> Result<(), lumen_core::CoreError> {
+        Ok(())
+    }
+    fn delete(&self, _key: String) -> Result<(), lumen_core::CoreError> {
+        Ok(())
+    }
+}
+
+fn startup(c: &mut Criterion) {
+    let dir = tempfile::tempdir().unwrap();
+    let config = || lumen_core::CoreConfig {
+        client_id: "abcdefghijklmnopqrstuvwxyz0123".into(),
+        data_dir: dir.path().to_string_lossy().into_owned(),
+        app_version: "0.5.1".into(),
+    };
+    // Premier appel : crée la base et joue les migrations, comme une première installation.
+    drop(lumen_core::Core::new(config(), std::sync::Arc::new(NoSecrets)).unwrap());
+    c.bench_function("demarrage/core_new", |b| b.iter(|| lumen_core::Core::new(config(), std::sync::Arc::new(NoSecrets)).unwrap()));
+}
+
+criterion_group!(benches, chat, catalog, hls, store, startup);
 criterion_main!(benches);
