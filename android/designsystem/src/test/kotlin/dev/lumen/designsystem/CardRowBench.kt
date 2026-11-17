@@ -4,6 +4,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -30,7 +33,7 @@ import org.robolectric.annotation.GraphicsMode
  * composer, mesurer et dessiner pendant 30 déplacements du focus, image par image, et le nombre de
  * recompositions de la rangée et des cartes.
  */
-@OptIn(ExperimentalTestApi::class)
+@OptIn(ExperimentalTestApi::class, ExperimentalFoundationApi::class)
 @RunWith(AndroidJUnit4::class)
 @Config(qualifiers = "w960dp-h540dp-xhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -53,7 +56,9 @@ class CardRowBench {
         rule.mainClock.autoAdvance = false
         rule.setContent {
             LumenTheme {
-                LazyRow(contentPadding = PaddingValues(48.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                val window = System.getProperty("streamsofa.bench") == "window"
+                val state = if (window) rememberLazyListState(cacheWindow = LazyLayoutCacheWindow(ahead = 500.dp, behind = 250.dp)) else rememberLazyListState()
+                LazyRow(state = state, contentPadding = PaddingValues(48.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     items(streams, key = { it.key }) { stream ->
                         SideEffect { cardCompositions++ }
                         StreamCard(stream, onClick = {}, modifier = if (stream.key == "s0") Modifier.focusRequester(first) else Modifier)
@@ -66,17 +71,24 @@ class CardRowBench {
         rule.mainClock.advanceTimeBy(1_000)
         // Échauffement de la JVM, puis mesure.
         val runs = LongArray(80)
+        val frames = ArrayList<Long>()
         for (run in runs.indices) {
             val key = if (run % 2 == 0) Key.DirectionRight else Key.DirectionLeft
             cardCompositions = 0
             val start = System.nanoTime()
             repeat(30) {
                 rule.onRoot().performKeyInput { pressKey(key) }
-                repeat(10) { rule.mainClock.advanceTimeByFrame() }
+                repeat(10) {
+                    val t = System.nanoTime()
+                    rule.mainClock.advanceTimeByFrame()
+                    if (run >= 30) frames += (System.nanoTime() - t) / 1_000
+                }
             }
             runs[run] = (System.nanoTime() - start) / 1_000
         }
         val steady = runs.drop(30).sorted()
         println("BENCH median_us=${steady[steady.size / 2]} p25_us=${steady[steady.size / 4]} min_us=${steady.first()} itemCompositions=$cardCompositions")
+        frames.sort()
+        println("BENCH frame_us median=${frames[frames.size / 2]} p95=${frames[frames.size * 95 / 100]} p99=${frames[frames.size * 99 / 100]} max=${frames.last()}")
     }
 }

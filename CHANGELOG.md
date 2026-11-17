@@ -6,7 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Changed
-- The side menu opens and closes instantly instead of animating its width, which dropped frames on modest TV boxes.
+- The side menu opens and closes instantly instead of animating its width, which dropped frames on modest TV boxes. It is a solid panel; the page dims behind it.
+- Lighter cards: each card is drawn in one graphics layer instead of four, and its focus zoom no longer rebuilds the card on every frame. The look is the same; the focus ring sits just inside the card's edge.
+- Rows prepare the next two cards (thumbnails included) before they scroll into view.
+- Channel avatars are downloaded at the size shown instead of 300×300.
 - Smoother playback screens: new chat messages (about ten times a second) and the past-broadcast clock now redraw only the chat and the progress bar, not the whole player.
 - Smaller download: the APK for 32-bit boxes is about 400 KB lighter (unused database modules removed from the native core), the 64-bit one about 280 KB.
 - Lighter Home rows: a channel's initial is no longer drawn under its loaded avatar, and rows of the same kind reuse each other's layout while scrolling.

@@ -166,8 +166,13 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
 - Recompositions : les écrans de lecture reçoivent le chat (et l'horloge VOD) en fournisseur `() -> T`, lu seulement par
   `ChatPanel(chat: () -> ChatUiState)` et `VodInfo` ; un lot de messages ne recompose pas tout le lecteur.
   Rapports du compilateur Compose : `-Plumen.composeReports` (`build/compose-reports` de chaque module).
+- Cartes : `LumenCard` maison (pas la `Card` de tv-material : 3 calques par carte et zoom relu en composition) : un seul
+  `graphicsLayer` (zoom animé + découpe), liseré de focus tracé à l'intérieur, touches comme tv-material (clic au relâchement
+  de OK, appui long à la première répétition) ; `LumenCardTest`. Avatar arrondi au décodage (`CircleCropTransformation`), à la
+  taille affichée (`sizedAvatarUrl`). Rangées : `LazyLayoutCacheWindow` (2 cartes d'avance). Banc JVM à la main :
+  `:designsystem:testDebugUnitTest --tests '*CardRowBench*' -Dstreamsofa.bench=1 --rerun`.
 - Barre latérale : `ModalSideRail` (`:designsystem`, `SideRailTest`), largeur changée sans animation (celle de tv-material
-  `ModalNavigationDrawer` saccadait), entrée toujours sur l'onglet courant (`entry`, `focusProperties.onEnter`).
+  `ModalNavigationDrawer` saccadait), entrée toujours sur l'onglet courant (`entry`, `focusProperties.onEnter`). Fond plein exigé par l'utilisateur (panneau `Surface` ouvert, jamais transparent).
 - Sauvegarde : `allowBackup=false` + `data_extraction_rules.xml` (rien en cloud ni en transfert d'appareil, Android 12+).
   `SearchProvider` protégé par `readPermission` `GLOBAL_SEARCH`.
 - Rappels du planning (`reminders`, `login\tdébut`, 20 max, valables de −5 min à +12 h) : bouton sur la page chaîne hors live,

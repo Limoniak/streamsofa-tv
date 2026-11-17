@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -330,13 +333,21 @@ private fun RowScaffold(title: String, content: @Composable () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
+private val RowCacheWindow = LazyLayoutCacheWindow(ahead = 500.dp, behind = 250.dp)
+
 /**
  * `focusRestorer` : revenir dans une rangée (haut/bas) reprend la carte quittée,
  * et non la première.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun <T> CardRow(items: List<T>, key: (T) -> Any, padded: Boolean = true, card: @Composable (T) -> Unit) {
+    // Deux cartes d'avance (une en arrière) restent composées hors de l'écran : la carte qui entre au
+    // défilement est déjà prête, vignette comprise, au lieu d'être composée pendant l'animation.
+    val state = rememberLazyListState(cacheWindow = RowCacheWindow)
     LazyRow(
+        state = state,
         modifier = Modifier.focusRestorer(),
         // [padded] = false dans une grille qui applique déjà les marges latérales.
         contentPadding = PaddingValues(horizontal = if (padded) LumenInsets.horizontal else 0.dp, vertical = 12.dp),
