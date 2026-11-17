@@ -179,6 +179,10 @@ Exceptions : `README.md`, `CHANGELOG.md` et `ROADMAP.md` sont en anglais (chaque
 - Captures du site : `SiteScreenshots` (`:feature:player`, `:feature:home`, Robolectric `GraphicsMode.NATIVE`), lancées à la main
   avec `-Dstreamsofa.shots.in=<aperçus + streams.json> -Dstreamsofa.shots.out=<dossier> --rerun` ; vidéo remplacée par l'aperçu du live,
   vrais titres de live, chat et message épinglé d'exemple (dit sur le site). Sans ces propriétés, les tests sont ignorés.
+- Performances du cœur : benchmarks criterion `cargo bench -p lumen-core --features bench --bench hot_paths` (feature `bench`,
+  jamais activée par le build Android). Profil release : notre code en `opt-level = 3`, dépendances en `"z"`, unwinding gardé
+  (UniFFI). SQLite sans FTS/R-Tree/dbstat via `rust/.cargo/config.toml` (`LIBSQLITE3_FLAGS` ; JSON gardé pour `json_each`).
+  Chiffres et pistes écartées : `PERF_BASELINE.md`, `PERF_REPORT.md`. Le cœur n'est pas un point chaud CPU ; il pèse ~67 % de l'APK.
 - Clippy : zéro remarque, `-D warnings` en CI (`ChatEvent` garde `allow(large_enum_variant)` : pas de `Box` en UniFFI).
 - Lint : zéro erreur dans tous les modules, vérifié en CI (étape « Lint Android ») ; API Media3 instable derrière
   `@OptIn(UnstableApi::class)` (`newLivePlayer`, `liveLoadControl`), textes lus au clic via `LocalResources`.
