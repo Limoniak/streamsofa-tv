@@ -1,7 +1,10 @@
 package dev.lumen.designsystem
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,27 +21,43 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.key.NativeKeyEvent
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.tv.material3.Border
-import androidx.tv.material3.Card
-import androidx.tv.material3.CardDefaults
+import androidx.compose.ui.zIndex
+import androidx.tv.material3.LocalContentColor
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
+import coil3.request.transformations
+import coil3.transform.CircleCropTransformation
 
 /** Dimensions communes : les rangées et les grilles s'alignent sur ces valeurs. */
 object LumenCardSize {
@@ -46,28 +65,24 @@ object LumenCardSize {
     val categoryWidth = 148.dp
 }
 
-private val CardShape = RoundedCornerShape(12.dp)
+private val CardCorner = 12.dp
+private val CardShape = RoundedCornerShape(CardCorner)
 private const val FIVE_MINUTES_MS = 5 * 60 * 1000L
 
+private const val FOCUSED_SCALE = 1.06f
+private val FocusBorderWidth = 3.dp
+/** Courbe et durées du zoom de focus de tv-material, pour garder le même mouvement. */
+private val ScaleEasing = CubicBezierEasing(0f, 0f, 0.2f, 1f)
+
 /**
- * Focus très visible à distance : la carte grossit, s'éclaircit et prend un liseré d'accent.
- * Le texte reste en couleur pleine (il ne s'atténue jamais au focus).
+ * Carte focalisable. Focus très visible à distance : la carte grossit, s'éclaircit et prend un liseré
+ * d'accent. Le texte reste en couleur pleine (il ne s'atténue jamais au focus).
+ *
+ * Même aspect et mêmes touches que la `Card` de tv-material, qu'elle remplace pour alléger le rendu :
+ * un seul calque graphique par carte au lieu de trois (zoom, découpe arrondie, opacité du contenu), et
+ * un zoom animé dans ce calque, sans recomposer la carte à chaque image de l'animation.
+ * Seule différence visible : le liseré de focus est tracé à l'intérieur du bord (il débordait de 1,5 dp).
  */
-@Composable
-private fun lumenCardColors() = CardDefaults.colors(
-    containerColor = LumenColors.Surface,
-    contentColor = LumenColors.OnSurface,
-    focusedContainerColor = LumenColors.SurfaceRaised,
-    focusedContentColor = LumenColors.OnSurface,
-    pressedContainerColor = LumenColors.SurfaceRaised,
-    pressedContentColor = LumenColors.OnSurface,
-)
-
-@Composable
-private fun lumenCardBorder() = CardDefaults.border(
-    focusedBorder = Border(BorderStroke(3.dp, LumenColors.Accent), shape = CardShape),
-)
-
 @Composable
 fun LumenCard(
     onClick: () -> Unit,
@@ -75,16 +90,89 @@ fun LumenCard(
     onLongClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    Card(
-        onClick = onClick,
-        onLongClick = onLongClick,
-        modifier = modifier,
-        shape = CardDefaults.shape(CardShape),
-        colors = lumenCardColors(),
-        border = lumenCardBorder(),
-        scale = CardDefaults.scale(focusedScale = 1.06f),
+    var focused by remember { mutableStateOf(false) }
+    var pressed by remember { mutableStateOf(false) }
+    // Appui long déjà servi : le relâchement de OK ne doit pas, en plus, cliquer.
+    val longClicked = remember { booleanArrayOf(false) }
+    val scale = remember { Animatable(1f) }
+    LaunchedEffect(focused, pressed) {
+        val target = if (focused && !pressed) FOCUSED_SCALE else 1f
+        if (scale.targetValue != target) {
+            val duration = if (pressed) 120 else if (focused) 300 else 500
+            scale.animateTo(target, tween(duration, easing = ScaleEasing))
+        }
+    }
+    val accent = LumenColors.Accent
+    val container = if (focused) LumenColors.SurfaceRaised else LumenColors.Surface
+
+    Box(
+        modifier = modifier
+            .onFocusChanged {
+                focused = it.isFocused
+                if (!it.isFocused) pressed = false
+            }
+            .onKeyEvent { event ->
+                val native = event.nativeKeyEvent
+                when (native.keyCode) {
+                    NativeKeyEvent.KEYCODE_DPAD_CENTER, NativeKeyEvent.KEYCODE_ENTER, NativeKeyEvent.KEYCODE_NUMPAD_ENTER -> Unit
+                    else -> return@onKeyEvent false
+                }
+                if (native.action == NativeKeyEvent.ACTION_DOWN) {
+                    if (native.repeatCount == 0) {
+                        pressed = true
+                    } else if (native.repeatCount == 1 && onLongClick != null) {
+                        longClicked[0] = true
+                        pressed = false
+                        onLongClick()
+                    }
+                } else if (native.action == NativeKeyEvent.ACTION_UP) {
+                    if (longClicked[0]) {
+                        longClicked[0] = false
+                    } else {
+                        pressed = false
+                        onClick()
+                    }
+                }
+                true
+            }
+            .focusable()
+            .semantics(mergeDescendants = true) {
+                onClick {
+                    onClick()
+                    true
+                }
+                onLongClick {
+                    onLongClick?.invoke()
+                    onLongClick != null
+                }
+            }
+            // La carte focalisée, agrandie, passe au-dessus de ses voisines.
+            .zIndex(if (focused) 0.5f else 0f)
+            .graphicsLayer {
+                val s = scale.value
+                scaleX = s
+                scaleY = s
+                shape = CardShape
+                clip = true
+            }
+            .drawWithContent {
+                drawRect(container)
+                drawContent()
+                if (focused) {
+                    val stroke = FocusBorderWidth.toPx()
+                    val radius = CardCorner.toPx() - stroke / 2
+                    drawRoundRect(
+                        color = accent,
+                        topLeft = Offset(stroke / 2, stroke / 2),
+                        size = Size(size.width - stroke, size.height - stroke),
+                        cornerRadius = CornerRadius(radius, radius),
+                        style = Stroke(stroke),
+                    )
+                }
+            },
+        propagateMinConstraints = true,
     ) {
-        content()
+        CompositionLocalProvider(LocalContentColor provides LumenColors.OnSurface) { content() }
     }
 }
 
@@ -314,10 +402,14 @@ fun CategoryCard(
     }
 }
 
+/**
+ * Avatar rond. L'image est arrondie au décodage (`CircleCropTransformation`) et le fond est un disque
+ * dessiné : pas de découpe, donc pas de calque graphique de plus par carte.
+ */
 @Composable
 fun Avatar(url: String, name: String, size: Dp, modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier.size(size).clip(CircleShape).background(LumenColors.SurfaceRaised),
+        modifier = modifier.size(size).background(LumenColors.SurfaceRaised, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         // L'initiale reste visible tant que l'image n'est pas chargée, ou si elle échoue ; ensuite elle
@@ -331,8 +423,13 @@ fun Avatar(url: String, name: String, size: Dp, modifier: Modifier = Modifier) {
             )
         }
         if (url.isNotEmpty()) {
+            val context = LocalPlatformContext.current
+            val px = with(LocalDensity.current) { size.roundToPx() }
+            val request = remember(url, px, context) {
+                ImageRequest.Builder(context).data(sizedAvatarUrl(url, px)).transformations(CircleCropTransformation()).build()
+            }
             AsyncImage(
-                model = url,
+                model = request,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 onSuccess = { loaded = true },
@@ -340,6 +437,21 @@ fun Avatar(url: String, name: String, size: Dp, modifier: Modifier = Modifier) {
             )
         }
     }
+}
+
+/** Tailles d'avatar que sert le CDN de Twitch. */
+private val AvatarSizes = intArrayOf(28, 50, 70, 150, 300, 600)
+private val AvatarSize = Regex("-profile_image-(\\d+)x\\1\\.")
+
+/**
+ * Avatar Twitch à la taille affichée : Helix renvoie toujours du 300×300, soit jusqu'à 18 fois trop de
+ * pixels à télécharger et décoder pour une pastille de 36 dp. Une adresse d'une autre forme est rendue telle quelle.
+ */
+internal fun sizedAvatarUrl(url: String, px: Int): String {
+    val match = AvatarSize.find(url) ?: return url
+    // 5 % de marge : 72 px affichés se contentent du 70×70.
+    val wanted = AvatarSizes.firstOrNull { it * 105 >= px * 100 } ?: AvatarSizes.last()
+    return url.replaceRange(match.range, "-profile_image-${wanted}x$wanted.")
 }
 
 @Composable

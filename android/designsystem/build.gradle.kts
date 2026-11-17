@@ -34,3 +34,9 @@ dependencies {
 
     debugImplementation(libs.compose.ui.test.manifest)
 }
+
+// Banc de mesure des cartes (CardRowBench) : ignoré sans `-Dstreamsofa.bench=1`.
+tasks.withType<Test>().configureEach {
+    providers.systemProperty("streamsofa.bench").orNull?.let { systemProperty("streamsofa.bench", it) }
+    testLogging.showStandardStreams = true
+}
