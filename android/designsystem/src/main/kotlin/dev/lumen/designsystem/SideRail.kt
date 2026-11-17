@@ -27,7 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -59,6 +58,7 @@ class SideRailScope internal constructor() {
  * Elle passe d'une largeur à l'autre sans animation : la largeur animée de tv-material
  * (`ModalNavigationDrawer`) faisait sauter des images sur les box modestes, chaque étape
  * remesurant la barre et redessinant le voile.
+ * La barre a toujours un fond plein : celui de la page repliée, un panneau `Surface` ouverte.
  * Le focus y entre toujours sur [entry] (l'onglet courant) s'il est fourni, sinon sur l'entrée la plus proche.
  */
 @Composable
@@ -71,13 +71,9 @@ fun ModalSideRail(
     val scope = remember { SideRailScope() }
     Box(modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().padding(start = SideRailCollapsedWidth)) { content() }
+        // Ouverte : la page s'assombrit d'un voile uni, la barre garde un fond plein (jamais transparent).
         if (scope.expanded) {
-            val background = MaterialTheme.colorScheme.background
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(Brush.horizontalGradient(0f to background, 0.45f to background.copy(alpha = 0.7f), 1f to Color.Transparent)),
-            )
+            Box(Modifier.fillMaxSize().background(LumenColors.Background.copy(alpha = 0.6f)))
         }
         Column(
             modifier = Modifier
@@ -86,6 +82,7 @@ fun ModalSideRail(
                 // `focusRestorer(entry)` ignore son repli à la première entrée : on redirige nous-mêmes.
                 .then(if (entry != null) Modifier.focusProperties { onEnter = { entry.requestFocus() } } else Modifier)
                 .focusGroup()
+                .background(if (scope.expanded) LumenColors.Surface else LumenColors.Background)
                 .padding(RailPadding),
             verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
         ) {
