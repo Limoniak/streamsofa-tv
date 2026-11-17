@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-11-17
+
 ### Changed
 - The side menu opens and closes instantly instead of animating its width, which dropped frames on modest TV boxes. It is a solid panel; the page dims behind it.
 - Lighter cards: each card is drawn in one graphics layer instead of four, and its focus zoom no longer rebuilds the card on every frame. The look is the same; the focus ring sits just inside the card's edge.
@@ -125,7 +127,8 @@ First public release.
 - Settings: chat at launch, default quality, accent color, update check at startup.
 - In-app updates from GitHub Releases, with the APK matching the device's architecture.
 
-[Unreleased]: https://github.com/Limoniak/streamsofa-tv/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/Limoniak/streamsofa-tv/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/Limoniak/streamsofa-tv/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/Limoniak/streamsofa-tv/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/Limoniak/streamsofa-tv/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Limoniak/streamsofa-tv/compare/v0.3.0...v0.4.0
